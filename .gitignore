@@ -1,0 +1,18 @@
+node_modules/
+dist/
+tsconfig.tsbuildinfo
+
+# Segredos — nunca versionar
+.env
+.env.*
+!.env.example
+
+# Dados reais: banco local, coleta do MCP, briefings e estudos gerados.
+# Contêm nomes de cliente, IDs de conta Meta e valores de investimento.
+server/data/
+
+# Logs e temporários
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
