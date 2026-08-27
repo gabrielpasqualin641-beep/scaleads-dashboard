@@ -24,14 +24,36 @@ const PORT = process.env.PORT || 3001;
 app.set('trust proxy', 1);
 
 /**
- * A interface é servida pelo mesmo processo, então requisição de navegador é
- * sempre mesma origem e não precisa de CORS. Em desenvolvimento o Vite roda em
- * outra porta, e aí a liberação é necessária.
+ * CORS.
  *
- * Manter `cors()` aberto em produção deixaria qualquer site chamar esta API
- * com o token do usuário.
+ * Mesma origem (um processo servindo interface e API) não precisa de CORS.
+ * Com front e back separados — Vercel e Render — é obrigatório, mas restrito:
+ * `cors()` aberto deixaria qualquer site chamar esta API com o token do
+ * usuário logado.
+ *
+ * Defina CORS_ORIGIN com a URL do front, ou várias separadas por vírgula.
  */
-if (process.env.NODE_ENV !== 'production') {
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map(o => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+if (allowedOrigins.length > 0) {
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // Sem Origin: chamada servidor-a-servidor (script de ingestão, curl).
+        if (!origin) return callback(null, true);
+        const normalized = origin.replace(/\/$/, '');
+        if (allowedOrigins.includes(normalized)) return callback(null, true);
+        return callback(new Error(`Origem não autorizada: ${origin}`));
+      },
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-ingest-key']
+    })
+  );
+} else if (process.env.NODE_ENV !== 'production') {
+  // Desenvolvimento sem CORS_ORIGIN: o proxy do Vite cobre o caso.
   app.use(cors());
 }
 // O snapshot do MCP traz as séries diárias de várias contas e passa dos 100 KB
@@ -105,6 +127,10 @@ app.listen(Number(PORT), '0.0.0.0', () => {
   const bootstrap = AuthService.bootstrapAdminFromEnv();
   if (bootstrap.created) {
     console.log('👤 [Auth] Administrador inicial criado a partir do .env.');
+  }
+
+  if (allowedOrigins.length > 0) {
+    console.log(`🌐 [CORS] Origens liberadas: ${allowedOrigins.join(', ')}`);
   }
 
   const auth = AuthService.configStatus();

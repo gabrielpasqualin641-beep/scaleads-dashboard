@@ -16,6 +16,22 @@ import {
 
 const TOKEN_KEY = 'scale_ads_token';
 
+/**
+ * Onde a API vive.
+ *
+ * Vazio (o padrão) usa caminho relativo: é o caso quando o mesmo processo serve
+ * interface e API, e em desenvolvimento, onde o proxy do Vite encaminha /api.
+ *
+ * Com front e back em domínios separados — Vercel e Render, por exemplo —
+ * defina VITE_API_URL na build do front com a URL pública do backend.
+ */
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
+/** Prefixa a base quando ela existe; caso contrário mantém o caminho relativo. */
+function apiUrl(path: string): string {
+  return API_BASE ? `${API_BASE}${path}` : path;
+}
+
 let unauthorizedHandler: (() => void) | null = null;
 
 /** Registra o callback disparado quando o servidor recusa a sessão (401). */
@@ -53,7 +69,7 @@ async function request<T>(path: string, init: RequestInit = {}, fallbackError = 
   if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  const res = await fetch(path, { ...init, headers });
+  const res = await fetch(apiUrl(path), { ...init, headers });
 
   if (res.status === 401) {
     setAuthToken(null);
@@ -91,7 +107,7 @@ export const api = {
   // Auth
   async login(email: string, password: string): Promise<{ user: AuthUser; token: string; expiresAt: string }> {
     // Não passa pelo `request`: o 401 aqui é credencial errada, não sessão expirada.
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch(apiUrl('/api/auth/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })

@@ -22,6 +22,7 @@ Todas obrigatórias, exceto onde indicado.
 | `AUTH_SECRET` | `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
 | `MCP_INGEST_KEY` | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `DATA_DIR` | Caminho do volume montado |
+| `CORS_ORIGIN` | URL do front, quando ele estiver em outro domínio |
 | `NODE_ENV` | `production` |
 | `ANTHROPIC_API_KEY` | Opcional — só para o estudo de estratégia |
 
@@ -29,7 +30,73 @@ Gere segredos **novos** para produção. Não reaproveite os do ambiente local.
 
 `PORT` é injetada pela plataforma; não defina manualmente.
 
-## Railway
+## Arquitetura dividida: Vercel + Render
+
+Front no Vercel, backend no Render. As duas pontas em domínios diferentes, o
+que exige URL de API configurada e CORS restrito.
+
+### 1. Backend no Render (faça primeiro — o front precisa da URL dele)
+
+1. **New → Web Service** → conecte o repositório.
+2. Runtime **Node**, Build Command `npm run build`, Start Command `npm start`.
+3. Plano **Starter** ou superior — o free não tem disco persistente.
+4. **Disks → Add Disk**, Mount Path `/var/data`.
+5. Em **Environment**, as variáveis da tabela acima com:
+   - `DATA_DIR=/var/data`
+   - `NODE_ENV=production`
+   - `CORS_ORIGIN` — deixe vazio por enquanto; você preenche no passo 3.
+6. Anote a URL gerada, algo como `https://scaleads-api.onrender.com`.
+
+### 2. Front no Vercel
+
+1. **Add New → Project** → importe o repositório.
+2. O `vercel.json` já define build e diretório de saída. Não altere.
+3. Em **Environment Variables**, adicione:
+   - `VITE_API_URL` = a URL do Render, sem barra no final
+4. Deploy. Anote a URL, algo como `https://scaleads.vercel.app`.
+
+> `VITE_API_URL` é embutida no bundle **em tempo de build**. Mudou a URL do
+> backend? É preciso refazer o deploy do front, não basta editar a variável.
+
+### 3. Ligue as duas pontas
+
+Volte ao Render e defina `CORS_ORIGIN` com a URL do Vercel:
+
+```
+CORS_ORIGIN=https://scaleads.vercel.app
+```
+
+Mais de uma origem (domínio próprio, previews) separa por vírgula. O serviço
+reinicia sozinho. No log deve aparecer:
+
+```
+🌐 [CORS] Origens liberadas: https://scaleads.vercel.app
+```
+
+### Por que o CORS é restrito
+
+Uma API que responde `Access-Control-Allow-Origin: *` permite que qualquer site
+faça requisições em nome de quem estiver logado. Com `CORS_ORIGIN`, só o
+domínio do seu front recebe resposta legível.
+
+Chamadas sem cabeçalho `Origin` — o script de ingestão, `curl` — continuam
+passando: não vêm de navegador e não estão sujeitas à mesma política.
+
+### Coleta do MCP na arquitetura dividida
+
+`DASHBOARD_URL` no `.env` local aponta para o **Render**, não para o Vercel — a
+ingestão fala com a API.
+
+```bash
+DASHBOARD_URL=https://scaleads-api.onrender.com
+```
+
+---
+
+## Alternativa: tudo junto no Railway
+
+Um processo servindo interface e API na mesma origem. Um deploy, uma URL, sem
+CORS e sem variável de build.
 
 1. **New Project → Deploy from GitHub repo** → selecione `scaleads-dashboard`.
 2. Em **Settings → Build**:

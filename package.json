@@ -12,7 +12,8 @@
     "auth:hash": "tsx server/scripts/hashPassword.ts",
     "preview": "vite preview",
     "start": "tsx server/index.ts",
-    "dev:full": "npm run build && tsx server/index.ts"
+    "dev:full": "npm run build && tsx server/index.ts",
+    "build:client": "vite build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.121.0",
