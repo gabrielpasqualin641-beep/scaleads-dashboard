@@ -25,11 +25,19 @@ const TOKEN_KEY = 'scale_ads_token';
  * Com front e back em domínios separados — Vercel e Render, por exemplo —
  * defina VITE_API_URL na build do front com a URL pública do backend.
  */
-const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const DEFAULT_PRODUCTION_API = 'https://scaleads-dashboard.onrender.com';
+const API_BASE = (import.meta.env.VITE_API_URL || (import.meta.env.PROD ? DEFAULT_PRODUCTION_API : '')).replace(/\/$/, '');
 
 /** Prefixa a base quando ela existe; caso contrário mantém o caminho relativo. */
 function apiUrl(path: string): string {
   return API_BASE ? `${API_BASE}${path}` : path;
+}
+
+function apiConnectionError(): Error {
+  if (import.meta.env.PROD && !API_BASE) {
+    return new Error('API não configurada no frontend. Defina VITE_API_URL no Vercel e faça um novo deploy.');
+  }
+  return new Error('Não foi possível conectar à API. Verifique se o backend do Render está disponível.');
 }
 
 let unauthorizedHandler: (() => void) | null = null;
@@ -107,11 +115,18 @@ export const api = {
   // Auth
   async login(email: string, password: string): Promise<{ user: AuthUser; token: string; expiresAt: string }> {
     // Não passa pelo `request`: o 401 aqui é credencial errada, não sessão expirada.
-    const res = await fetch(apiUrl('/api/auth/login'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
+    if (import.meta.env.PROD && !API_BASE) throw apiConnectionError();
+
+    let res: Response;
+    try {
+      res = await fetch(apiUrl('/api/auth/login'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+    } catch {
+      throw apiConnectionError();
+    }
     const json = await res.json().catch(() => null);
     if (!json?.success) throw new Error(json?.error || 'Não foi possível entrar.');
     return json.data;
