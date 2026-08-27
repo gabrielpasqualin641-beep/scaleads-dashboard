@@ -274,9 +274,16 @@ export const GeneralDashboard: React.FC = () => {
         }}
       >
         {isDemoData(data.dataSource) ? '⚠' : '●'} {DATA_SOURCE_LABEL[data.dataSource]}
+        {/*
+          Sem dados, a causa importa: nunca houve coleta neste servidor, ou
+          houve e as contas não veicularam. Dizer "sem veiculação" no primeiro
+          caso faz o usuário achar que as campanhas não rodaram.
+        */}
         {!isDemoData(data.dataSource) && data.dailyTrends.length === 0 && (
           <span style={{ fontWeight: 500 }}>
-            &middot; sem veiculação nas contas deste cliente no período selecionado
+            {data.snapshotFreshness === null
+              ? ' · nenhuma coleta do MCP foi enviada para este servidor ainda'
+              : ' · sem veiculação nas contas deste cliente no período selecionado'}
           </span>
         )}
         {data.snapshotFreshness && (
