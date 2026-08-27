@@ -10,6 +10,7 @@
     "build": "tsc -b && vite build",
     "server:start": "tsx server/index.ts",
     "auth:hash": "tsx server/scripts/hashPassword.ts",
+    "auth:reset": "tsx server/scripts/resetPassword.ts",
     "preview": "vite preview",
     "start": "tsx server/index.ts",
     "dev:full": "npm run build && tsx server/index.ts",
