@@ -30,6 +30,15 @@ Gere segredos **novos** para produção. Não reaproveite os do ambiente local.
 
 `PORT` é injetada pela plataforma; não defina manualmente.
 
+> **Build Command precisa incluir as devDependencies.** `typescript` e `vite`
+> vivem em `devDependencies`, e com `NODE_ENV=production` o npm as pula — o
+> build falha com `vite: not found`. Use:
+>
+> ```
+> npm install --include=dev && npm run build
+> ```
+
+
 ## Arquitetura dividida: Vercel + Render
 
 Front no Vercel, backend no Render. As duas pontas em domínios diferentes, o
@@ -38,7 +47,10 @@ que exige URL de API configurada e CORS restrito.
 ### 1. Backend no Render (faça primeiro — o front precisa da URL dele)
 
 1. **New → Web Service** → conecte o repositório.
-2. Runtime **Node**, Build Command `npm run build`, Start Command `npm start`.
+2. Runtime **Node**, Start Command `npm start`, e Build Command:
+   ```
+   npm install --include=dev && npm run build
+   ```
 3. Plano **Starter** ou superior — o free não tem disco persistente.
 4. **Disks → Add Disk**, Mount Path `/var/data`.
 5. Em **Environment**, as variáveis da tabela acima com:
@@ -109,7 +121,10 @@ CORS e sem variável de build.
 ## Render
 
 1. **New → Web Service** → conecte o repositório.
-2. Runtime **Node**, Build Command `npm run build`, Start Command `npm start`.
+2. Runtime **Node**, Start Command `npm start`, e Build Command:
+   ```
+   npm install --include=dev && npm run build
+   ```
 3. Plano **Starter** ou superior — o plano free não tem disco persistente.
 4. **Disks → Add Disk**, Mount Path `/var/data`.
 5. Em **Environment**, as variáveis acima com `DATA_DIR=/var/data`.
