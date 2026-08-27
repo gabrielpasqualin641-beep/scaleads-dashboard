@@ -12,7 +12,7 @@ import { usersRouter } from './routes/users.routes.js';
 import { analysisRouter } from './routes/analysis.routes.js';
 import { requireAuth } from './middleware/requireAuth.js';
 import { AuthService } from './services/AuthService.js';
-import { DATA_DIR } from './config/paths.js';
+import { DATA_DIR, DATA_DIR_IS_EPHEMERAL, DATA_DIR_WARNING } from './config/paths.js';
 
 dotenv.config();
 
@@ -123,6 +123,9 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`🚀 [Server] Backend rodando na porta ${PORT}`);
   console.log(`📁 [Dados] ${DATA_DIR}`);
+  if (DATA_DIR_IS_EPHEMERAL) {
+    console.warn(`⚠️  [Dados] ${DATA_DIR_WARNING}`);
+  }
   // Primeiro boot: cria o admin inicial a partir do .env.
   const bootstrap = AuthService.bootstrapAdminFromEnv();
   if (bootstrap.created) {
