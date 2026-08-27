@@ -59,9 +59,13 @@ PORT=3001
 ## Executando
 
 ```bash
-npm run dev     # desenvolvimento: API na 3001, Vite na 5173
-npm start       # produção: build + processo único na 3001 servindo tudo
+npm run dev       # desenvolvimento: API na 3001, Vite na 5173
+npm run dev:full  # build + processo único na 3001, servindo API e interface
+npm start         # produção: só o servidor (o build já deve existir)
 ```
+
+Para hospedar, veja [`docs/deploy.md`](docs/deploy.md). O painel guarda dados em
+arquivo, então precisa de disco persistente — Railway ou Render, não Vercel.
 
 No primeiro boot o administrador é criado a partir do `.env`. Depois disso o
 `.env` deixa de ser consultado no login — os usuários vivem no banco.

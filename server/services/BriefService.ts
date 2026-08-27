@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { ProjectBrief } from '../models/types.js';
+import { dataFile, ensureDataDir } from '../config/paths.js';
 
-const DATA_DIR = path.resolve(process.cwd(), 'server/data');
-const FILE = path.join(DATA_DIR, 'briefs.json');
+const FILE = dataFile('briefs.json');
 
 /**
  * Briefings de projeto, um por cliente.
@@ -22,7 +22,7 @@ export class BriefService {
   }
 
   private static save(all: Record<string, ProjectBrief>): void {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    ensureDataDir();
     fs.writeFileSync(FILE, JSON.stringify(all, null, 2), 'utf-8');
   }
 

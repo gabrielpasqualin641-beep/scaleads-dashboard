@@ -12,14 +12,28 @@ import { usersRouter } from './routes/users.routes.js';
 import { analysisRouter } from './routes/analysis.routes.js';
 import { requireAuth } from './middleware/requireAuth.js';
 import { AuthService } from './services/AuthService.js';
+import { DATA_DIR } from './config/paths.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middlewares
-app.use(cors());
+// Atrás do proxy da plataforma de hospedagem: faz o Express enxergar o IP e o
+// protocolo originais em vez dos do balanceador.
+app.set('trust proxy', 1);
+
+/**
+ * A interface é servida pelo mesmo processo, então requisição de navegador é
+ * sempre mesma origem e não precisa de CORS. Em desenvolvimento o Vite roda em
+ * outra porta, e aí a liberação é necessária.
+ *
+ * Manter `cors()` aberto em produção deixaria qualquer site chamar esta API
+ * com o token do usuário.
+ */
+if (process.env.NODE_ENV !== 'production') {
+  app.use(cors());
+}
 // O snapshot do MCP traz as séries diárias de várias contas e passa dos 100 KB
 // que o Express aceita por padrão.
 app.use(express.json({ limit: '25mb' }));
@@ -84,8 +98,9 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 [Server] Backend rodando com sucesso em http://localhost:${PORT}`);
+app.listen(Number(PORT), '0.0.0.0', () => {
+  console.log(`🚀 [Server] Backend rodando na porta ${PORT}`);
+  console.log(`📁 [Dados] ${DATA_DIR}`);
   // Primeiro boot: cria o admin inicial a partir do .env.
   const bootstrap = AuthService.bootstrapAdminFromEnv();
   if (bootstrap.created) {

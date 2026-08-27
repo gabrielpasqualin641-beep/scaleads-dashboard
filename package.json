@@ -11,7 +11,8 @@
     "server:start": "tsx server/index.ts",
     "auth:hash": "tsx server/scripts/hashPassword.ts",
     "preview": "vite preview",
-    "start": "npm run build && tsx server/index.ts"
+    "start": "tsx server/index.ts",
+    "dev:full": "npm run build && tsx server/index.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.121.0",
@@ -22,7 +23,8 @@
     "express": "^4.21.2",
     "lucide-react": "^0.475.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "tsx": "^4.19.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
@@ -32,8 +34,10 @@
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.1.2",
-    "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vite": "^6.1.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import Anthropic from '@anthropic-ai/sdk';
 import { ProjectBrief, NormalizedMetrics } from '../models/types.js';
+import { dataFile, ensureDataDir } from '../config/paths.js';
 
 /**
  * Estudo de estratégia de mídia, gerado pela API da Claude com busca web.
@@ -11,8 +12,7 @@ import { ProjectBrief, NormalizedMetrics } from '../models/types.js';
  * a interface o rotula como gerado por IA. Nunca entra nas telas de dados.
  */
 
-const DATA_DIR = path.resolve(process.cwd(), 'server/data');
-const FILE = path.join(DATA_DIR, 'research.json');
+const FILE = dataFile('research.json');
 
 const MODEL = 'claude-opus-5';
 
@@ -115,7 +115,7 @@ function loadAll(): Record<string, ResearchStudy> {
 }
 
 function saveAll(all: Record<string, ResearchStudy>): void {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  ensureDataDir();
   fs.writeFileSync(FILE, JSON.stringify(all, null, 2), 'utf-8');
 }
 

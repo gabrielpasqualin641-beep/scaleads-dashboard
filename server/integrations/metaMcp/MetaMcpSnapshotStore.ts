@@ -2,11 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { MetaMcpSnapshot, McpAccountSnapshot, McpDailyRow, EMPTY_SNAPSHOT } from './types.js';
+import { dataFile, ensureDataDir } from '../../config/paths.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DATA_DIR = path.resolve(__dirname, '../../data');
-const SNAPSHOT_FILE = path.resolve(DATA_DIR, 'meta-mcp-snapshot.json');
+const SNAPSHOT_FILE = dataFile('meta-mcp-snapshot.json');
 
 /** Aceita tanto o id numérico quanto o formato `act_<id>` usado pelo Graph. */
 export function normalizeAccountId(externalAccountId: string): string {
@@ -33,9 +33,7 @@ class MetaMcpSnapshotStore {
   }
 
   public save(snapshot: MetaMcpSnapshot): void {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
+    ensureDataDir();
     fs.writeFileSync(SNAPSHOT_FILE, JSON.stringify(snapshot, null, 2), 'utf-8');
     this.snapshot = snapshot;
   }

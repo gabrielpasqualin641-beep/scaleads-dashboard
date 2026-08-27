@@ -38,8 +38,9 @@ if (!key) {
   process.exit(1);
 }
 
-const port = readEnv('PORT') || '3001';
-const url = `http://localhost:${port}/api/meta-mcp/snapshot`;
+// Hospedado, aponte DASHBOARD_URL para a URL pública do painel.
+const base = (readEnv('DASHBOARD_URL') || `http://localhost:${readEnv('PORT') || '3001'}`).replace(/\/$/, '');
+const url = `${base}/api/meta-mcp/snapshot`;
 
 let payload;
 try {
@@ -71,6 +72,6 @@ try {
   }
 } catch (err) {
   console.error(`Não foi possível falar com o backend em ${url}: ${err.message}`);
-  console.error('O servidor precisa estar rodando (npm run dev).');
+  console.error('Verifique se o servidor está no ar e se DASHBOARD_URL aponta para ele.');
   process.exit(1);
 }

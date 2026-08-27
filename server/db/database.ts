@@ -2,11 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Client, AdAccount, User } from '../models/types.js';
+import { dataFile, ensureDataDir } from '../config/paths.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DATA_DIR = path.resolve(__dirname, '../data');
-const DB_FILE = path.resolve(DATA_DIR, 'store.json');
+const DB_FILE = dataFile('store.json');
 
 export interface SyncLog {
   id: string;
@@ -154,9 +154,7 @@ class Database {
   }
 
   private ensureDataDir() {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
+    ensureDataDir();
   }
 
   private loadData(): DatabaseSchema {
