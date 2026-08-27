@@ -10,15 +10,31 @@ const graphProvider = new MetaAdsProvider();
 const mockProvider = new MockMetaProvider();
 
 /**
+ * Uma conta é real quando carrega identidade da Meta: `businessId` só é
+ * preenchido a partir do catálogo verdadeiro, nunca em conta de demonstração.
+ *
+ * Isso é propriedade da conta, não do snapshot. Antes a verificação dependia de
+ * o snapshot estar carregado — e num ambiente recém-implantado, sem coleta
+ * ainda, toda conta real virava "desconhecida" e caía no mock, exibindo números
+ * inventados sob o nome de um cliente de verdade.
+ */
+function isRealMetaAccount(account: Pick<AdAccount, 'externalAccountId' | 'platform' | 'businessId'>): boolean {
+  return account.platform === 'meta_ads' && !!account.businessId;
+}
+
+/**
  * Precedência: MCP > Graph API com token > mock.
  *
- * Uma conta que existe no catálogo real do MCP sempre usa o provider do MCP,
- * mesmo sem dados coletados no período: nesse caso ela reporta N/D, que é a
- * verdade. Cair no mock aqui produziria números inventados para uma conta real.
+ * Conta real sempre usa o provider do MCP, mesmo sem dados coletados: aí ela
+ * reporta N/D, que é a verdade. O mock existe apenas para contas de
+ * demonstração — as que não têm identidade da Meta.
  */
-export function resolveDataSource(account: Pick<AdAccount, 'externalAccountId' | 'accessTokenRef'>): DataSource {
+export function resolveDataSource(
+  account: Pick<AdAccount, 'externalAccountId' | 'accessTokenRef' | 'platform' | 'businessId'>
+): DataSource {
   if (metaMcpSnapshotStore.isKnownAccount(account.externalAccountId)) return 'meta_mcp';
   if (account.accessTokenRef && process.env[account.accessTokenRef]) return 'meta_graph';
+  if (isRealMetaAccount(account)) return 'meta_mcp';
   return 'mock';
 }
 
@@ -29,7 +45,7 @@ export function providerFor(source: DataSource): AdvertisingProvider {
 }
 
 export function resolveProvider(
-  account: Pick<AdAccount, 'externalAccountId' | 'accessTokenRef'>
+  account: Pick<AdAccount, 'externalAccountId' | 'accessTokenRef' | 'platform' | 'businessId'>
 ): { provider: AdvertisingProvider; source: DataSource } {
   const source = resolveDataSource(account);
   return { provider: providerFor(source), source };
