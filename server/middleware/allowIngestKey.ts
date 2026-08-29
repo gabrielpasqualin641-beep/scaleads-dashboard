@@ -30,18 +30,21 @@ export function hasValidIngestKey(req: Request): boolean {
 }
 
 /**
- * Libera a chave de ingestão apenas no método e caminho informados; qualquer
- * outra rota continua exigindo sessão. Sem esse recorte a chave viraria um
- * acesso geral à integração.
+ * Libera a chave de ingestão apenas nas rotas informadas; qualquer outra
+ * continua exigindo sessão. Sem esse recorte a chave viraria um acesso geral
+ * à integração.
+ *
+ * `GET /status` entra na lista porque é metadado da coleta — nomes de conta e
+ * contagem de linhas — e é o que permite diagnosticar um ambiente hospedado
+ * sem precisar da senha de ninguém. Nenhuma métrica de cliente passa por ela.
  */
 export function allowIngestKeyOn(
-  method: string,
-  path: string,
+  routes: Array<{ method: string; path: string }>,
   fallback: (req: Request, res: Response, next: NextFunction) => void
 ) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const isIngestRoute = req.method === method && req.path === path;
-    if (isIngestRoute && hasValidIngestKey(req)) return next();
+    const permitida = routes.some(r => req.method === r.method && req.path === r.path);
+    if (permitida && hasValidIngestKey(req)) return next();
     return fallback(req, res, next);
   };
 }

@@ -12,8 +12,12 @@ export const metaMcpRouter = Router();
 // vincular conta a cliente fica restrito a administradores. A exceção é
 // POST /snapshot, que também aceita a chave de ingestão da coleta automática.
 metaMcpRouter.use(
-  allowIngestKeyOn('POST', '/snapshot', (req, res, next) =>
-    requireAuth(req, res, () => requireRole('editor')(req, res, next))
+  allowIngestKeyOn(
+    [
+      { method: 'POST', path: '/snapshot' },
+      { method: 'GET', path: '/status' }
+    ],
+    (req, res, next) => requireAuth(req, res, () => requireRole('editor')(req, res, next))
   )
 );
 
