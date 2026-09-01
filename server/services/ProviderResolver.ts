@@ -3,11 +3,14 @@ import { AdvertisingProvider } from '../providers/AdvertisingProvider.js';
 import { McpMetaAdsProvider } from '../providers/McpMetaAdsProvider.js';
 import { MetaAdsProvider } from '../providers/MetaAdsProvider.js';
 import { MockMetaProvider } from '../providers/MockMetaProvider.js';
+import { SheetsAdsProvider } from '../providers/SheetsAdsProvider.js';
 import { metaMcpSnapshotStore } from '../integrations/metaMcp/MetaMcpSnapshotStore.js';
+import { sheetsSnapshotStore } from '../integrations/sheets/SheetsSnapshotStore.js';
 
 const mcpProvider = new McpMetaAdsProvider();
 const graphProvider = new MetaAdsProvider();
 const mockProvider = new MockMetaProvider();
+const sheetsProvider = new SheetsAdsProvider();
 
 /**
  * Uma conta é real quando carrega identidade da Meta: `businessId` só é
@@ -23,15 +26,18 @@ function isRealMetaAccount(account: Pick<AdAccount, 'externalAccountId' | 'platf
 }
 
 /**
- * Precedência: MCP > Graph API com token > mock.
+ * Precedência: planilha configurada explicitamente > MCP > Graph API com token > mock.
  *
- * Conta real sempre usa o provider do MCP, mesmo sem dados coletados: aí ela
- * reporta N/D, que é a verdade. O mock existe apenas para contas de
- * demonstração — as que não têm identidade da Meta.
+ * Uma conta com planilha (`sheetsUrl`) foi apontada manualmente para essa
+ * origem — é uma escolha explícita, então vence qualquer detecção automática.
+ * Conta real sem planilha sempre usa o provider do MCP, mesmo sem dados
+ * coletados: aí ela reporta N/D, que é a verdade. O mock existe apenas para
+ * contas de demonstração — as que não têm identidade da Meta.
  */
 export function resolveDataSource(
   account: Pick<AdAccount, 'externalAccountId' | 'accessTokenRef' | 'platform' | 'businessId'>
 ): DataSource {
+  if (sheetsSnapshotStore.isKnownAccount(account.externalAccountId)) return 'sheets';
   if (metaMcpSnapshotStore.isKnownAccount(account.externalAccountId)) return 'meta_mcp';
   if (account.accessTokenRef && process.env[account.accessTokenRef]) return 'meta_graph';
   if (isRealMetaAccount(account)) return 'meta_mcp';
@@ -39,6 +45,7 @@ export function resolveDataSource(
 }
 
 export function providerFor(source: DataSource): AdvertisingProvider {
+  if (source === 'sheets') return sheetsProvider;
   if (source === 'meta_mcp') return mcpProvider;
   if (source === 'meta_graph') return graphProvider;
   return mockProvider;
@@ -55,6 +62,7 @@ export function resolveProvider(
 export function combineDataSources(sources: DataSource[]): DataSource {
   if (sources.length === 0) return 'mock';
   if (sources.includes('mock')) return 'mock';
+  if (sources.includes('sheets')) return 'sheets';
   return sources.includes('meta_mcp') ? 'meta_mcp' : 'meta_graph';
 }
 

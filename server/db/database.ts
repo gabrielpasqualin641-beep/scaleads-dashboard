@@ -223,12 +223,20 @@ class Database {
   }
 
   // --- Accounts ---
+  public getAllAccounts(): AdAccount[] {
+    return this.data.accounts;
+  }
+
   public getAccountsByClient(clientId: string): AdAccount[] {
     return this.data.accounts.filter(a => a.clientId === clientId);
   }
 
   public getAccountById(id: string): AdAccount | undefined {
     return this.data.accounts.find(a => a.id === id);
+  }
+
+  public getAccountByExternalId(externalAccountId: string): AdAccount | undefined {
+    return this.data.accounts.find(a => a.externalAccountId === externalAccountId);
   }
 
   public createAccount(account: Omit<AdAccount, 'id' | 'createdAt' | 'updatedAt'>): AdAccount {

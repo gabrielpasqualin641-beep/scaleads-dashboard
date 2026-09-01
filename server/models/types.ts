@@ -3,7 +3,7 @@ export type AccountStatus = 'active' | 'paused' | 'archived' | 'error' | 'token_
 export type EntityStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED' | 'IN_PROCESS' | 'WITH_ISSUES' | 'UNKNOWN';
 
 /** Origem efetiva dos números exibidos. `mock` obriga o aviso de demonstração na interface. */
-export type DataSource = 'meta_mcp' | 'meta_graph' | 'mock';
+export type DataSource = 'meta_mcp' | 'meta_graph' | 'sheets' | 'mock';
 
 export type MetricName =
   | 'spend' | 'impressions' | 'reach' | 'frequency' | 'clicks' | 'ctr' | 'cpc' | 'cpm'
@@ -164,6 +164,12 @@ export interface AdAccount {
   mcpEnabled?: boolean;
   mcpQueryable?: boolean;
   mcpUnavailableReason?: string;
+  /**
+   * Link da planilha do Google Sheets (Adveronix ou similar) que alimenta esta
+   * conta. Quando presente, a origem `sheets` tem precedência sobre o MCP —
+   * é uma escolha explícita de qual coleta é a fonte de verdade para a conta.
+   */
+  sheetsUrl?: string;
 }
 
 export interface NormalizedMetrics {

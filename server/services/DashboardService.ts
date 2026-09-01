@@ -13,15 +13,17 @@ import {
   SnapshotFreshness
 } from '../models/types.js';
 import { NormalizerService, RawMetricInput } from './NormalizerService.js';
-import { resolveProvider, combineDataSources, mockProvider } from './ProviderResolver.js';
+import { resolveProvider, resolveDataSource, combineDataSources, mockProvider } from './ProviderResolver.js';
 import { metaMcpSnapshotStore } from '../integrations/metaMcp/MetaMcpSnapshotStore.js';
+import { sheetsSnapshotStore } from '../integrations/sheets/SheetsSnapshotStore.js';
 
 /** Acima disso o snapshot é considerado velho o bastante para avisar. */
 const STALE_AFTER_DAYS = 7;
 
 export class DashboardService {
   /**
-   * Idade e cobertura da coleta do MCP para as contas em questão.
+   * Idade e cobertura da coleta (MCP ou planilha, conforme a origem resolvida
+   * de cada conta) para as contas em questão.
    *
    * Sem isso o painel apresenta dado de semanas atrás com a mesma cara de dado
    * fresco. Usa a coleta mais antiga entre as contas, que é o pior caso.
@@ -31,7 +33,12 @@ export class DashboardService {
     period: PeriodSelection
   ): SnapshotFreshness | null {
     const snapshots = accounts
-      .map(acc => metaMcpSnapshotStore.getAccount(acc.externalAccountId))
+      .map(acc => {
+        const source = resolveDataSource(acc);
+        if (source === 'sheets') return sheetsSnapshotStore.getAccount(acc.externalAccountId);
+        if (source === 'meta_mcp') return metaMcpSnapshotStore.getAccount(acc.externalAccountId);
+        return undefined;
+      })
       .filter((s): s is NonNullable<typeof s> => !!s && !!s.fetchedAt);
 
     if (snapshots.length === 0) return null;

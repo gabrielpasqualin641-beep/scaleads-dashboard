@@ -13,6 +13,7 @@ import { analysisRouter } from './routes/analysis.routes.js';
 import { requireAuth } from './middleware/requireAuth.js';
 import { AuthService } from './services/AuthService.js';
 import { DATA_DIR, DATA_DIR_IS_EPHEMERAL, DATA_DIR_WARNING } from './config/paths.js';
+import { SheetsIngestionService } from './integrations/sheets/SheetsIngestionService.js';
 
 dotenv.config();
 
@@ -142,4 +143,10 @@ app.listen(Number(PORT), '0.0.0.0', () => {
   } else {
     console.warn(`⚠️  [Auth] Login NÃO configurado. Pendente: ${auth.missing.join(', ')}`);
   }
+
+  // Contas com planilha configurada (ex.: Adveronix) sincronizam sozinhas a
+  // cada 2h, no mesmo ritmo em que a planilha em si é atualizada na origem.
+  const SHEETS_SYNC_INTERVAL_MS = 2 * 60 * 60 * 1000;
+  SheetsIngestionService.syncAll();
+  setInterval(() => SheetsIngestionService.syncAll(), SHEETS_SYNC_INTERVAL_MS);
 });

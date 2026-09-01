@@ -2,7 +2,7 @@ export type AccountPlatform = 'meta_ads' | 'google_ads' | 'tiktok_ads' | 'linked
 export type AccountStatus = 'active' | 'paused' | 'archived' | 'error' | 'token_expired';
 export type EntityStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED' | 'IN_PROCESS' | 'WITH_ISSUES' | 'UNKNOWN';
 
-export type DataSource = 'meta_mcp' | 'meta_graph' | 'mock';
+export type DataSource = 'meta_mcp' | 'meta_graph' | 'sheets' | 'mock';
 
 export type UserRole = 'admin' | 'editor' | 'viewer';
 export type UserStatus = 'active' | 'suspended';

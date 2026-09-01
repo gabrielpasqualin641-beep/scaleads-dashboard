@@ -28,6 +28,7 @@ export function isDemoData(source: DataSource | undefined): boolean {
 }
 
 export const DATA_SOURCE_LABEL: Record<DataSource, string> = {
+  sheets: 'Dados reais — Planilha (Adveronix)',
   meta_mcp: 'Dados reais — MCP Meta Ads',
   meta_graph: 'Dados reais — Meta Graph API',
   mock: 'Modo demonstração — dados simulados'
