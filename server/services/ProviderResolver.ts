@@ -2,6 +2,10 @@ import { AdAccount, DataSource } from '../models/types.js';
 import { AdvertisingProvider } from '../providers/AdvertisingProvider.js';
 import { McpMetaAdsProvider } from '../providers/McpMetaAdsProvider.js';
 import { MetaAdsProvider } from '../providers/MetaAdsProvider.js';
+import { StoredMetaProvider } from '../providers/StoredMetaProvider.js';
+import { metaMetricsStore } from '../integrations/meta/metricsStore.js';
+import { normalizeAccountId } from '../integrations/metaMcp/MetaMcpSnapshotStore.js';
+import { hasAccessToken } from '../integrations/meta/credentials.js';
 import { MockMetaProvider } from '../providers/MockMetaProvider.js';
 import { SheetsAdsProvider } from '../providers/SheetsAdsProvider.js';
 import { metaMcpSnapshotStore } from '../integrations/metaMcp/MetaMcpSnapshotStore.js';
@@ -9,6 +13,7 @@ import { sheetsSnapshotStore } from '../integrations/sheets/SheetsSnapshotStore.
 
 const mcpProvider = new McpMetaAdsProvider();
 const graphProvider = new MetaAdsProvider();
+const storedProvider = new StoredMetaProvider();
 const mockProvider = new MockMetaProvider();
 const sheetsProvider = new SheetsAdsProvider();
 

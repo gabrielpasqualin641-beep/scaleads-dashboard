@@ -3,6 +3,8 @@ import { DashboardService } from '../services/DashboardService.js';
 import { AdAccountService } from '../services/AdAccountService.js';
 import { UserService } from '../services/UserService.js';
 import { requireRole, requireClientAccess } from '../middleware/requireAuth.js';
+import { MetaSyncService, defaultRange } from '../services/MetaSyncService.js';
+import { hasAccessToken } from '../integrations/meta/credentials.js';
 import { PeriodSelection } from '../models/types.js';
 
 export const dashboardRouter = Router();
@@ -108,6 +110,27 @@ dashboardRouter.post('/sync', requireRole('editor'), async (req, res) => {
     const account = AdAccountService.getById(accountId);
     if (!account || !UserService.canAccessClient(req.user!, account.clientId)) {
       return res.status(404).json({ success: false, error: 'Conta não encontrada.' });
+    }
+
+    // Conta Meta com token sincroniza de verdade contra a Marketing API. As
+    // demais mantêm o comportamento anterior (marcação de lastSyncAt), para não
+    // quebrar contas alimentadas por planilha ou snapshot.
+    if (account.platform === 'meta_ads' && hasAccessToken(account)) {
+      const syncResult = await MetaSyncService.syncAccount(account, defaultRange(), { force: true });
+      if (!syncResult.ok) {
+        return res.status(502).json({ success: false, error: syncResult.message });
+      }
+      return res.json({
+        success: true,
+        data: {
+          success: true,
+          lastSyncAt: new Date().toISOString(),
+          days: syncResult.days,
+          campaigns: syncResult.campaigns,
+          adSets: syncResult.adSets,
+          ads: syncResult.ads
+        }
+      });
     }
 
     const result = await DashboardService.syncAccount(accountId);

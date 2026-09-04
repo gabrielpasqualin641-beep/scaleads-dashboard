@@ -15,7 +15,8 @@
     "preview": "vite preview",
     "start": "tsx server/index.ts",
     "dev:full": "npm run build && tsx server/index.ts",
-    "build:client": "vite build"
+    "build:client": "vite build",
+    "test:meta": "tsx --test server/integrations/meta/__tests__/meta.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.121.0",

@@ -10,6 +10,8 @@ import { metaMcpRouter } from './routes/metaMcp.routes.js';
 import { authRouter } from './routes/auth.routes.js';
 import { usersRouter } from './routes/users.routes.js';
 import { analysisRouter } from './routes/analysis.routes.js';
+import { metaSyncRouter } from './routes/metaSync.routes.js';
+import { startMetaSyncScheduler } from './services/MetaSyncScheduler.js';
 import { requireAuth } from './middleware/requireAuth.js';
 import { AuthService } from './services/AuthService.js';
 import { DATA_DIR, DATA_DIR_IS_EPHEMERAL, DATA_DIR_WARNING } from './config/paths.js';
@@ -90,6 +92,7 @@ app.use('/api/clients', requireAuth, clientsRouter);
 app.use('/api/accounts', requireAuth, accountsRouter);
 app.use('/api/dashboard', requireAuth, dashboardRouter);
 app.use('/api/analysis', requireAuth, analysisRouter);
+app.use('/api/meta-sync', metaSyncRouter);
 // A autenticação do meta-mcp fica dentro do router: POST /snapshot aceita a
 // chave de ingestão, o resto exige sessão de editor.
 app.use('/api/meta-mcp', metaMcpRouter);
@@ -136,6 +139,8 @@ app.listen(Number(PORT), '0.0.0.0', () => {
   if (allowedOrigins.length > 0) {
     console.log(`🌐 [CORS] Origens liberadas: ${allowedOrigins.join(', ')}`);
   }
+
+  startMetaSyncScheduler();
 
   const auth = AuthService.configStatus();
   if (auth.configured) {
