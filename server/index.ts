@@ -16,6 +16,7 @@ import { requireAuth } from './middleware/requireAuth.js';
 import { AuthService } from './services/AuthService.js';
 import { DATA_DIR, DATA_DIR_IS_EPHEMERAL, DATA_DIR_WARNING } from './config/paths.js';
 import { SheetsIngestionService } from './integrations/sheets/SheetsIngestionService.js';
+import { KommoSyncService } from './services/KommoSyncService.js';
 
 dotenv.config();
 
@@ -154,4 +155,11 @@ app.listen(Number(PORT), '0.0.0.0', () => {
   const SHEETS_SYNC_INTERVAL_MS = 2 * 60 * 60 * 1000;
   SheetsIngestionService.syncAll();
   setInterval(() => SheetsIngestionService.syncAll(), SHEETS_SYNC_INTERVAL_MS);
+
+  // O MQL sai da qualificação no CRM e acompanha o mesmo ritmo da planilha.
+  // Sem Kommo configurado nada roda, e a métrica fica N/D.
+  if (KommoSyncService.configured()) {
+    void KommoSyncService.sync();
+    setInterval(() => void KommoSyncService.sync(), SHEETS_SYNC_INTERVAL_MS);
+  }
 });

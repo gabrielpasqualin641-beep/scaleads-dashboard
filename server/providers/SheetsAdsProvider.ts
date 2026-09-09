@@ -13,6 +13,7 @@ import { sheetsSnapshotStore } from '../integrations/sheets/SheetsSnapshotStore.
 import { SheetsDailyRow, SheetsEntityRow, SheetsMetricSet } from '../integrations/sheets/types.js';
 import { db } from '../db/database.js';
 import { BriefService } from '../services/BriefService.js';
+import { kommoMqlStore } from '../integrations/kommo/mqlStore.js';
 
 /**
  * Provider alimentado por uma planilha (Adveronix).
@@ -22,8 +23,13 @@ import { BriefService } from '../services/BriefService.js';
  * leads. O snapshot já resolve isso — métrica que a planilha não tem chega
  * aqui como `null` e é repassada como N/D, nunca como zero.
  *
- * MQLs e agendamentos não existem em nenhuma exportação do Adveronix e seguem
- * sempre N/D.
+ * MQL não vem da planilha — é a qualificação humana do lead, e mora no CRM.
+ * Quando a conta está ligada a um Kommo, a contagem vem de lá; caso contrário
+ * fica N/D. Só entra no total da conta e na série diária: os leads chegam ao
+ * CRM sem UTM, então não há como dizer de qual campanha veio cada MQL, e nas
+ * linhas de campanha, conjunto e anúncio a métrica segue N/D.
+ *
+ * Agendamentos não existem em nenhuma das duas origens e seguem sempre N/D.
  *
  * Receita também não existe na planilha. Quando o cliente tem ticket médio
  * cadastrado no briefing, a receita é estimada como `conversões × ticket
@@ -40,7 +46,7 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     return brief?.averageTicket ?? null;
   }
 
-  private toRaw(row: SheetsMetricSet, ticket: number | null): RawMetricInput {
+  private toRaw(row: SheetsMetricSet, ticket: number | null, mqls: number | null = null): RawMetricInput {
     return {
       spend: row.spend,
       impressions: row.impressions,
@@ -50,7 +56,9 @@ export class SheetsAdsProvider implements AdvertisingProvider {
       frequency: null,
       clicks: row.clicks,
       leads: row.leads,
-      mqls: null,
+      // MQL vem do CRM, nao da planilha: e a qualificacao humana do lead.
+      // Ausente quando a conta nao esta ligada a um CRM.
+      mqls,
       appointments: null,
       conversions: row.conversions,
       // Sem conversão medida não há o que multiplicar pelo ticket: estimar
@@ -111,7 +119,8 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     const rows = sheetsSnapshotStore.getDailyRange(externalAccountId, period.startDate, period.endDate);
 
     return rows.map(row => {
-      const m = NormalizerService.calculateMetrics(this.toRaw(row, ticket), period.includeMetaTax ?? true);
+      const mqls = kommoMqlStore.forDate(externalAccountId, row.date)?.mqls ?? null;
+      const m = NormalizerService.calculateMetrics(this.toRaw(row, ticket, mqls), period.includeMetaTax ?? true);
       return {
         date: row.date,
         spend: m.spend,
@@ -157,7 +166,8 @@ export class SheetsAdsProvider implements AdvertisingProvider {
           // seria contada duas vezes.
           reach: null
         },
-        ticket
+        ticket,
+        kommoMqlStore.totals(externalAccountId, period.startDate, period.endDate)?.mqls ?? null
       ),
       period.includeMetaTax ?? true
     );
