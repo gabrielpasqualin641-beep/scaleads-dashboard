@@ -10,18 +10,25 @@ import {
 import { AdvertisingProvider } from './AdvertisingProvider.js';
 import { NormalizerService, RawMetricInput } from '../services/NormalizerService.js';
 import { sheetsSnapshotStore } from '../integrations/sheets/SheetsSnapshotStore.js';
-import { SheetsDailyRow, SheetsEntityRow } from '../integrations/sheets/types.js';
+import { SheetsDailyRow, SheetsEntityRow, SheetsMetricSet } from '../integrations/sheets/types.js';
 import { db } from '../db/database.js';
 import { BriefService } from '../services/BriefService.js';
 
 /**
- * Provider alimentado por uma planilha (Adveronix). A origem não reporta
- * reach, frequência, leads, MQLs nem agendamentos — ficam sempre N/D.
+ * Provider alimentado por uma planilha (Adveronix).
  *
- * Receita não existe na planilha. Quando o cliente tem ticket médio cadastrado
- * no briefing, a receita é estimada como `conversões × ticket médio` — uma
- * aproximação, não um valor real de venda — para permitir ROAS aproximado.
- * Sem ticket cadastrado, receita e ROAS ficam N/D.
+ * Cada cliente exporta colunas diferentes, então o que a origem reporta varia
+ * por conta: uma planilha de e-commerce traz checkouts, uma de captação traz
+ * leads. O snapshot já resolve isso — métrica que a planilha não tem chega
+ * aqui como `null` e é repassada como N/D, nunca como zero.
+ *
+ * MQLs e agendamentos não existem em nenhuma exportação do Adveronix e seguem
+ * sempre N/D.
+ *
+ * Receita também não existe na planilha. Quando o cliente tem ticket médio
+ * cadastrado no briefing, a receita é estimada como `conversões × ticket
+ * médio` — uma aproximação, não um valor real de venda — para permitir ROAS
+ * aproximado. Sem ticket cadastrado, receita e ROAS ficam N/D.
  */
 export class SheetsAdsProvider implements AdvertisingProvider {
   public platformId = 'sheets';
@@ -33,18 +40,22 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     return brief?.averageTicket ?? null;
   }
 
-  private toRaw(row: { spend: number; impressions: number; clicks: number; conversions: number }, ticket: number | null): RawMetricInput {
+  private toRaw(row: SheetsMetricSet, ticket: number | null): RawMetricInput {
     return {
       spend: row.spend,
       impressions: row.impressions,
-      reach: null,
+      // Reach só vem preenchido quando não houve agregação; frequência deriva
+      // dele no normalizador e fica N/D junto.
+      reach: row.reach,
       frequency: null,
       clicks: row.clicks,
-      leads: null,
+      leads: row.leads,
       mqls: null,
       appointments: null,
       conversions: row.conversions,
-      revenue: ticket !== null ? row.conversions * ticket : null
+      // Sem conversão medida não há o que multiplicar pelo ticket: estimar
+      // receita a partir de nada seria inventar faturamento.
+      revenue: ticket !== null && row.conversions !== null ? row.conversions * ticket : null
     };
   }
 
@@ -127,9 +138,25 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     const rows = sheetsSnapshotStore.getDailyRange(externalAccountId, period.startDate, period.endDate);
     const sum = (pick: (r: SheetsDailyRow) => number) => rows.reduce((total, r) => total + pick(r), 0);
 
+    // Métrica que a planilha não reporta é null em todos os dias e continua
+    // null no total — somar daria zero, que o painel exibiria como "nenhum
+    // resultado" em vez de "não medido".
+    const sumNullable = (pick: (r: SheetsDailyRow) => number | null): number | null =>
+      rows.some(r => pick(r) !== null) ? rows.reduce((total, r) => total + (pick(r) ?? 0), 0) : null;
+
     return NormalizerService.calculateMetrics(
       this.toRaw(
-        { spend: sum(r => r.spend), impressions: sum(r => r.impressions), clicks: sum(r => r.clicks), conversions: sum(r => r.conversions) },
+        {
+          spend: sum(r => r.spend),
+          impressions: sum(r => r.impressions),
+          clicks: sum(r => r.clicks),
+          landingPageViews: sumNullable(r => r.landingPageViews),
+          conversions: sumNullable(r => r.conversions),
+          leads: sumNullable(r => r.leads),
+          // Alcance não soma entre dias: a mesma pessoa alcançada ontem e hoje
+          // seria contada duas vezes.
+          reach: null
+        },
         ticket
       ),
       period.includeMetaTax ?? true

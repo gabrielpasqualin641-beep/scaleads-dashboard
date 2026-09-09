@@ -1,5 +1,5 @@
 import { parseCsv, parseBrNumber } from './csv.js';
-import { SheetsAccountSnapshot, SheetsDailyRow, SheetsEntityRow } from './types.js';
+import { SheetsAccountSnapshot, SheetsDailyRow, SheetsEntityRow, SheetsMetricSet } from './types.js';
 
 /**
  * Aceita o link normal de edição do Google Sheets (com `#gid=`) e devolve a
@@ -53,19 +53,27 @@ function slugify(name: string): string {
     .slice(0, 80);
 }
 
+/** Métricas que só existem se a planilha trouxer a coluna preenchida. */
+type OptionalMetric = 'landingPageViews' | 'conversions' | 'leads' | 'reach';
+const OPTIONAL_METRICS: OptionalMetric[] = ['landingPageViews', 'conversions', 'leads', 'reach'];
+
 interface FlatRow {
   date: string;
   campaignName: string;
   adSetName: string;
   adName: string;
+  spend: number;
   impressions: number;
   clicks: number;
-  landingPageViews: number;
-  conversions: number;
-  spend: number;
+  landingPageViews: number | null;
+  conversions: number | null;
+  leads: number | null;
+  reach: number | null;
 }
 
-const HEADER_ALIASES: Record<string, keyof FlatRow> = {
+type ColumnKey = keyof FlatRow;
+
+const HEADER_ALIASES: Record<string, ColumnKey> = {
   day: 'date',
   date: 'date',
   'campaign name': 'campaignName',
@@ -77,59 +85,102 @@ const HEADER_ALIASES: Record<string, keyof FlatRow> = {
   clicks: 'clicks',
   'landing page views': 'landingPageViews',
   'checkouts initiated': 'conversions',
+  purchases: 'conversions',
+  leads: 'leads',
+  'leads (form)': 'leads',
+  reach: 'reach',
   'amount spent': 'spend'
 };
 
-function parseRows(csv: string): FlatRow[] {
+interface ParsedSheet {
+  rows: FlatRow[];
+  /** Métricas opcionais que esta planilha realmente reporta. */
+  available: Set<OptionalMetric>;
+}
+
+function parseRows(csv: string): ParsedSheet {
   const table = parseCsv(csv);
-  if (table.length === 0) return [];
+  if (table.length === 0) return { rows: [], available: new Set() };
 
   const header = table[0].map(h => h.trim().toLowerCase());
-  const columnFor: Partial<Record<keyof FlatRow, number>> = {};
+  const columnFor: Partial<Record<ColumnKey, number>> = {};
   header.forEach((h, idx) => {
     const key = HEADER_ALIASES[h];
-    if (key) columnFor[key] = idx;
+    // Primeira ocorrência vence: uma segunda coluna com nome sinônimo não
+    // sobrescreve a que já foi mapeada.
+    if (key && columnFor[key] === undefined) columnFor[key] = idx;
   });
 
-  const required: (keyof FlatRow)[] = ['date', 'campaignName', 'adSetName', 'adName', 'spend'];
+  const required: ColumnKey[] = ['date', 'campaignName', 'adSetName', 'adName', 'spend'];
   const missing = required.filter(k => columnFor[k] === undefined);
   if (missing.length > 0) {
     throw new Error(`Planilha sem as colunas esperadas: ${missing.join(', ')}. Cabeçalho encontrado: ${table[0].join(' | ')}`);
   }
 
-  const col = (row: string[], key: keyof FlatRow): string => {
+  const raw = (row: string[], key: ColumnKey): string => {
     const idx = columnFor[key];
     return idx === undefined ? '' : (row[idx] ?? '');
   };
 
-  return table.slice(1).map(row => ({
-    date: normalizeDate(col(row, 'date')),
-    campaignName: col(row, 'campaignName').trim(),
-    adSetName: col(row, 'adSetName').trim(),
-    adName: col(row, 'adName').trim(),
-    impressions: parseBrNumber(col(row, 'impressions')),
-    clicks: parseBrNumber(col(row, 'clicks')),
-    landingPageViews: parseBrNumber(col(row, 'landingPageViews')),
-    conversions: parseBrNumber(col(row, 'conversions')),
-    spend: parseBrNumber(col(row, 'spend'))
+  const body = table.slice(1).filter(row => row.some(cell => cell.trim() !== ''));
+
+  /**
+   * Uma coluna só conta como reportada se existir E tiver ao menos um valor.
+   * O Adveronix inclui colunas que a Meta não preenche para aquele objetivo —
+   * uma campanha de formulário não tem landing page view. Tratá-las como zero
+   * mostraria "0" onde a verdade é "esta conta não mede isso".
+   */
+  const available = new Set<OptionalMetric>();
+  for (const metric of OPTIONAL_METRICS) {
+    if (columnFor[metric] === undefined) continue;
+    if (body.some(row => raw(row, metric).trim() !== '')) available.add(metric);
+  }
+
+  // Coluna reportada: célula em branco é zero real (o Adveronix omite zeros).
+  // Coluna ausente ou vazia na planilha inteira: null, que vira N/D.
+  const optional = (row: string[], metric: OptionalMetric): number | null =>
+    available.has(metric) ? parseBrNumber(raw(row, metric)) : null;
+
+  const rows = body.map(row => ({
+    date: normalizeDate(raw(row, 'date')),
+    campaignName: raw(row, 'campaignName').trim(),
+    adSetName: raw(row, 'adSetName').trim(),
+    adName: raw(row, 'adName').trim(),
+    spend: parseBrNumber(raw(row, 'spend')),
+    impressions: parseBrNumber(raw(row, 'impressions')),
+    clicks: parseBrNumber(raw(row, 'clicks')),
+    landingPageViews: optional(row, 'landingPageViews'),
+    conversions: optional(row, 'conversions'),
+    leads: optional(row, 'leads'),
+    reach: optional(row, 'reach')
   }));
+
+  return { rows, available };
 }
 
-/** Soma um grupo de linhas nas métricas agregadas do período inteiro. */
-function sumRows(rows: FlatRow[]): Omit<SheetsEntityRow, 'id' | 'name' | 'campaignId' | 'adSetId'> {
-  return rows.reduce(
-    (acc, r) => ({
-      spend: acc.spend + r.spend,
-      impressions: acc.impressions + r.impressions,
-      clicks: acc.clicks + r.clicks,
-      landingPageViews: acc.landingPageViews + r.landingPageViews,
-      conversions: acc.conversions + r.conversions
-    }),
-    { spend: 0, impressions: 0, clicks: 0, landingPageViews: 0, conversions: 0 }
-  );
+/**
+ * Soma um grupo de linhas.
+ *
+ * Reach fica de fora da soma: conta pessoas únicas, e quem foi alcançado por
+ * dois anúncios apareceria duas vezes. Só sobrevive quando o grupo é uma linha
+ * só — aí não há o que deduplicar.
+ */
+function sumRows(rows: FlatRow[], available: Set<OptionalMetric>): SheetsMetricSet {
+  const sumOf = (metric: 'landingPageViews' | 'conversions' | 'leads'): number | null =>
+    available.has(metric) ? rows.reduce((acc, r) => acc + (r[metric] ?? 0), 0) : null;
+
+  return {
+    spend: rows.reduce((acc, r) => acc + r.spend, 0),
+    impressions: rows.reduce((acc, r) => acc + r.impressions, 0),
+    clicks: rows.reduce((acc, r) => acc + r.clicks, 0),
+    landingPageViews: sumOf('landingPageViews'),
+    conversions: sumOf('conversions'),
+    leads: sumOf('leads'),
+    reach: available.has('reach') && rows.length === 1 ? rows[0].reach : null
+  };
 }
 
-function dailySeries(rows: FlatRow[]): SheetsDailyRow[] {
+function dailySeries(rows: FlatRow[], available: Set<OptionalMetric>): SheetsDailyRow[] {
   const byDate = new Map<string, FlatRow[]>();
   for (const r of rows) {
     const list = byDate.get(r.date) || [];
@@ -137,12 +188,12 @@ function dailySeries(rows: FlatRow[]): SheetsDailyRow[] {
     byDate.set(r.date, list);
   }
   return Array.from(byDate.entries())
-    .map(([date, dayRows]) => ({ date, ...sumRows(dayRows) }))
+    .map(([date, dayRows]) => ({ date, ...sumRows(dayRows, available) }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export function aggregateSnapshot(csv: string, accountId: string, sourceUrl: string): SheetsAccountSnapshot {
-  const rows = parseRows(csv);
+  const { rows, available } = parseRows(csv);
   const dates = rows.map(r => r.date).filter(Boolean).sort();
 
   const campaignGroups = new Map<string, FlatRow[]>();
@@ -173,7 +224,7 @@ export function aggregateSnapshot(csv: string, accountId: string, sourceUrl: str
     Array.from(groups.entries()).map(([id, groupRows]) => ({
       id,
       name: nameOf(groupRows[0]),
-      ...sumRows(groupRows),
+      ...sumRows(groupRows, available),
       ...(extra ? extra(id, groupRows[0]) : {})
     }));
 
@@ -187,9 +238,9 @@ export function aggregateSnapshot(csv: string, accountId: string, sourceUrl: str
   }));
 
   const dailyByEntity = {
-    campaigns: Object.fromEntries(Array.from(campaignGroups.entries()).map(([id, r]) => [id, dailySeries(r)])),
-    adSets: Object.fromEntries(Array.from(adSetGroups.entries()).map(([id, r]) => [id, dailySeries(r)])),
-    ads: Object.fromEntries(Array.from(adGroups.entries()).map(([id, r]) => [id, dailySeries(r)]))
+    campaigns: Object.fromEntries(Array.from(campaignGroups.entries()).map(([id, r]) => [id, dailySeries(r, available)])),
+    adSets: Object.fromEntries(Array.from(adSetGroups.entries()).map(([id, r]) => [id, dailySeries(r, available)])),
+    ads: Object.fromEntries(Array.from(adGroups.entries()).map(([id, r]) => [id, dailySeries(r, available)]))
   };
 
   return {
@@ -197,7 +248,8 @@ export function aggregateSnapshot(csv: string, accountId: string, sourceUrl: str
     sourceUrl,
     fetchedAt: new Date().toISOString(),
     range: { since: dates[0] || '', until: dates[dates.length - 1] || '' },
-    daily: dailySeries(rows),
+    availableMetrics: OPTIONAL_METRICS.filter(m => available.has(m)),
+    daily: dailySeries(rows, available),
     campaigns,
     adSets,
     ads,

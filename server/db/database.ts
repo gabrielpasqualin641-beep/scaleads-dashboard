@@ -69,6 +69,17 @@ const SEED_CLIENTS: Client[] = [
     status: 'active',
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z'
+  },
+  {
+    id: 'client_marcio_giacobelli',
+    organizationId: 'org_scale_01',
+    name: 'Márcio Giacobelli',
+    companyName: 'Giacobelli',
+    email: '',
+    phone: '',
+    status: 'active',
+    createdAt: '2026-09-09T00:00:00Z',
+    updatedAt: '2026-09-09T00:00:00Z'
   }
 ];
 
@@ -91,12 +102,19 @@ const META_ACCOUNTS: Array<{
   mcpEnabled?: boolean;
   mcpQueryable?: boolean;
   mcpUnavailableReason?: string;
+  /**
+   * Planilha do Adveronix que alimenta a conta. Fica no seed, e não só no
+   * store.json, porque o disco da hospedagem é efêmero no plano atual: um
+   * link gravado apenas em runtime desaparece no próximo deploy e a conta
+   * volta a ficar sem origem de dados.
+   */
+  sheetsUrl?: string;
 }> = [
   // --- Alberto Pompeu · Business "Alberto Neto" ---
   { id: 'acc_ap_ca01', clientId: 'client_alberto_pompeu', externalAccountId: '423474724397288', name: 'CA01 - Alberto Pompeu', status: 'paused', businessId: '150972766074654', businessName: 'Alberto Neto', mcpQueryable: false, mcpUnavailableReason: 'Conta sinalizada pela Meta por atividade incomum; anúncios pausados.' },
   { id: 'acc_ap_ca02', clientId: 'client_alberto_pompeu', externalAccountId: '1610921712941910', name: 'CA02 - Alberto Pompeu', businessId: '150972766074654', businessName: 'Alberto Neto' },
   { id: 'acc_ap_ca03', clientId: 'client_alberto_pompeu', externalAccountId: '1250482763638278', name: 'CA03 - Alberto Pompeu', status: 'paused', businessId: '150972766074654', businessName: 'Alberto Neto', mcpEnabled: false, mcpQueryable: false, mcpUnavailableReason: 'Conta sinalizada pela Meta por atividade incomum; Ads MCP indisponível.' },
-  { id: 'acc_ap_ca04', clientId: 'client_alberto_pompeu', externalAccountId: '2113422056113465', name: 'CA04 - Alberto Pompeu', businessId: '150972766074654', businessName: 'Alberto Neto' },
+  { id: 'acc_ap_ca04', clientId: 'client_alberto_pompeu', externalAccountId: '2113422056113465', name: 'CA04 - Alberto Pompeu', businessId: '150972766074654', businessName: 'Alberto Neto', sheetsUrl: 'https://docs.google.com/spreadsheets/d/1gLQgO7caRH0wxf3Kh1K3emi_ed4aE-ghOLA-f229DTs/edit?gid=0#gid=0' },
   { id: 'acc_ap_ca05', clientId: 'client_alberto_pompeu', externalAccountId: '764177629712794', name: 'CA05 - Alberto Pompeu', businessId: '150972766074654', businessName: 'Alberto Neto' },
   { id: 'acc_ap_ca06', clientId: 'client_alberto_pompeu', externalAccountId: '785647550668297', name: 'CA06 - Alberto Pompeu', businessId: '150972766074654', businessName: 'Alberto Neto' },
   { id: 'acc_ap_ca07', clientId: 'client_alberto_pompeu', externalAccountId: '942897441749845', name: 'CA07 - Alberto Pompeu', businessId: '150972766074654', businessName: 'Alberto Neto' },
@@ -109,7 +127,10 @@ const META_ACCOUNTS: Array<{
   // --- Manhattan Connection ---
   { id: 'acc_mc_main', clientId: 'client_manhattan', externalAccountId: '1905447260119652', name: 'CA - Manhattan Connection', businessId: '103683241464431', businessName: 'Manhattan Connection', mcpEnabled: false, mcpUnavailableReason: 'Ads MCP ainda não liberado para esta conta pela Meta.' },
   { id: 'acc_mc_farnel', clientId: 'client_manhattan', externalAccountId: '860328721500659', name: 'FARNEL', businessId: '103683241464431', businessName: 'Manhattan Connection' },
-  { id: 'acc_mc_readonly', clientId: 'client_manhattan', externalAccountId: '1721067538928881', name: 'Manhattan Connection (Read-Only)', currency: 'USD', businessId: '103683241464431', businessName: 'Manhattan Connection' }
+  { id: 'acc_mc_readonly', clientId: 'client_manhattan', externalAccountId: '1721067538928881', name: 'Manhattan Connection (Read-Only)', currency: 'USD', businessId: '103683241464431', businessName: 'Manhattan Connection' },
+
+  // --- Márcio Giacobelli · Business "Giacobelli" ---
+  { id: 'acc_mg_cc02', clientId: 'client_marcio_giacobelli', externalAccountId: '2103876490513769', name: 'CC02 - Márcio Giacobelli', businessId: '837672811168332', businessName: 'Giacobelli', sheetsUrl: 'https://docs.google.com/spreadsheets/d/1P8Qyzt29HuDaawfSl36Lu8HIb-QkPJ9FkvnU-Yr3JeM/edit?gid=0#gid=0' }
 ];
 
 const SEED_ACCOUNTS: AdAccount[] = META_ACCOUNTS.map(a => {
@@ -127,7 +148,8 @@ const SEED_ACCOUNTS: AdAccount[] = META_ACCOUNTS.map(a => {
     businessName: a.businessName,
     mcpEnabled: a.mcpEnabled ?? true,
     mcpQueryable: a.mcpQueryable ?? true,
-    mcpUnavailableReason: a.mcpUnavailableReason
+    mcpUnavailableReason: a.mcpUnavailableReason,
+    sheetsUrl: a.sheetsUrl
   };
   return { ...account, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' };
 });
@@ -157,6 +179,42 @@ class Database {
     ensureDataDir();
   }
 
+  /**
+   * Traz para um store.json já existente os clientes e contas que passaram a
+   * existir no seed depois que ele foi gravado.
+   *
+   * Sem isto, cadastrar um cliente novo exigiria apagar o arquivo — e junto
+   * iriam usuários e qualquer ajuste feito pelo painel. Só acrescenta o que
+   * falta: nada existente é sobrescrito. A exceção é `sheetsUrl`, que o seed
+   * preenche quando a conta ainda não tem nenhuma planilha apontada.
+   */
+  private reconcileWithSeed(parsed: DatabaseSchema): boolean {
+    let changed = false;
+
+    for (const client of SEED_CLIENTS) {
+      if (!parsed.clients.some(c => c.id === client.id)) {
+        parsed.clients.push(client);
+        console.log(`[DB] Cliente novo do seed adicionado: ${client.name}`);
+        changed = true;
+      }
+    }
+
+    for (const account of SEED_ACCOUNTS) {
+      const existing = parsed.accounts.find(a => a.id === account.id);
+      if (!existing) {
+        parsed.accounts.push(account);
+        console.log(`[DB] Conta nova do seed adicionada: ${account.name}`);
+        changed = true;
+      } else if (!existing.sheetsUrl && account.sheetsUrl) {
+        existing.sheetsUrl = account.sheetsUrl;
+        console.log(`[DB] Planilha do seed aplicada a ${existing.name}.`);
+        changed = true;
+      }
+    }
+
+    return changed;
+  }
+
   private loadData(): DatabaseSchema {
     try {
       if (fs.existsSync(DB_FILE)) {
@@ -164,6 +222,9 @@ class Database {
         const parsed = JSON.parse(raw) as DatabaseSchema;
         // Bancos gravados antes da introdução de usuários não têm a coleção.
         if (!Array.isArray(parsed.users)) parsed.users = [];
+        if (!Array.isArray(parsed.clients)) parsed.clients = [];
+        if (!Array.isArray(parsed.accounts)) parsed.accounts = [];
+        if (this.reconcileWithSeed(parsed)) this.saveData(parsed);
         return parsed;
       }
     } catch (e) {
