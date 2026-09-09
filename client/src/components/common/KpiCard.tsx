@@ -1,6 +1,8 @@
 import React from 'react';
 import { ArrowUpRight, ArrowDownRight, Minus, Info } from 'lucide-react';
 
+export type KpiStatus = 'good' | 'warn' | 'bad';
+
 interface KpiCardProps {
   title: string;
   value: string;
@@ -9,6 +11,14 @@ interface KpiCardProps {
   hero?: boolean;
   hint?: string;
   subValue?: string;
+  /**
+   * Situação em relação à meta do cliente. Ausente = sem meta cadastrada, e o
+   * card fica neutro — não colorido de verde, que afirmaria uma aprovação que
+   * ninguém deu.
+   */
+  status?: KpiStatus | null;
+  /** Texto da meta, ex.: "meta R$ 100". Mostrado junto do sinal de cor. */
+  targetLabel?: string;
 }
 
 export const KpiCard: React.FC<KpiCardProps> = ({
@@ -18,7 +28,9 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   deltaType = 'positive_is_good',
   hero = false,
   hint,
-  subValue
+  subValue,
+  status = null,
+  targetLabel
 }) => {
   const isUp = delta !== undefined && delta !== null && delta > 0;
   const isDown = delta !== undefined && delta !== null && delta < 0;
@@ -39,7 +51,7 @@ export const KpiCard: React.FC<KpiCardProps> = ({
     : 'down';
 
   return (
-    <div className={`kpi-card ${hero ? 'hero' : ''}`}>
+    <div className={`kpi-card ${hero ? 'hero' : ''} ${status ? `status-${status}` : ''}`}>
       <div className="kpi-header">
         <span className="kpi-label">{title}</span>
         {hint && (
@@ -62,9 +74,13 @@ export const KpiCard: React.FC<KpiCardProps> = ({
         ) : (
           <span className="delta-badge neutral">N/D</span>
         )}
-        <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
-          {subValue || 'vs. anterior'}
-        </span>
+        {status && targetLabel ? (
+          <span className={`kpi-target status-${status}`}>{targetLabel}</span>
+        ) : (
+          <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
+            {subValue || 'vs. anterior'}
+          </span>
+        )}
       </div>
     </div>
   );

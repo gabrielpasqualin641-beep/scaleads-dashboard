@@ -16,6 +16,8 @@ import { NormalizerService, RawMetricInput } from './NormalizerService.js';
 import { resolveProvider, resolveDataSource, combineDataSources, mockProvider } from './ProviderResolver.js';
 import { metaMcpSnapshotStore } from '../integrations/metaMcp/MetaMcpSnapshotStore.js';
 import { sheetsSnapshotStore } from '../integrations/sheets/SheetsSnapshotStore.js';
+import { SheetsAdsProvider } from '../providers/SheetsAdsProvider.js';
+import { BriefService } from './BriefService.js';
 
 /** Acima disso o snapshot é considerado velho o bastante para avisar. */
 const STALE_AFTER_DAYS = 7;
@@ -236,9 +238,29 @@ export class DashboardService {
     const funnelSegments = isMock ? mockProvider.getFunnelSegments(currentMetrics) : [];
     const qualifiedLeads = isMock ? mockProvider.getQualifiedLeads() : [];
 
+    // Metas de custo do briefing. Sem meta cadastrada o indicador fica sem cor:
+    // colorir por benchmark de mercado seria afirmar um "bom" que ninguém definiu.
+    const brief = BriefService.get(client.id);
+    const targets = {
+      cpl: brief?.targetCpl ?? null,
+      cpmql: brief?.targetCpmql ?? null,
+      cpa: brief?.targetCpa ?? null,
+      cpm: brief?.targetCpm ?? null,
+      roas: brief?.targetRoas ?? null
+    };
+
+    // Gasto que ficou de fora dos totais, para não parecer que a conta investiu
+    // menos do que investiu de verdade.
+    const sheets = new SheetsAdsProvider();
+    const excludedCampaigns = targetAccounts
+      .flatMap(acc => sheets.excludedSummary(acc.externalAccountId, period))
+      .filter(c => c.spend > 0);
+
     const response: DashboardOverviewResponse = {
       client,
       accounts,
+      targets,
+      excludedCampaigns,
       selectedAccountId: accountId,
       period: {
         startDate: period.startDate,

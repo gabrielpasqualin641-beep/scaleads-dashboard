@@ -49,6 +49,8 @@ export class BriefService {
       targetCpl: num(input.targetCpl, current?.targetCpl ?? null),
       targetCpa: num(input.targetCpa, current?.targetCpa ?? null),
       targetRoas: num(input.targetRoas, current?.targetRoas ?? null),
+      targetCpmql: num(input.targetCpmql, current?.targetCpmql ?? null),
+      targetCpm: num(input.targetCpm, current?.targetCpm ?? null),
       averageTicket: num(input.averageTicket, current?.averageTicket ?? null),
       monthlyBudget: num(input.monthlyBudget, current?.monthlyBudget ?? null),
       constraints: input.constraints ?? current?.constraints ?? '',

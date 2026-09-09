@@ -22,6 +22,8 @@
 
   --good: #16A34A;
   --good-bg: #DCFCE7;
+  --warn: #B45309;
+  --warn-bg: #FEF3C7;
   --bad: #DC2626;
   --bad-bg: #FEE2E2;
   --yellow: #D97706;
@@ -80,6 +82,8 @@
 
   --good: #22C55E;
   --good-bg: rgba(34, 197, 94, 0.15);
+  --warn: #F59E0B;
+  --warn-bg: rgba(245, 158, 11, 0.15);
   --bad: #EF4444;
   --bad-bg: rgba(239, 68, 68, 0.15);
   --yellow: #F59E0B;
@@ -1010,3 +1014,51 @@ body {
   }
 }
 
+
+/*
+ * Estado do indicador em relação à meta do cliente.
+ *
+ * Só recebe cor o KPI que tem meta cadastrada no briefing — os demais ficam
+ * neutros. Um card sem cor significa "não há meta definida", nunca "está bom":
+ * pintar de verde por ausência de critério seria aprovar o que ninguém avaliou.
+ *
+ * A barra lateral carrega o sinal junto com o texto da meta, para a leitura não
+ * depender de distinguir verde de vermelho.
+ */
+.kpi-card.status-good,
+.kpi-card.status-warn,
+.kpi-card.status-bad {
+  border-left-width: 4px;
+}
+.kpi-card.status-good { border-left-color: var(--good); }
+.kpi-card.status-warn { border-left-color: var(--warn); }
+.kpi-card.status-bad  { border-left-color: var(--bad); }
+
+.kpi-card.status-good .kpi-val { color: var(--good); }
+.kpi-card.status-warn .kpi-val { color: var(--warn); }
+.kpi-card.status-bad  .kpi-val { color: var(--bad); }
+
+.kpi-target {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.kpi-target.status-good { background-color: var(--good-bg); color: var(--good); }
+.kpi-target.status-warn { background-color: var(--warn-bg); color: var(--warn); }
+.kpi-target.status-bad  { background-color: var(--bad-bg);  color: var(--bad); }
+
+/* Aviso do gasto que ficou fora dos totais. */
+.excluded-note {
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}

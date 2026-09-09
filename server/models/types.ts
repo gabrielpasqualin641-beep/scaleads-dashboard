@@ -67,6 +67,10 @@ export interface ProjectBrief {
   /** Meta de custo por venda (CAC), em reais. */
   targetCpa: number | null;
   targetRoas: number | null;
+  /** Meta de custo por lead qualificado, em reais. */
+  targetCpmql: number | null;
+  /** Meta de CPM, em reais. Varia muito por público: aberto custa menos que nichado. */
+  targetCpm: number | null;
   /** Ticket médio informado pela agência — a Meta não reporta isso. */
   averageTicket: number | null;
   monthlyBudget: number | null;
@@ -170,6 +174,18 @@ export interface AdAccount {
    * é uma escolha explícita de qual coleta é a fonte de verdade para a conta.
    */
   sheetsUrl?: string;
+  /**
+   * Campanhas que não entram nos totais da conta, casadas por trecho do nome.
+   *
+   * Existe porque campanhas com objetivos diferentes não somam: uma de
+   * WhatsApp entrega conversas, uma de formulário entrega leads. Jogar o gasto
+   * das duas contra os leads de uma só infla todo custo por resultado — o CPL
+   * e o CPMQL passam a cobrar por algo que aquela verba não comprou.
+   *
+   * O gasto excluído não some: aparece à parte, para ninguém achar que a conta
+   * investiu menos do que investiu.
+   */
+  excludedCampaigns?: string[];
 }
 
 export interface NormalizedMetrics {
@@ -306,9 +322,35 @@ export interface PeriodSelection {
   includeMetaTax?: boolean; // 13.806% tax factor
 }
 
+/**
+ * Metas de custo do cliente, usadas para colorir os indicadores.
+ *
+ * Vêm do briefing preenchido pela agência — nunca de benchmark de mercado.
+ * Pintar de verde ou vermelho é afirmar "isto está bom" ou "isto está ruim",
+ * e só quem conhece a operação do cliente pode traçar essa linha. Meta ausente
+ * significa indicador sem cor, e não indicador aprovado.
+ */
+export interface MetricTargets {
+  cpl: number | null;
+  cpmql: number | null;
+  cpa: number | null;
+  cpm: number | null;
+  roas: number | null;
+}
+
+/** Campanha deixada fora dos totais, com o gasto que ela teve mesmo assim. */
+export interface ExcludedCampaign {
+  name: string;
+  spend: number;
+}
+
 export interface DashboardOverviewResponse {
   client: Client;
   accounts: AdAccount[];
+  /** Metas para colorir os KPIs. Vazio quando o cliente não definiu nenhuma. */
+  targets: MetricTargets;
+  /** Campanhas fora do cálculo, para o gasto excluído não sumir sem explicação. */
+  excludedCampaigns: ExcludedCampaign[];
   selectedAccountId: string | 'all';
   period: {
     startDate: string;

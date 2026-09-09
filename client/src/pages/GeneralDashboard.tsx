@@ -16,7 +16,7 @@ import { metricText, DATA_SOURCE_LABEL, isDemoData } from '../utils/metrics';
 import { api } from '../services/api';
 import { useClient } from '../context/ClientContext';
 import { usePeriod } from '../context/PeriodContext';
-import { KpiCard } from '../components/common/KpiCard';
+import { KpiCard, KpiStatus } from '../components/common/KpiCard';
 import { FunnelStage } from '../components/common/FunnelStage';
 import { DataTable, ColumnDef } from '../components/common/DataTable';
 import { ComboEvolutionChart } from '../components/charts/ComboEvolutionChart';
@@ -36,6 +36,32 @@ function formatCollectedAt(freshness: { ageInDays: number }): string {
   if (freshness.ageInDays < 2) return 'ontem';
   return `há ${Math.round(freshness.ageInDays)} dias`;
 }
+
+/**
+ * Situação de um indicador de custo diante da meta do cliente.
+ *
+ * Dentro da meta é bom; até 20% acima ainda é alerta, porque oscilação de leilão
+ * nessa faixa é ruído e não tendência; acima disso é problema. Sem meta
+ * cadastrada devolve null, e o card fica neutro — colorir sem critério definido
+ * seria o painel inventando uma avaliação.
+ */
+const TOLERANCE = 1.2;
+
+function costStatus(value: number | undefined, target: number | null, isNd: boolean): KpiStatus | null {
+  if (isNd || target === null || value === undefined) return null;
+  if (value <= target) return 'good';
+  if (value <= target * TOLERANCE) return 'warn';
+  return 'bad';
+}
+
+/** ROAS é o inverso: quanto maior, melhor. */
+function returnStatus(value: number | undefined, target: number | null, isNd: boolean): KpiStatus | null {
+  if (isNd || target === null || value === undefined) return null;
+  if (value >= target) return 'good';
+  if (value >= target / TOLERANCE) return 'warn';
+  return 'bad';
+}
+
 
 export const GeneralDashboard: React.FC = () => {
   const { selectedClient, selectedAccountId } = useClient();
@@ -86,6 +112,12 @@ export const GeneralDashboard: React.FC = () => {
 
   const m = data.currentMetrics;
   const deltas = data.deltas;
+  // Resposta em cache gravada antes destes campos existirem não os traz. Sem o
+  // fallback, o primeiro acesso após um deploy quebraria a tela até o cache expirar.
+  const targets = data.targets ?? { cpl: null, cpmql: null, cpa: null, cpm: null, roas: null };
+  const excluded = data.excludedCampaigns ?? [];
+  const nd = (k: string) => m.unavailable.includes(k as never);
+  const moneyTarget = (v: number | null) => (v === null ? undefined : `meta ${formatMoney(v)}`);
   const formatMoney = (v: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
   const formatNum = (v: number) => new Intl.NumberFormat('pt-BR').format(v || 0);
@@ -353,6 +385,8 @@ export const GeneralDashboard: React.FC = () => {
             value={metricText(m, 'cpl', m.cpl, formatMoney)}
             delta={deltas.cpl}
             deltaType="negative_is_good"
+            status={costStatus(m.cpl, targets.cpl, nd('cpl'))}
+            targetLabel={moneyTarget(targets.cpl)}
             hint="Custo por lead (Investimento / Leads)."
           />
           <KpiCard
@@ -366,6 +400,8 @@ export const GeneralDashboard: React.FC = () => {
             value={metricText(m, 'cpmql', m.cpmql, formatMoney)}
             delta={deltas.cpmql}
             deltaType="negative_is_good"
+            status={costStatus(m.cpmql, targets.cpmql, nd('cpmql'))}
+            targetLabel={moneyTarget(targets.cpmql)}
             hint="Custo por lead qualificado (Investimento / MQLs)."
           />
           <KpiCard
@@ -385,6 +421,8 @@ export const GeneralDashboard: React.FC = () => {
             value={metricText(m, 'cpa', m.cpa, formatMoney)}
             delta={deltas.cpa}
             deltaType="negative_is_good"
+            status={costStatus(m.cpa, targets.cpa, nd('cpa'))}
+            targetLabel={moneyTarget(targets.cpa)}
             hint="Custo de Aquisição de Cliente (Investimento / Vendas)."
           />
           <KpiCard
@@ -399,6 +437,8 @@ export const GeneralDashboard: React.FC = () => {
             value={metricText(m, 'roas', m.roas, v => `${v.toFixed(2)}x`)}
             delta={deltas.roas}
             hero
+            status={returnStatus(m.roas, targets.roas, nd('roas'))}
+            targetLabel={targets.roas === null ? undefined : `meta ${targets.roas.toFixed(2)}x`}
             hint="Retorno sobre investimento em publicidade (Receita / Investimento)."
           />
           <KpiCard
@@ -412,9 +452,24 @@ export const GeneralDashboard: React.FC = () => {
             value={metricText(m, 'cpm', m.cpm, formatMoney)}
             delta={deltas.cpm}
             deltaType="negative_is_good"
+            status={costStatus(m.cpm, targets.cpm, nd('cpm'))}
+            targetLabel={moneyTarget(targets.cpm)}
             hint="Custo por mil impressões."
           />
         </div>
+
+        {excluded.length > 0 && (
+          <div className="excluded-note">
+            <AlertTriangle size={13} />
+            <span>
+              Fora do cálculo:{' '}
+              {excluded
+                .map(c => `${c.name} (${formatMoney(c.spend)})`)
+                .join(', ')}
+              {' '}— objetivo diferente, sem lead atribuível. O gasto existiu, mas não entra em CPL nem CPMQL.
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 2. Funnel & Combo Chart */}

@@ -269,7 +269,23 @@ export interface AdData {
   dailyMetrics?: DailyMetricItem[];
 }
 
+/** Metas de custo do cliente, vindas do briefing. Espelha o tipo do servidor. */
+export interface MetricTargets {
+  cpl: number | null;
+  cpmql: number | null;
+  cpa: number | null;
+  cpm: number | null;
+  roas: number | null;
+}
+
+export interface ExcludedCampaign {
+  name: string;
+  spend: number;
+}
+
 export interface DashboardOverviewResponse {
+  targets: MetricTargets;
+  excludedCampaigns: ExcludedCampaign[];
   client: Client;
   accounts: AdAccount[];
   selectedAccountId: string | 'all';

@@ -102,6 +102,7 @@ const META_ACCOUNTS: Array<{
   mcpEnabled?: boolean;
   mcpQueryable?: boolean;
   mcpUnavailableReason?: string;
+  excludedCampaigns?: string[];
   /**
    * Planilha do Adveronix que alimenta a conta. Fica no seed, e não só no
    * store.json, porque o disco da hospedagem é efêmero no plano atual: um
@@ -130,7 +131,11 @@ const META_ACCOUNTS: Array<{
   { id: 'acc_mc_readonly', clientId: 'client_manhattan', externalAccountId: '1721067538928881', name: 'Manhattan Connection (Read-Only)', currency: 'USD', businessId: '103683241464431', businessName: 'Manhattan Connection' },
 
   // --- Márcio Giacobelli · Business "Giacobelli" ---
-  { id: 'acc_mg_cc02', clientId: 'client_marcio_giacobelli', externalAccountId: '2103876490513769', name: 'CC02 - Márcio Giacobelli', businessId: '837672811168332', businessName: 'Giacobelli', sheetsUrl: 'https://docs.google.com/spreadsheets/d/1P8Qyzt29HuDaawfSl36Lu8HIb-QkPJ9FkvnU-Yr3JeM/edit?gid=0#gid=0' }
+  { id: 'acc_mg_cc02', clientId: 'client_marcio_giacobelli', externalAccountId: '2103876490513769', name: 'CC02 - Márcio Giacobelli', businessId: '837672811168332', businessName: 'Giacobelli', sheetsUrl: 'https://docs.google.com/spreadsheets/d/1P8Qyzt29HuDaawfSl36Lu8HIb-QkPJ9FkvnU-Yr3JeM/edit?gid=0#gid=0',
+    // A campanha de WhatsApp está pausada e entrega conversas, não leads. O
+    // Adveronix não exporta conversas, então o resultado dela é invisível aqui:
+    // somar o gasto dela inflaria CPL e CPMQL do formulário.
+    excludedCampaigns: ['WPP'] }
 ];
 
 const SEED_ACCOUNTS: AdAccount[] = META_ACCOUNTS.map(a => {
@@ -149,7 +154,8 @@ const SEED_ACCOUNTS: AdAccount[] = META_ACCOUNTS.map(a => {
     mcpEnabled: a.mcpEnabled ?? true,
     mcpQueryable: a.mcpQueryable ?? true,
     mcpUnavailableReason: a.mcpUnavailableReason,
-    sheetsUrl: a.sheetsUrl
+    sheetsUrl: a.sheetsUrl,
+    excludedCampaigns: a.excludedCampaigns
   };
   return { ...account, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' };
 });
@@ -205,10 +211,17 @@ class Database {
         parsed.accounts.push(account);
         console.log(`[DB] Conta nova do seed adicionada: ${account.name}`);
         changed = true;
-      } else if (!existing.sheetsUrl && account.sheetsUrl) {
-        existing.sheetsUrl = account.sheetsUrl;
-        console.log(`[DB] Planilha do seed aplicada a ${existing.name}.`);
-        changed = true;
+      } else {
+        if (!existing.sheetsUrl && account.sheetsUrl) {
+          existing.sheetsUrl = account.sheetsUrl;
+          console.log(`[DB] Planilha do seed aplicada a ${existing.name}.`);
+          changed = true;
+        }
+        if (!existing.excludedCampaigns && account.excludedCampaigns) {
+          existing.excludedCampaigns = account.excludedCampaigns;
+          console.log(`[DB] Exclusão de campanha do seed aplicada a ${existing.name}.`);
+          changed = true;
+        }
       }
     }
 

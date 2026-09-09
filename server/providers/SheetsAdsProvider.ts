@@ -99,6 +99,89 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     });
   }
 
+  /** Trechos de nome de campanha que esta conta mantém fora dos totais. */
+  private exclusionsFor(externalAccountId: string): string[] {
+    return db.getAccountByExternalId(externalAccountId)?.excludedCampaigns ?? [];
+  }
+
+  private isExcluded(campaignName: string, patterns: string[]): boolean {
+    const name = campaignName.toLowerCase();
+    return patterns.some(p => name.includes(p.trim().toLowerCase()));
+  }
+
+  /**
+   * Soma linhas diárias de várias campanhas num único dia.
+   *
+   * Métrica que nenhuma campanha reporta continua null: somar daria zero, e
+   * zero afirma "não aconteceu" onde a verdade é "não é medido".
+   */
+  private mergeRows(rows: SheetsDailyRow[], date: string): SheetsDailyRow {
+    const sumNullable = (pick: (r: SheetsDailyRow) => number | null): number | null =>
+      rows.some(r => pick(r) !== null) ? rows.reduce((t, r) => t + (pick(r) ?? 0), 0) : null;
+
+    return {
+      date,
+      spend: rows.reduce((t, r) => t + r.spend, 0),
+      impressions: rows.reduce((t, r) => t + r.impressions, 0),
+      clicks: rows.reduce((t, r) => t + r.clicks, 0),
+      landingPageViews: sumNullable(r => r.landingPageViews),
+      conversions: sumNullable(r => r.conversions),
+      leads: sumNullable(r => r.leads),
+      // Alcance não soma entre campanhas: a mesma pessoa pode ter visto as duas.
+      reach: null
+    };
+  }
+
+  /**
+   * Série diária da conta considerando apenas as campanhas incluídas.
+   *
+   * Sem exclusão, usa a série pronta do snapshot. Com exclusão, reconstrói a
+   * partir das campanhas que ficam — é a única forma de tirar o gasto de uma
+   * campanha do total, já que a série da conta já vem somada.
+   */
+  private dailyRows(externalAccountId: string, period: PeriodSelection): SheetsDailyRow[] {
+    const patterns = this.exclusionsFor(externalAccountId);
+    if (patterns.length === 0) {
+      return sheetsSnapshotStore.getDailyRange(externalAccountId, period.startDate, period.endDate);
+    }
+
+    const acc = sheetsSnapshotStore.getAccount(externalAccountId);
+    if (!acc) return [];
+
+    const byDate = new Map<string, SheetsDailyRow[]>();
+    for (const campaign of acc.campaigns) {
+      if (this.isExcluded(campaign.name, patterns)) continue;
+      for (const row of acc.dailyByEntity.campaigns[campaign.id] || []) {
+        if (row.date < period.startDate || row.date > period.endDate) continue;
+        const list = byDate.get(row.date) || [];
+        list.push(row);
+        byDate.set(row.date, list);
+      }
+    }
+
+    return Array.from(byDate.entries())
+      .map(([date, rows]) => this.mergeRows(rows, date))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  /** Campanhas fora do total, com o quanto cada uma gastou no período. */
+  public excludedSummary(externalAccountId: string, period: PeriodSelection): Array<{ name: string; spend: number }> {
+    const patterns = this.exclusionsFor(externalAccountId);
+    if (patterns.length === 0) return [];
+    const acc = sheetsSnapshotStore.getAccount(externalAccountId);
+    if (!acc) return [];
+
+    return acc.campaigns
+      .filter(c => this.isExcluded(c.name, patterns))
+      .map(c => ({
+        name: c.name,
+        spend: (acc.dailyByEntity.campaigns[c.id] || [])
+          .filter(r => r.date >= period.startDate && r.date <= period.endDate)
+          .reduce((t, r) => t + r.spend, 0)
+      }))
+      .filter(c => c.spend > 0);
+  }
+
   public async testConnection(_accessToken: string, accountId: string): Promise<{ success: boolean; message: string }> {
     const acc = sheetsSnapshotStore.getAccount(accountId);
     if (!acc) {
@@ -116,7 +199,7 @@ export class SheetsAdsProvider implements AdvertisingProvider {
 
   public async getDailyInsights(_accessToken: string, externalAccountId: string, period: PeriodSelection): Promise<DailyMetricItem[]> {
     const ticket = this.averageTicketFor(externalAccountId);
-    const rows = sheetsSnapshotStore.getDailyRange(externalAccountId, period.startDate, period.endDate);
+    const rows = this.dailyRows(externalAccountId, period);
 
     return rows.map(row => {
       const mqls = kommoMqlStore.forDate(externalAccountId, row.date)?.mqls ?? null;
@@ -144,7 +227,7 @@ export class SheetsAdsProvider implements AdvertisingProvider {
 
   public async getAggregatedMetrics(_accessToken: string, externalAccountId: string, period: PeriodSelection): Promise<NormalizedMetrics> {
     const ticket = this.averageTicketFor(externalAccountId);
-    const rows = sheetsSnapshotStore.getDailyRange(externalAccountId, period.startDate, period.endDate);
+    const rows = this.dailyRows(externalAccountId, period);
     const sum = (pick: (r: SheetsDailyRow) => number) => rows.reduce((total, r) => total + pick(r), 0);
 
     // Métrica que a planilha não reporta é null em todos os dias e continua
@@ -178,7 +261,8 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     if (!acc) return [];
     const ticket = this.averageTicketFor(externalAccountId);
 
-    return acc.campaigns.map(row => ({
+    const patterns = this.exclusionsFor(externalAccountId);
+    return acc.campaigns.filter(c => !this.isExcluded(c.name, patterns)).map(row => ({
       id: row.id,
       adAccountId: externalAccountId,
       externalCampaignId: row.id,
@@ -195,7 +279,10 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     const ticket = this.averageTicketFor(externalAccountId);
 
     const campaignNames = new Map(acc.campaigns.map(c => [c.id, c.name]));
-    const rows = campaignId ? acc.adSets.filter(a => a.campaignId === campaignId) : acc.adSets;
+    const patterns = this.exclusionsFor(externalAccountId);
+    const hidden = new Set(acc.campaigns.filter(c => this.isExcluded(c.name, patterns)).map(c => c.id));
+    const visible = acc.adSets.filter(a => !hidden.has(a.campaignId || ''));
+    const rows = campaignId ? visible.filter(a => a.campaignId === campaignId) : visible;
 
     return rows.map(row => ({
       id: row.id,
@@ -217,7 +304,10 @@ export class SheetsAdsProvider implements AdvertisingProvider {
 
     const campaignNames = new Map(acc.campaigns.map(c => [c.id, c.name]));
     const adSetNames = new Map(acc.adSets.map(a => [a.id, a.name]));
-    const rows = adSetId ? acc.ads.filter(a => a.adSetId === adSetId) : acc.ads;
+    const patterns = this.exclusionsFor(externalAccountId);
+    const hidden = new Set(acc.campaigns.filter(c => this.isExcluded(c.name, patterns)).map(c => c.id));
+    const visible = acc.ads.filter(a => !hidden.has(a.campaignId || ''));
+    const rows = adSetId ? visible.filter(a => a.adSetId === adSetId) : visible;
 
     return rows.map(row => ({
       id: row.id,
