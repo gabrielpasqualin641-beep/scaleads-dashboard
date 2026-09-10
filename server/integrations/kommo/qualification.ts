@@ -35,9 +35,9 @@ function parseBrCurrency(raw: string): number | null {
  * - "350000"                               → 350000 (valor solto, se o campo virar aberto)
  */
 export function floorOfRange(label: string): number | null {
-  // Acento sai antes de comparar palavra. Em JS, a fronteira de palavra nao
-  // enxerga letra acentuada como caractere de palavra, entao "Ate R$ 200.000,00"
-  // escapava da regra do teto e o lead virava MQL - o oposto da verdade.
+  // Acento sai antes de qualquer comparação: a fronteira de palavra do regex
+  // não reconhece letra acentuada, e "Até R$ 200.000,00" escapava da regra do
+  // teto — virando MQL, o oposto da verdade.
   const text = (label || '')
     .trim()
     .toLowerCase()
@@ -50,9 +50,21 @@ export function floorOfRange(label: string): number | null {
     .filter((n): n is number => n !== null);
   if (numbers.length === 0) return null;
 
+  /*
+   * A mesma faixa chega em dois formatos: "Até R$ 200.000,00" quando alguém
+   * digita no CRM, e "ate_r$_200.000,00" quando o conector do Facebook grava o
+   * valor cru do formulário. Para procurar a palavra, qualquer separador vira
+   * espaço — senão o underscore gruda em "ate", a regra do teto não casa, e um
+   * lead de "até 200 mil" é lido como piso 200.000 e vira MQL.
+   *
+   * A busca por números continua no texto original, que preserva ponto e
+   * vírgula.
+   */
+  const words = text.replace(/[^a-z0-9]+/g, ' ').trim();
+
   // "até X" / "menos de X" descrevem um teto: quem respondeu isso fatura
   // qualquer coisa abaixo de X, então o piso é zero.
-  if (/^(at[eé]|menos de|abaixo de|up to)\b/.test(text)) return 0;
+  if (/^(ate|menos de|abaixo de|up to)\b/.test(words)) return 0;
 
   // "de X a Y" e "entre X e Y" têm piso no menor dos dois.
   if (numbers.length >= 2) return Math.min(...numbers);

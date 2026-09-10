@@ -1,6 +1,7 @@
 import { fetchLeads, listLeadFields, isConfigured, KommoError, redact } from '../integrations/kommo/client.js';
 import { kommoMqlStore, DailyMql } from '../integrations/kommo/mqlStore.js';
 import { qualify, MQL_THRESHOLD } from '../integrations/kommo/qualification.js';
+import { db } from '../db/database.js';
 
 /**
  * Traz do Kommo a contagem diária de MQL.
@@ -26,6 +27,12 @@ export function targetAccountId(): string | null {
   return process.env.KOMMO_ACCOUNT_ID?.trim() || null;
 }
 
+function shiftDate(date: string, days: number): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 export function defaultRange(days = 90): { since: string; until: string } {
   const until = new Date();
   const since = new Date(until.getTime() - days * 86_400_000);
@@ -33,12 +40,27 @@ export function defaultRange(days = 90): { since: string; until: string } {
   return { since: iso(since), until: iso(until) };
 }
 
-function localDate(epochSeconds: number): string {
-  const d = new Date(epochSeconds * 1000);
-  // Data local, não UTC: um lead das 21h de Brasília pertence ao dia dele, e
-  // não ao seguinte.
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const FALLBACK_TZ = 'America/Sao_Paulo';
+
+/**
+ * Dia a que o lead pertence, no fuso da conta de anúncios.
+ *
+ * O fuso do servidor não serve: o Render roda em UTC, e um lead das 22h de
+ * Brasília cairia no dia seguinte. O painel então mostraria mais MQL num dia do
+ * que leads — o gasto e os leads vêm da Meta, que reporta no fuso da conta.
+ */
+function localDate(epochSeconds: number, timeZone: string): string {
+  // 'en-CA' formata como AAAA-MM-DD, que é a chave usada no store.
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date(epochSeconds * 1000));
+}
+
+function accountTimeZone(externalAccountId: string): string {
+  return db.getAccountByExternalId(externalAccountId)?.timezone || FALLBACK_TZ;
 }
 
 export interface SyncResult {
@@ -73,11 +95,17 @@ export class KommoSyncService {
         return { accountId, ok: false, message: msg };
       }
 
-      const leads = await fetchLeads(range.since, range.until);
+      // Busca um dia a mais de cada lado: o recorte do Kommo trabalha em epoch
+      // com o fuso do servidor, e sem a folga os leads da virada do dia se
+      // perderiam antes de serem reagrupados no fuso da conta.
+      const leads = await fetchLeads(shiftDate(range.since, -1), shiftDate(range.until, 1));
+      const timeZone = accountTimeZone(accountId);
       const daily: Record<string, DailyMql> = {};
 
       for (const lead of leads) {
-        const date = localDate(lead.created_at);
+        const date = localDate(lead.created_at, timeZone);
+        // A folga da busca pode trazer dias fora do intervalo pedido.
+        if (date < range.since || date > range.until) continue;
         const bucket = daily[date] || (daily[date] = { leads: 0, mqls: 0, indefinidos: 0 });
         bucket.leads++;
 

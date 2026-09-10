@@ -71,3 +71,40 @@ test('a contagem dos 19 leads reais bate com 10 MQL', () => {
   assert.equal(respostas.length, 19);
   assert.equal(mqls, 10);
 });
+
+/*
+ * O conector do Facebook grava o valor cru do formulário, com underscore no
+ * lugar do espaço. Underscore é caractere de palavra em regex, então a
+ * fronteira `\b` não fechava depois de "ate" e a regra do teto era pulada:
+ * "até 200 mil" virava piso 200.000 e o lead era contado como MQL.
+ */
+test('formato cru do formulário, com underscore, é lido igual', () => {
+  assert.equal(floorOfRange('até_r$_200.000,00'), 0);
+  assert.equal(qualify('até_r$_200.000,00'), 'nao_mql');
+  assert.equal(qualify('de_r$_200.000,00_a_r$_500.000,00'), 'mql');
+  assert.equal(qualify('acima_de_r$_500.000,00'), 'mql');
+});
+
+test('os dois formatos da mesma faixa dão o mesmo veredito', () => {
+  const pares = [
+    ['Até R$ 200.000,00', 'até_r$_200.000,00'],
+    ['De R$ 200.000,00 a R$ 500.000,00', 'de_r$_200.000,00_a_r$_500.000,00'],
+    ['Acima de R$ 500.000,00', 'acima_de_r$_500.000,00']
+  ];
+  for (const [bonito, cru] of pares) {
+    assert.equal(qualify(cru), qualify(bonito), `divergiu em ${cru}`);
+  }
+});
+
+test('os 6 leads de 10/09 dão 2 MQL, não 6', () => {
+  // Valores reais lidos do Kommo naquele dia.
+  const dia = [
+    'até_r$_200.000,00',
+    'de_r$_200.000,00_a_r$_500.000,00',
+    'até_r$_200.000,00',
+    'até_r$_200.000,00',
+    'acima_de_r$_500.000,00',
+    'até_r$_200.000,00'
+  ];
+  assert.equal(dia.filter(v => qualify(v) === 'mql').length, 2);
+});
