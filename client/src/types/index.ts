@@ -286,6 +286,8 @@ export interface ExcludedCampaign {
 export interface DashboardOverviewResponse {
   targets: MetricTargets;
   excludedCampaigns: ExcludedCampaign[];
+  /** Incoerências entre origens, ex.: MQL maior que leads. */
+  dataWarnings: string[];
   client: Client;
   accounts: AdAccount[];
   selectedAccountId: string | 'all';

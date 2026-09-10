@@ -351,6 +351,15 @@ export interface DashboardOverviewResponse {
   targets: MetricTargets;
   /** Campanhas fora do cálculo, para o gasto excluído não sumir sem explicação. */
   excludedCampaigns: ExcludedCampaign[];
+  /**
+   * Incoerências detectadas entre as origens, em texto para o usuário.
+   *
+   * Existe porque MQL vem do CRM e leads vêm da planilha: as duas podem
+   * divergir, e já divergiram por bug de classificação. Um número impossível
+   * não pode aparecer calado — quando aparece, quem lê precisa saber antes de
+   * decidir alguma coisa com ele.
+   */
+  dataWarnings: string[];
   selectedAccountId: string | 'all';
   period: {
     startDate: string;

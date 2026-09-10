@@ -102,6 +102,11 @@ export class KommoSyncService {
       const timeZone = accountTimeZone(accountId);
       const daily: Record<string, DailyMql> = {};
 
+      // Valores que o classificador não soube ler. Ficam registrados para
+      // alguém notar: um formato novo chegando do formulário aparece aqui antes
+      // de virar um número errado no painel.
+      const naoReconhecidos = new Map<string, number>();
+
       for (const lead of leads) {
         const date = localDate(lead.created_at, timeZone);
         // A folga da busca pode trazer dias fora do intervalo pedido.
@@ -111,10 +116,28 @@ export class KommoSyncService {
 
         const field = (lead.custom_fields_values || []).find(f => f.field_id === target.id);
         const raw = field?.values?.[0]?.value;
-        const verdict = qualify(typeof raw === 'string' ? raw : raw == null ? null : String(raw));
+        const texto = typeof raw === 'string' ? raw : raw == null ? null : String(raw);
+        const verdict = qualify(texto);
 
         if (verdict === 'mql') bucket.mqls++;
-        else if (verdict === 'indefinido') bucket.indefinidos++;
+        else if (verdict === 'indefinido') {
+          bucket.indefinidos++;
+          // Vazio é esperado (lead antigo, ou ainda não qualificado). Texto
+          // preenchido que não foi entendido é sinal de formato novo.
+          if (texto && texto.trim()) {
+            naoReconhecidos.set(texto, (naoReconhecidos.get(texto) || 0) + 1);
+          }
+        }
+      }
+
+      if (naoReconhecidos.size > 0) {
+        const amostra = Array.from(naoReconhecidos.entries())
+          .map(([v, n]) => `${JSON.stringify(v)} (${n}x)`)
+          .join(', ');
+        console.warn(
+          `⚠️  [Kommo] Faturamento em formato não reconhecido, contado como indefinido: ${amostra}. ` +
+          'Enquanto não for mapeado, esses leads ficam fora do MQL.'
+        );
       }
 
       kommoMqlStore.saveSync(accountId, daily);

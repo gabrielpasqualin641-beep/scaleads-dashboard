@@ -116,6 +116,7 @@ export const GeneralDashboard: React.FC = () => {
   // fallback, o primeiro acesso após um deploy quebraria a tela até o cache expirar.
   const targets = data.targets ?? { cpl: null, cpmql: null, cpa: null, cpm: null, roas: null };
   const excluded = data.excludedCampaigns ?? [];
+  const warnings = data.dataWarnings ?? [];
   const nd = (k: string) => m.unavailable.includes(k as never);
   const moneyTarget = (v: number | null) => (v === null ? undefined : `meta ${formatMoney(v)}`);
   const formatMoney = (v: number) =>
@@ -457,6 +458,13 @@ export const GeneralDashboard: React.FC = () => {
             hint="Custo por mil impressões."
           />
         </div>
+
+        {warnings.map((w, i) => (
+          <div key={i} className="data-warning">
+            <AlertTriangle size={14} />
+            <span>{w}</span>
+          </div>
+        ))}
 
         {excluded.length > 0 && (
           <div className="excluded-note">

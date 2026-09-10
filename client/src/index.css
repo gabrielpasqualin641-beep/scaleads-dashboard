@@ -1062,3 +1062,23 @@ body {
   gap: 6px;
   flex-wrap: wrap;
 }
+
+/*
+ * Incoerência entre origens de dado. Fica em vermelho e acima do resto porque
+ * é um aviso de que o número ao lado pode estar errado — não é uma nota de
+ * rodapé.
+ */
+.data-warning {
+  margin-top: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--bad);
+  background-color: var(--bad-bg);
+  color: var(--bad);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.45;
+}

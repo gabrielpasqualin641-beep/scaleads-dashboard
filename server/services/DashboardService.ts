@@ -256,11 +256,31 @@ export class DashboardService {
       .flatMap(acc => sheets.excludedSummary(acc.externalAccountId, period))
       .filter(c => c.spend > 0);
 
+    /*
+     * Checagem de coerência entre origens.
+     *
+     * MQL sai do CRM e leads saem da planilha, então nada no código impede que
+     * o MQL passe do número de leads — e foi exatamente isso que um bug de
+     * classificação produziu. A conta é subconjunto: se quebrar, o painel avisa
+     * em vez de exibir o impossível como se fosse fato.
+     */
+    const dataWarnings: string[] = [];
+    const has = (k: keyof NormalizedMetrics) => !currentMetrics.unavailable.includes(k as MetricName);
+    if (has('mqls') && has('leads') && currentMetrics.mqls > currentMetrics.leads) {
+      dataWarnings.push(
+        `MQL (${currentMetrics.mqls}) maior que o total de leads (${currentMetrics.leads}). ` +
+        'MQL é subconjunto de leads, então as duas origens estão divergindo — ' +
+        'o CRM conta todo lead cadastrado, a planilha conta só os do formulário. ' +
+        'Trate o MQL deste período com desconfiança.'
+      );
+    }
+
     const response: DashboardOverviewResponse = {
       client,
       accounts,
       targets,
       excludedCampaigns,
+      dataWarnings,
       selectedAccountId: accountId,
       period: {
         startDate: period.startDate,

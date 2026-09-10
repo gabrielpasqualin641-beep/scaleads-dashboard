@@ -108,3 +108,47 @@ test('os 6 leads de 10/09 dão 2 MQL, não 6', () => {
   ];
   assert.equal(dia.filter(v => qualify(v) === 'mql').length, 2);
 });
+
+/*
+ * A defesa que importa: o classificador não pode chutar.
+ *
+ * Os dois bugs que chegaram ao painel — acento e underscore — não foram falhas
+ * de reconhecer um formato. Foram falhas de ADIVINHAR quando não reconheceu.
+ * Um lead de "até 200 mil" saiu classificado como MQL porque o código extraiu
+ * o número e concluiu sozinho. Se ele tivesse devolvido "indefinido", o erro
+ * apareceria como lead sem faturamento e alguém teria olhado.
+ */
+test('texto com palavra desconhecida ao redor do número não é chutado', () => {
+  const ambiguos = [
+    'faturamento aproximado de 300.000 no ano passado',
+    'nao informado, talvez 250.000',
+    'menos ou mais de 300.000',
+    'entre 100 e 300 mil reais por safra',
+    'R$ 300.000 apenas na filial'
+  ];
+  for (const v of ambiguos) {
+    assert.equal(qualify(v), 'indefinido', `chutou em: ${v}`);
+  }
+});
+
+test('valor puro continua sendo lido', () => {
+  assert.equal(qualify('350000'), 'mql');
+  assert.equal(qualify('R$ 180.000,00'), 'nao_mql');
+  assert.equal(qualify('180000'), 'nao_mql');
+});
+
+test('faixa sem número não vira veredito', () => {
+  assert.equal(qualify('acima do esperado'), 'indefinido');
+  assert.equal(qualify('não informado'), 'indefinido');
+});
+
+test('nenhum formato conhecido devolve indefinido por engano', () => {
+  const conhecidos = [
+    'Até R$ 200.000,00', 'até_r$_200.000,00',
+    'De R$ 200.000,00 a R$ 500.000,00', 'de_r$_200.000,00_a_r$_500.000,00',
+    'Acima de R$ 500.000,00', 'acima_de_r$_500.000,00'
+  ];
+  for (const v of conhecidos) {
+    assert.notEqual(qualify(v), 'indefinido', `deixou de reconhecer: ${v}`);
+  }
+});
