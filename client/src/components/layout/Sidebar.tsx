@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   Lightbulb,
   ClipboardList,
-  TrendingUp,
   X
 } from 'lucide-react';
 import { AppPage } from '../../types';
@@ -43,13 +42,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className={`app-sidebar ${isOpenMobile ? 'open' : ''}`}>
       {/* Brand Header */}
-      <div className="sidebar-brand">
-        <div className="brand-icon">
-          <TrendingUp size={20} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="brand-title">ScaleAds</div>
-          <div className="brand-subtitle">Performance Hub</div>
+      <div className="sidebar-brand" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+          <img
+            src={logoImg}
+            alt="ScaleAds - Marketing de Performance"
+            style={{ maxHeight: '42px', maxWidth: '185px', width: 'auto', objectFit: 'contain', display: 'block' }}
+          />
         </div>
         {isOpenMobile && (
           <button

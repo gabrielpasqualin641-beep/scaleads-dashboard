@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { BarChart3, Eye, EyeOff, Loader2, LogIn, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, LogIn, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import logoImg from '../assets/logo.png';
 
 export const LoginView: React.FC = () => {
   const { login } = useAuth();
@@ -58,23 +59,23 @@ export const LoginView: React.FC = () => {
       }}
     >
       <div style={{ width: '100%', maxWidth: '380px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '22px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '22px' }}>
           <div
             style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              backgroundColor: 'var(--accent-blue)',
-              display: 'flex',
+              backgroundColor: '#0B0F17',
+              padding: '10px 20px',
+              borderRadius: '12px',
+              border: '1px solid #1E293B',
+              display: 'inline-flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
             }}
           >
-            <BarChart3 size={20} color="#fff" />
-          </div>
-          <div style={{ lineHeight: 1.25 }}>
-            <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--ink)' }}>ScaleAds</div>
-            <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>Performance Hub · Meta Ads</div>
+            <img
+              src={logoImg}
+              alt="ScaleAds"
+              style={{ height: '34px', width: 'auto', display: 'block' }}
+            />
           </div>
         </div>
 
