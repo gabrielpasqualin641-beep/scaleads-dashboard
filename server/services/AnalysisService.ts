@@ -15,7 +15,7 @@ import {
 import { db } from '../db/database.js';
 import { resolveProvider } from './ProviderResolver.js';
 import { BriefService } from './BriefService.js';
-import { decomposeCpl, buildActions } from './analysis/playbook.js';
+import { decomposeCpl, buildActions, buildEvidence } from './analysis/playbook.js';
 
 /**
  * Análise de performance por regras determinísticas sobre métricas reais.
@@ -26,8 +26,34 @@ import { decomposeCpl, buildActions } from './analysis/playbook.js';
  * `sem_dados`.
  */
 
-/** Abaixo desse volume de leads o CPL oscila demais para sustentar decisão. */
-const MIN_LEADS_PARA_DECIDIR = 20;
+/**
+ * Volume mínimo absoluto para o CPL significar alguma coisa.
+ *
+ * Com um ou dois leads, mesmo uma diferença enorme é sorte. Acima disso quem
+ * manda é a margem calculada, não um número fixo.
+ */
+const MIN_LEADS_ABSOLUTO = 3;
+
+/**
+ * Margem relativa do CPL observado, dada a quantidade de leads.
+ *
+ * Contagem de eventos tem desvio da ordem de √n, então o CPL estimado a partir
+ * de n leads carrega incerteza relativa de ~1/√n: 8 leads dão ±35%, 4 dão ±50%,
+ * 1 dá ±100%.
+ *
+ * Antes existia um portão fixo de 20 leads por entidade. Numa conta que gera 28
+ * leads no mês inteiro divididos em 8 criativos, esse portão nunca abre — todo
+ * anúncio virava "observar" e a análise ficava muda justamente onde a decisão
+ * é tomada. Tratar pouca evidência como nenhuma evidência descarta informação
+ * real: um CPL 61% abaixo da meta com 8 leads está fora do ruído, e dá para
+ * agir sobre ele.
+ */
+function margemRelativa(leads: number): number {
+  return leads >= MIN_LEADS_ABSOLUTO ? 1 / Math.sqrt(leads) : Infinity;
+}
+
+/** Impressões a partir das quais CTR e CPM já são leitura confiável. */
+const MIN_IMPRESSOES = 1000;
 
 /** Gasto sem nenhum lead a partir do qual já dá para chamar de desperdício. */
 const GASTO_SEM_RESULTADO = 200;
@@ -144,13 +170,18 @@ export class AnalysisService {
       });
     }
 
-    const volumeOk = m.leads >= MIN_LEADS_PARA_DECIDIR;
+    const margem = margemRelativa(m.leads);
+    const gap = ratio !== null ? Math.abs(ratio - 1) : null;
+    const decidivel = gap !== null && Number.isFinite(margem) && gap > margem;
+
     signals.push({
       metric: 'volume',
-      label: 'Volume de leads no período',
+      label: Number.isFinite(margem)
+        ? `Leads no período — margem do CPL ±${(margem * 100).toFixed(0)}%`
+        : 'Leads no período — insuficiente para estimar o CPL',
       value: m.leads,
-      reference: MIN_LEADS_PARA_DECIDIR,
-      direction: volumeOk ? 'good' : 'neutral'
+      reference: null,
+      direction: decidivel ? 'good' : 'neutral'
     });
 
     if (has(m, 'frequency') && m.frequency >= FREQUENCIA_SATURADA) {
@@ -176,12 +207,15 @@ export class AnalysisService {
     const saturado = signals.some(s => s.metric === 'frequency' && s.direction === 'bad');
     const ctrFraco = signals.some(s => s.metric === 'ctr' && s.direction === 'bad');
 
-    // Volume baixo nunca vira decisão de escalar ou cortar: fica em observação.
-    if (!volumeOk) {
+    // Diferença que não supera a própria margem é ruído, não resultado.
+    if (!decidivel) {
+      const porque = Number.isFinite(margem)
+        ? `A diferença de ${((gap ?? 0) * 100).toFixed(0)}% cabe dentro da margem de ±${(margem * 100).toFixed(0)}% que ${m.leads} lead(s) permitem`
+        : `Apenas ${m.leads} lead(s) — abaixo do mínimo para o CPL significar algo`;
       return {
         verdict: 'observar',
         signals,
-        rationale: `Apenas ${m.leads} lead(s) no período — amostra pequena demais para decidir.`
+        rationale: `${porque}. Decidir agora seria decidir no acaso.`
       };
     }
 
@@ -189,7 +223,7 @@ export class AnalysisService {
       return {
         verdict: 'escalar',
         signals,
-        rationale: `CPL ${(100 - ratio * 100).toFixed(0)}% abaixo da referência com volume relevante.`
+        rationale: `CPL ${(100 - ratio * 100).toFixed(0)}% abaixo da referência, além da margem de ±${(margem * 100).toFixed(0)}% dos ${m.leads} leads.`
       };
     }
 
@@ -197,7 +231,7 @@ export class AnalysisService {
       return {
         verdict: 'cortar',
         signals,
-        rationale: `CPL ${((ratio - 1) * 100).toFixed(0)}% acima da referência com volume relevante.`
+        rationale: `CPL ${((ratio - 1) * 100).toFixed(0)}% acima da referência, além da margem de ±${(margem * 100).toFixed(0)}% dos ${m.leads} leads.`
       };
     }
 
@@ -252,13 +286,19 @@ export class AnalysisService {
         'externalCampaignId' in entity ? 'campaign' : 'externalAdSetId' in entity ? 'adset' : 'ad';
       const { verdict, signals, rationale } = this.classify(entity, benchmark);
       const diagnosis = decomposeCpl(entity.metrics, benchmark);
+      const evidence = buildEvidence(
+        entity.metrics,
+        benchmark,
+        diagnosis,
+        margemRelativa(has(entity.metrics, 'leads') ? entity.metrics.leads : 0)
+      );
       const saturado = signals.some(sig => sig.metric === 'frequency' && sig.direction === 'bad');
       const actions = buildActions(
         verdict,
         entity.metrics,
         benchmark,
         diagnosis,
-        MIN_LEADS_PARA_DECIDIR,
+        MIN_LEADS_ABSOLUTO,
         saturado
       );
 
@@ -275,6 +315,7 @@ export class AnalysisService {
         metrics: entity.metrics,
         spendShare: gastoTotal > 0 && has(entity.metrics, 'spend') ? entity.metrics.spend / gastoTotal : 0,
         diagnosis,
+        evidence,
         actions
       };
     });

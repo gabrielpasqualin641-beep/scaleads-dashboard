@@ -302,6 +302,36 @@ export const AnalysisView: React.FC = () => {
                         </div>
                       )}
 
+                      {(item.evidence?.supports?.length || item.evidence?.limits?.length) ? (
+                        <div>
+                          <div className="plan-section-title">O que estes dados sustentam</div>
+                          {item.evidence.supports.length > 0 ? (
+                            <ul className="plan-steps">
+                              {item.evidence.supports.map((t, i) => (
+                                <li key={i} style={{ color: 'var(--good)' }}>{t}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+                              Nenhuma conclusão fica de pé com o volume atual.
+                            </div>
+                          )}
+
+                          {item.evidence.limits.length > 0 && (
+                            <>
+                              <div className="plan-section-title" style={{ marginTop: '12px' }}>
+                                O que não dá para concluir
+                              </div>
+                              <ul className="plan-steps">
+                                {item.evidence.limits.map((t, i) => (
+                                  <li key={i} style={{ color: 'var(--muted)' }}>{t}</li>
+                                ))}
+                              </ul>
+                            </>
+                          )}
+                        </div>
+                      ) : null}
+
                       {item.actions.map((a, i) => (
                         <div key={i} className="plan-action">
                           <div className="plan-action-title">{i + 1}. {a.title}</div>

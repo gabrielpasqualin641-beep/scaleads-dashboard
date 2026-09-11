@@ -238,3 +238,77 @@ export function buildActions(
 
   return actions;
 }
+
+/**
+ * O que estes dados sustentam, e o que não sustentam.
+ *
+ * Uma recomendação sem os seus limites convida a usá-la onde ela não vale.
+ * Aqui cada afirmação vem com a base que a segura, e as perguntas que os dados
+ * não respondem ficam escritas — em vez de a ausência ser confundida com
+ * ausência de problema.
+ */
+export function buildEvidence(
+  m: NormalizedMetrics,
+  benchmark: AnalysisBenchmark,
+  diagnosis: CplBreakdown | null,
+  margem: number
+): { supports: string[]; limits: string[] } {
+  const supports: string[] = [];
+  const limits: string[] = [];
+
+  const leads = has(m, 'leads') ? m.leads : 0;
+
+  if (diagnosis && Number.isFinite(margem) && benchmark.cpl !== null) {
+    const gap = Math.abs(m.cpl / benchmark.cpl - 1) * 100;
+    const lado = m.cpl < benchmark.cpl ? 'abaixo' : 'acima';
+    if (gap > margem * 100) {
+      supports.push(
+        `CPL ${gap.toFixed(0)}% ${lado} da referência com ${leads} leads. A margem desse volume é ±${(margem * 100).toFixed(0)}%, ` +
+        'então a diferença não se explica por acaso.'
+      );
+    } else {
+      limits.push(
+        `Não dá para afirmar que o CPL está ${lado} da referência: a diferença de ${gap.toFixed(0)}% ` +
+        `cabe na margem de ±${(margem * 100).toFixed(0)}% que ${leads} leads permitem.`
+      );
+    }
+  } else if (leads > 0) {
+    limits.push(`Com ${leads} lead(s), o CPL observado não sustenta conclusão nenhuma sobre eficiência.`);
+  }
+
+  // CTR e CPM estabilizam com impressões, que costumam sobrar quando leads faltam.
+  if (has(m, 'impressions') && m.impressions >= 1000 && has(m, 'ctr') && benchmark.ctr !== null) {
+    const rel = m.ctr / benchmark.ctr;
+    const comparativo = rel >= 1.3 ? 'acima da' : rel <= 0.7 ? 'abaixo da' : 'em linha com a';
+    supports.push(
+      `CTR de ${pct(m.ctr)} sobre ${m.impressions.toLocaleString('pt-BR')} impressões — ${comparativo} ` +
+      `média da conta (${pct(benchmark.ctr)}). Impressão é o que não falta aqui, então essa leitura é firme.`
+    );
+  } else if (has(m, 'impressions') && m.impressions < 1000) {
+    limits.push(
+      `Só ${m.impressions.toLocaleString('pt-BR')} impressões: CTR e CPM ainda oscilam demais para comparar com outros criativos.`
+    );
+  }
+
+  if (has(m, 'cpm') && benchmark.cpm !== null) {
+    const rel = (m.cpm / benchmark.cpm - 1) * 100;
+    if (Math.abs(rel) >= 15) {
+      supports.push(
+        `CPM de ${money(m.cpm)}, ${Math.abs(rel).toFixed(0)}% ${rel > 0 ? 'acima' : 'abaixo'} da referência de ${money(benchmark.cpm)}.`
+      );
+    }
+  }
+
+  if (!has(m, 'mqls')) {
+    limits.push(
+      'MQL não chega atribuído a esta entidade: dá para dizer qual criativo traz lead mais barato, ' +
+      'não qual traz lead que presta. Os dois podem ser criativos diferentes.'
+    );
+  }
+
+  if (!has(m, 'conversions') && !has(m, 'revenue')) {
+    limits.push('Venda e receita não são reportadas nesta origem, então nada aqui alcança retorno — só custo de captação.');
+  }
+
+  return { supports, limits };
+}

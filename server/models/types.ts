@@ -109,6 +109,8 @@ export interface AnalysisItem {
   spendShare: number;
   /** Onde o CPL se quebra. `null` quando falta métrica para decompor. */
   diagnosis: CplBreakdown | null;
+  /** O que os dados desta entidade sustentam, e o que fica fora do alcance. */
+  evidence: { supports: string[]; limits: string[] };
   /** O que fazer, em ordem de impacto. Vazio quando não há ação defensável. */
   actions: AnalysisAction[];
 }

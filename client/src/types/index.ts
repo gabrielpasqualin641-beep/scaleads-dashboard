@@ -94,6 +94,7 @@ export interface AnalysisAction {
 
 export interface AnalysisItem {
   diagnosis: CplBreakdown | null;
+  evidence: { supports: string[]; limits: string[] };
   actions: AnalysisAction[];
   level: 'campaign' | 'adset' | 'ad';
   id: string;
