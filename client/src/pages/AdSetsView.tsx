@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle, PauseCircle, Filter } from 'lucide-react';
+import { Filter } from 'lucide-react';
 import { AdSetData, CampaignData } from '../types';
-import { metricText } from '../utils/metrics';
+import { metricText, dropEmptyMetricColumns } from '../utils/metrics';
 import { api } from '../services/api';
 import { useClient } from '../context/ClientContext';
 import { usePeriod } from '../context/PeriodContext';
 import { DataTable, ColumnDef } from '../components/common/DataTable';
+import { StatusBadge } from '../components/common/StatusBadge';
 import { HierarchyPairChart } from '../components/charts/HierarchyPairChart';
 import { buildChartItems, NO_SERIES_MESSAGE } from '../utils/chartSeries';
 import { TableSkeleton } from '../components/common/Skeletons';
@@ -78,11 +79,7 @@ export const AdSetsView: React.FC = () => {
       header: 'Status',
       accessor: a => a.status,
       align: 'center',
-      cell: v => (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700, color: 'var(--good)' }}>
-          <CheckCircle size={12} /> Ativo
-        </span>
-      )
+      cell: v => <StatusBadge status={v} />
     },
     {
       id: 'spend',
@@ -180,6 +177,13 @@ export const AdSetsView: React.FC = () => {
     }
   ];
 
+  // Colunas de métrica sem nenhum dado saem da tabela; o que saiu é listado abaixo dela.
+  const { columns: visibleColumns, hidden: hiddenColumns } = dropEmptyMetricColumns(
+    columns,
+    adSets,
+    row => row.metrics
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div className="page-header">
@@ -218,7 +222,7 @@ export const AdSetsView: React.FC = () => {
 
       <DataTable
         data={adSets}
-        columns={columns}
+        columns={visibleColumns}
         searchable
         searchPlaceholder="Buscar conjunto pelo nome..."
         searchFilter={(row, q) => row.name.toLowerCase().includes(q) || row.campaignName.toLowerCase().includes(q)}
@@ -227,6 +231,13 @@ export const AdSetsView: React.FC = () => {
         idAccessor={a => a.id}
         maxHeight="420px"
       />
+      {hiddenColumns.length > 0 && (
+        <div className="hidden-cols-note">
+          Colunas ocultas por não terem dado nesta origem:{' '}
+          {hiddenColumns.map(c => c.header).join(', ')}.
+        </div>
+      )}
+
 
       {chartItems.length > 0 ? (
         <HierarchyPairChart

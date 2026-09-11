@@ -752,13 +752,30 @@ body {
   border-top: 2px solid var(--border);
 }
 
-/* Sticky First Column */
+/*
+ * Primeira coluna fixa no scroll horizontal.
+ *
+ * `background-color: inherit` não serve aqui: a célula herda do `<tr>`, que é
+ * transparente, e as colunas que passam por baixo apareciam através do nome da
+ * campanha. Precisa de cor opaca própria, e de uma para cada estado da linha —
+ * normal, hover e rodapé — senão o fundo "salta" quando o mouse passa.
+ */
 .data-table .sticky-col {
   position: sticky;
   left: 0;
-  background-color: inherit;
+  background-color: var(--surface);
   z-index: 5;
   border-right: 1px solid var(--border);
+  /* Sombra à direita: mostra que existe conteúdo passando por baixo. */
+  box-shadow: 6px 0 8px -6px rgba(0, 0, 0, 0.18);
+}
+
+.data-table tbody tr:hover .sticky-col {
+  background-color: var(--selected);
+}
+
+.data-table tfoot .sticky-col {
+  background-color: var(--tfoot);
 }
 
 .data-table th.sticky-col {
@@ -1081,4 +1098,12 @@ body {
   align-items: flex-start;
   gap: 8px;
   line-height: 1.45;
+}
+
+/* Aviso discreto de colunas removidas da tabela por falta de dado. */
+.hidden-cols-note {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
 }

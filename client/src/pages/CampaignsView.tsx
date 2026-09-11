@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle, PauseCircle } from 'lucide-react';
 import { CampaignData } from '../types';
-import { metricText } from '../utils/metrics';
+import { metricText, dropEmptyMetricColumns } from '../utils/metrics';
 import { api } from '../services/api';
 import { useClient } from '../context/ClientContext';
 import { usePeriod } from '../context/PeriodContext';
 import { DataTable, ColumnDef } from '../components/common/DataTable';
+import { StatusBadge } from '../components/common/StatusBadge';
 import { HierarchyPairChart } from '../components/charts/HierarchyPairChart';
 import { buildChartItems, NO_SERIES_MESSAGE } from '../utils/chartSeries';
 import { CampaignDetailDrawer } from '../components/drawers/CampaignDetailDrawer';
@@ -81,21 +81,7 @@ export const CampaignsView: React.FC = () => {
       header: 'Status',
       accessor: c => c.status,
       align: 'center',
-      cell: v => (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            fontSize: '11px',
-            fontWeight: 700,
-            color: v === 'ACTIVE' ? 'var(--good)' : 'var(--muted)'
-          }}
-        >
-          {v === 'ACTIVE' ? <CheckCircle size={12} /> : <PauseCircle size={12} />}
-          {v === 'ACTIVE' ? 'Ativo' : 'Pausado'}
-        </span>
-      )
+      cell: v => <StatusBadge status={v} />
     },
     {
       id: 'spend',
@@ -199,6 +185,13 @@ export const CampaignsView: React.FC = () => {
     }
   ];
 
+  // Colunas de métrica sem nenhum dado saem da tabela; o que saiu é listado abaixo dela.
+  const { columns: visibleColumns, hidden: hiddenColumns } = dropEmptyMetricColumns(
+    columns,
+    campaigns,
+    row => row.metrics
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div className="page-header">
@@ -213,7 +206,7 @@ export const CampaignsView: React.FC = () => {
       {/* Tabela de Campanhas */}
       <DataTable
         data={campaigns}
-        columns={columns}
+        columns={visibleColumns}
         searchable
         searchPlaceholder="Buscar campanha pelo nome ou ID..."
         searchFilter={(row, q) => row.name.toLowerCase().includes(q) || row.externalCampaignId.includes(q)}
@@ -222,6 +215,13 @@ export const CampaignsView: React.FC = () => {
         idAccessor={c => c.id}
         maxHeight="420px"
       />
+      {hiddenColumns.length > 0 && (
+        <div className="hidden-cols-note">
+          Colunas ocultas por não terem dado nesta origem:{' '}
+          {hiddenColumns.map(c => c.header).join(', ')}.
+        </div>
+      )}
+
 
       {/* Gráfico Pareado com Métricas */}
       <div>

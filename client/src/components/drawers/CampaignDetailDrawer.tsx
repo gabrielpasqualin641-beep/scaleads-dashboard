@@ -1,5 +1,6 @@
+import { StatusBadge } from '../common/StatusBadge';
 import React, { useEffect, useState } from 'react';
-import { X, ExternalLink, TrendingUp, CheckCircle, PauseCircle, Layers } from 'lucide-react';
+import { X, ExternalLink, TrendingUp, Layers } from 'lucide-react';
 import { CampaignData, AdSetData, AdData } from '../../types';
 import { metricText } from '../../utils/metrics';
 import { CreativeThumb } from '../common/CreativeThumb';
@@ -112,15 +113,7 @@ export const CampaignDetailDrawer: React.FC<CampaignDetailDrawerProps> = ({
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              {campaign.status === 'ACTIVE' ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--good)', fontSize: '11.5px', fontWeight: 700 }}>
-                  <CheckCircle size={13} /> Ativo
-                </span>
-              ) : (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--muted)', fontSize: '11.5px', fontWeight: 700 }}>
-                  <PauseCircle size={13} /> Pausado
-                </span>
-              )}
+              <StatusBadge status={campaign.status} size={13} />
               <span style={{ fontSize: '11px', color: 'var(--muted)' }}>ID: {campaign.externalCampaignId}</span>
             </div>
             <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--ink)' }}>{campaign.name}</h2>

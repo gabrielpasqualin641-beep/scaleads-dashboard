@@ -17,6 +17,7 @@ import { AppPage } from '../../types';
 import { useClient } from '../../context/ClientContext';
 import { useAuth } from '../../context/AuthContext';
 import { can } from '../../utils/permissions';
+import logoImg from '../../assets/logo.png';
 
 interface SidebarProps {
   currentPage: AppPage;

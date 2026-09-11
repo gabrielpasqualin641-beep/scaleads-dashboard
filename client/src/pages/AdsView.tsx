@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ExternalLink, CheckCircle, Sparkles } from 'lucide-react';
 import { AdData } from '../types';
-import { metricText } from '../utils/metrics';
+import { metricText, dropEmptyMetricColumns } from '../utils/metrics';
 import { api } from '../services/api';
 import { useClient } from '../context/ClientContext';
 import { usePeriod } from '../context/PeriodContext';
@@ -190,6 +190,13 @@ export const AdsView: React.FC = () => {
     }
   ];
 
+  // Colunas de métrica sem nenhum dado saem da tabela; o que saiu é listado abaixo dela.
+  const { columns: visibleColumns, hidden: hiddenColumns } = dropEmptyMetricColumns(
+    columns,
+    ads,
+    row => row.metrics
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div className="page-header">
@@ -203,7 +210,7 @@ export const AdsView: React.FC = () => {
 
       <DataTable
         data={ads}
-        columns={columns}
+        columns={visibleColumns}
         searchable
         searchPlaceholder="Buscar anúncio por título, formato ou conjunto..."
         searchFilter={(row, q) => row.name.toLowerCase().includes(q) || row.adSetName.toLowerCase().includes(q)}
@@ -212,6 +219,13 @@ export const AdsView: React.FC = () => {
         idAccessor={a => a.id}
         maxHeight="420px"
       />
+      {hiddenColumns.length > 0 && (
+        <div className="hidden-cols-note">
+          Colunas ocultas por não terem dado nesta origem:{' '}
+          {hiddenColumns.map(c => c.header).join(', ')}.
+        </div>
+      )}
+
 
       {chartItems.length > 0 ? (
         <HierarchyPairChart
