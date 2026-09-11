@@ -107,6 +107,10 @@ export interface AnalysisItem {
   metrics: NormalizedMetrics;
   /** Parcela do investimento do período que passou por esta entidade. */
   spendShare: number;
+  /** Onde o CPL se quebra. `null` quando falta métrica para decompor. */
+  diagnosis: CplBreakdown | null;
+  /** O que fazer, em ordem de impacto. Vazio quando não há ação defensável. */
+  actions: AnalysisAction[];
 }
 
 export interface AnalysisBenchmark {
@@ -115,6 +119,44 @@ export interface AnalysisBenchmark {
   cpl: number | null;
   ctr: number | null;
   frequency: number | null;
+  /** Referência de CPM: meta do briefing, ou a média ponderada da conta. */
+  cpm: number | null;
+  cpmSource: 'meta_do_briefing' | 'media_da_conta' | 'indisponivel';
+  /** Média da conta para a conversão de clique em lead, em %. */
+  clickToLead: number | null;
+}
+
+/**
+ * Decomposição do CPL nas três alavancas que o formam.
+ *
+ * CPL = CPM ÷ (1000 × CTR × conversão do clique). A identidade é aritmética,
+ * não estimativa: serve para apontar qual perna está quebrada em vez de dizer
+ * apenas "o CPL está alto". Quem lê "melhore o CPL" não sabe onde mexer; quem
+ * lê "o CPM está 67% acima da meta e sozinho responde por 40% do custo" sabe.
+ */
+export interface CplBreakdown {
+  cpl: number;
+  cpm: number | null;
+  ctr: number | null;
+  /** Cliques que viraram lead, em %. */
+  clickToLead: number | null;
+  /** A perna com maior ganho potencial se voltar à referência. */
+  bottleneck: 'cpm' | 'ctr' | 'conversao' | null;
+  /** CPL que resultaria se só o gargalo voltasse à referência. */
+  cplSeCorrigido: number | null;
+  /** Redução percentual correspondente. */
+  ganhoPercentual: number | null;
+}
+
+/** Uma recomendação concreta, com o número que a justifica. */
+export interface AnalysisAction {
+  title: string;
+  /** Por que agir, citando o dado observado. */
+  why: string;
+  /** O que fazer, na ordem. */
+  steps: string[];
+  /** Efeito esperado no CPL, quando dá para calcular. */
+  expectedImpact?: string;
 }
 
 export interface AnalysisResponse {

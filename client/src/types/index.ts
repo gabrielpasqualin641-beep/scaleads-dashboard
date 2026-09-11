@@ -75,7 +75,26 @@ export interface AnalysisSignal {
   direction: 'good' | 'bad' | 'neutral';
 }
 
+export interface CplBreakdown {
+  cpl: number;
+  cpm: number | null;
+  ctr: number | null;
+  clickToLead: number | null;
+  bottleneck: 'cpm' | 'ctr' | 'conversao' | null;
+  cplSeCorrigido: number | null;
+  ganhoPercentual: number | null;
+}
+
+export interface AnalysisAction {
+  title: string;
+  why: string;
+  steps: string[];
+  expectedImpact?: string;
+}
+
 export interface AnalysisItem {
+  diagnosis: CplBreakdown | null;
+  actions: AnalysisAction[];
   level: 'campaign' | 'adset' | 'ad';
   id: string;
   name: string;

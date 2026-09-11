@@ -15,6 +15,7 @@ import {
 import { db } from '../db/database.js';
 import { resolveProvider } from './ProviderResolver.js';
 import { BriefService } from './BriefService.js';
+import { decomposeCpl, buildActions } from './analysis/playbook.js';
 
 /**
  * Análise de performance por regras determinísticas sobre métricas reais.
@@ -67,15 +68,35 @@ export class AnalysisService {
         .map(e => ({ value: e.metrics.frequency, weight: e.metrics.impressions }))
     );
 
+    const cpmMedio = weightedAverage(
+      entities.filter(e => has(e.metrics, 'cpm')).map(e => ({ value: e.metrics.cpm, weight: e.metrics.impressions }))
+    );
+
+    // Conversão do clique em lead, ponderada por cliques.
+    const conversaoMedia = weightedAverage(
+      entities
+        .filter(e => has(e.metrics, 'clicks') && has(e.metrics, 'leads') && e.metrics.clicks > 0)
+        .map(e => ({ value: (e.metrics.leads / e.metrics.clicks) * 100, weight: e.metrics.clicks }))
+    );
+
+    const temMetaCpm = !!(brief?.targetCpm && brief.targetCpm > 0);
+    const extras = {
+      ctr: ctrMedio,
+      frequency: freqMedia,
+      cpm: temMetaCpm ? brief!.targetCpm : cpmMedio,
+      cpmSource: (temMetaCpm ? 'meta_do_briefing' : cpmMedio !== null ? 'media_da_conta' : 'indisponivel') as AnalysisBenchmark['cpmSource'],
+      clickToLead: conversaoMedia
+    };
+
     // A meta do briefing tem prioridade: comparar contra a média da própria
     // conta só diz quem é melhor que a média, não quem é bom.
     if (brief?.targetCpl && brief.targetCpl > 0) {
-      return { cplSource: 'meta_do_briefing', cpl: brief.targetCpl, ctr: ctrMedio, frequency: freqMedia };
+      return { cplSource: 'meta_do_briefing', cpl: brief.targetCpl, ...extras };
     }
     if (cplMedio !== null) {
-      return { cplSource: 'media_da_conta', cpl: cplMedio, ctr: ctrMedio, frequency: freqMedia };
+      return { cplSource: 'media_da_conta', cpl: cplMedio, ...extras };
     }
-    return { cplSource: 'indisponivel', cpl: null, ctr: ctrMedio, frequency: freqMedia };
+    return { cplSource: 'indisponivel', cpl: null, ...extras };
   }
 
   private static classify(
@@ -230,6 +251,16 @@ export class AnalysisService {
       const level: AnalysisItem['level'] =
         'externalCampaignId' in entity ? 'campaign' : 'externalAdSetId' in entity ? 'adset' : 'ad';
       const { verdict, signals, rationale } = this.classify(entity, benchmark);
+      const diagnosis = decomposeCpl(entity.metrics, benchmark);
+      const saturado = signals.some(sig => sig.metric === 'frequency' && sig.direction === 'bad');
+      const actions = buildActions(
+        verdict,
+        entity.metrics,
+        benchmark,
+        diagnosis,
+        MIN_LEADS_PARA_DECIDIR,
+        saturado
+      );
 
       return {
         level,
@@ -242,7 +273,9 @@ export class AnalysisService {
         rationale,
         signals,
         metrics: entity.metrics,
-        spendShare: gastoTotal > 0 && has(entity.metrics, 'spend') ? entity.metrics.spend / gastoTotal : 0
+        spendShare: gastoTotal > 0 && has(entity.metrics, 'spend') ? entity.metrics.spend / gastoTotal : 0,
+        diagnosis,
+        actions
       };
     });
 

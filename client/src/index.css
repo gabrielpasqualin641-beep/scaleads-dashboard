@@ -1107,3 +1107,115 @@ body {
   color: var(--muted);
   line-height: 1.5;
 }
+
+/* ---------------------------- PLANO DE AÇÃO (ANÁLISE) ---------------------- */
+
+/* Card de veredito que filtra a lista ao ser clicado. */
+.verdict-card {
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  border-width: 1px;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.verdict-card:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.verdict-card:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+.verdict-card.is-active {
+  border-width: 2px;
+}
+
+.plan-toggle {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--accent-blue);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.plan-toggle:hover {
+  background-color: var(--selected);
+}
+
+.plan-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background-color: var(--thead);
+}
+
+.plan-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+/* A identidade do CPL. Monoespaçada porque é uma conta, e conta se confere. */
+.plan-formula {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--ink);
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.plan-bottleneck {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--accent-blue);
+  line-height: 1.5;
+}
+
+.plan-action-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.plan-action-why {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-bottom: 7px;
+}
+.plan-steps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.plan-steps li {
+  font-size: 12.5px;
+  color: var(--ink);
+  line-height: 1.55;
+}
+.plan-impact {
+  margin-top: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background-color: var(--good-bg);
+  color: var(--good);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
