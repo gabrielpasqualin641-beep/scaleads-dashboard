@@ -18,7 +18,9 @@
     "build:client": "vite build",
     "test:meta": "tsx --test server/integrations/meta/__tests__/meta.test.mjs",
     "test:kommo": "tsx --test server/integrations/kommo/__tests__/qualification.test.mjs",
-    "test": "tsx --test server/integrations/**/__tests__/*.test.mjs"
+    "test": "tsx --test server/integrations/**/__tests__/*.test.mjs",
+    "leads:import": "tsx server/scripts/importLeadExports.ts",
+    "test:leads": "tsx --test server/integrations/metaLeads/__tests__/leadExports.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.121.0",

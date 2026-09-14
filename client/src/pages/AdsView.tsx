@@ -219,6 +219,22 @@ export const AdsView: React.FC = () => {
         idAccessor={a => a.id}
         maxHeight="420px"
       />
+      {(() => {
+        // O MQL por criativo sai do export manual de leads. Sem dizer a janela,
+        // um período maior que ela faria o MQL parecer baixo diante dos leads.
+        const janelas = ads.map(a => a.mqlCoverage).filter((c): c is { since: string; until: string } => !!c);
+        if (janelas.length === 0) return null;
+        const since = janelas.map(j => j.since).sort()[0];
+        const until = janelas.map(j => j.until).sort().slice(-1)[0];
+        const br = (d: string) => d.split('-').reverse().join('/');
+        return (
+          <div className="hidden-cols-note">
+            MQL por criativo vem do export de leads da Meta, que cobre {br(since)} a {br(until)}. Fora
+            dessa janela o MQL do criativo não entra na conta; criativo sem export aparece como N/D.
+          </div>
+        );
+      })()}
+
       {hiddenColumns.length > 0 && (
         <div className="hidden-cols-note">
           Colunas ocultas por não terem dado nesta origem:{' '}

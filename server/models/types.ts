@@ -297,6 +297,12 @@ export interface AdData {
   format?: 'image' | 'video' | 'carousel';
   metrics: NormalizedMetrics;
   dailyMetrics?: DailyMetricItem[];
+  /**
+   * Dias do período cobertos pelo export manual de leads, de onde sai o MQL do
+   * criativo. Fora dessa janela o MQL dele não é conhecido; `null` quando
+   * nenhum export cobre o criativo.
+   */
+  mqlCoverage?: { since: string; until: string } | null;
 }
 
 export interface DailyMetricItem {

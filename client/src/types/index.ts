@@ -287,6 +287,8 @@ export interface AdData {
   format?: 'image' | 'video' | 'carousel';
   metrics: NormalizedMetrics;
   dailyMetrics?: DailyMetricItem[];
+  /** Janela do export manual de onde sai o MQL do criativo. */
+  mqlCoverage?: { since: string; until: string } | null;
 }
 
 /** Metas de custo do cliente, vindas do briefing. Espelha o tipo do servidor. */

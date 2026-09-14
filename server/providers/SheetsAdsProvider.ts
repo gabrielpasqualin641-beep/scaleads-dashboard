@@ -14,6 +14,7 @@ import { SheetsDailyRow, SheetsEntityRow, SheetsMetricSet } from '../integration
 import { db } from '../db/database.js';
 import { BriefService } from '../services/BriefService.js';
 import { kommoMqlStore } from '../integrations/kommo/mqlStore.js';
+import { leadExportStore } from '../integrations/metaLeads/leadExports.js';
 
 /**
  * Provider alimentado por uma planilha (Adveronix).
@@ -67,8 +68,51 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     };
   }
 
-  private entityMetrics(row: SheetsEntityRow, period: PeriodSelection, ticket: number | null): NormalizedMetrics {
-    return NormalizerService.calculateMetrics(this.toRaw(row, ticket), period.includeMetaTax ?? true);
+  /**
+   * Métricas da entidade dentro do período selecionado.
+   *
+   * Antes usava a linha consolidada do snapshot, que soma a planilha inteira:
+   * as tabelas de campanha, conjunto e anúncio mostravam o histórico todo, fosse
+   * qual fosse a data escolhida. Com o MQL por criativo isso deixava de ser só
+   * impreciso e virava contraditório — MQL do período dividido por leads de
+   * todos os tempos.
+   */
+  private entityMetrics(
+    series: SheetsDailyRow[] | undefined,
+    period: PeriodSelection,
+    ticket: number | null,
+    mqls: number | null = null
+  ): NormalizedMetrics {
+    const rows = (series || []).filter(d => d.date >= period.startDate && d.date <= period.endDate);
+    const merged = this.mergeRows(rows, period.startDate);
+    return NormalizerService.calculateMetrics(this.toRaw(merged, ticket, mqls), period.includeMetaTax ?? true);
+  }
+
+  /**
+   * MQL da conta num dia.
+   *
+   * O export manual vem primeiro: nos dias que ele cobre, é a contagem completa,
+   * enquanto o CRM pode estar perdendo leads — um formulário novo sem mapeamento
+   * no conector fez 98% dos leads dele não chegarem ao Kommo. Fora da janela do
+   * export, quem responde é o CRM. Cada dia tem uma origem só, para o mesmo lead
+   * nunca ser contado duas vezes.
+   */
+  private mqlForDate(accountId: string, date: string): number | null {
+    const exportado = leadExportStore.forAccountDate(accountId, date);
+    if (exportado) return exportado.mqls;
+    return kommoMqlStore.forDate(accountId, date)?.mqls ?? null;
+  }
+
+  private mqlForPeriod(accountId: string, period: PeriodSelection): number | null {
+    let total = 0;
+    let algum = false;
+    const d = new Date(`${period.startDate}T12:00:00Z`);
+    const fim = new Date(`${period.endDate}T12:00:00Z`);
+    for (; d <= fim; d.setUTCDate(d.getUTCDate() + 1)) {
+      const v = this.mqlForDate(accountId, d.toISOString().slice(0, 10));
+      if (v !== null) { total += v; algum = true; }
+    }
+    return algum ? total : null;
   }
 
   private entityDaily(series: SheetsDailyRow[] | undefined, period: PeriodSelection, ticket: number | null): DailyMetricItem[] | undefined {
@@ -202,7 +246,7 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     const rows = this.dailyRows(externalAccountId, period);
 
     return rows.map(row => {
-      const mqls = kommoMqlStore.forDate(externalAccountId, row.date)?.mqls ?? null;
+      const mqls = this.mqlForDate(externalAccountId, row.date);
       const m = NormalizerService.calculateMetrics(this.toRaw(row, ticket, mqls), period.includeMetaTax ?? true);
       return {
         date: row.date,
@@ -250,7 +294,7 @@ export class SheetsAdsProvider implements AdvertisingProvider {
           reach: null
         },
         ticket,
-        kommoMqlStore.totals(externalAccountId, period.startDate, period.endDate)?.mqls ?? null
+        this.mqlForPeriod(externalAccountId, period)
       ),
       period.includeMetaTax ?? true
     );
@@ -268,7 +312,7 @@ export class SheetsAdsProvider implements AdvertisingProvider {
       externalCampaignId: row.id,
       name: row.name,
       status: 'UNKNOWN', // a planilha não reporta status de veiculação
-      metrics: this.entityMetrics(row, period, ticket),
+      metrics: this.entityMetrics(acc.dailyByEntity.campaigns[row.id], period, ticket),
       dailyMetrics: this.entityDaily(acc.dailyByEntity.campaigns[row.id], period, ticket)
     }));
   }
@@ -292,7 +336,7 @@ export class SheetsAdsProvider implements AdvertisingProvider {
       externalAdSetId: row.id,
       name: row.name,
       status: 'UNKNOWN', // a planilha não reporta status de veiculação
-      metrics: this.entityMetrics(row, period, ticket),
+      metrics: this.entityMetrics(acc.dailyByEntity.adSets[row.id], period, ticket),
       dailyMetrics: this.entityDaily(acc.dailyByEntity.adSets[row.id], period, ticket)
     }));
   }
@@ -309,18 +353,24 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     const visible = acc.ads.filter(a => !hidden.has(a.campaignId || ''));
     const rows = adSetId ? visible.filter(a => a.adSetId === adSetId) : visible;
 
-    return rows.map(row => ({
-      id: row.id,
-      adAccountId: externalAccountId,
-      campaignId: row.campaignId || '',
-      campaignName: campaignNames.get(row.campaignId || '') || 'N/D',
-      adSetId: row.adSetId || '',
-      adSetName: adSetNames.get(row.adSetId || '') || 'N/D',
-      externalAdId: row.id,
-      name: row.name,
-      status: 'UNKNOWN', // a planilha não reporta status de veiculação
-      metrics: this.entityMetrics(row, period, ticket),
-      dailyMetrics: this.entityDaily(acc.dailyByEntity.ads[row.id], period, ticket)
-    }));
+    return rows.map(row => {
+      // MQL por criativo só existe onde houve export: o CRM não sabe de qual
+      // anúncio veio cada lead.
+      const exportado = leadExportStore.forAd(externalAccountId, row.id, period.startDate, period.endDate);
+      return {
+        id: row.id,
+        adAccountId: externalAccountId,
+        campaignId: row.campaignId || '',
+        campaignName: campaignNames.get(row.campaignId || '') || 'N/D',
+        adSetId: row.adSetId || '',
+        adSetName: adSetNames.get(row.adSetId || '') || 'N/D',
+        externalAdId: row.id,
+        name: row.name,
+        status: 'UNKNOWN', // a planilha não reporta status de veiculação
+        metrics: this.entityMetrics(acc.dailyByEntity.ads[row.id], period, ticket, exportado?.mqls ?? null),
+        dailyMetrics: this.entityDaily(acc.dailyByEntity.ads[row.id], period, ticket),
+        mqlCoverage: exportado?.coverage ?? null
+      };
+    });
   }
 }
