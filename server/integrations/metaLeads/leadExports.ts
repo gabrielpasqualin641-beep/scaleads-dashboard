@@ -106,11 +106,57 @@ function parseDelimited(text: string, delimiter: string): string[][] {
   return rows;
 }
 
+/**
+ * Lê o XML "SpreadsheetML" que o Gerenciador entrega quando o export é pedido
+ * como .xls — mesmas colunas do CSV, empacotadas em `<Row><Cell><Data>`.
+ *
+ * Uma célula vazia é omitida do XML, mas pode carregar `ss:Index` dizendo a que
+ * coluna a próxima pertence; sem respeitar isso, uma linha com buraco no meio
+ * desalinha todas as colunas seguintes.
+ */
+function parseSpreadsheetXml(text: string): string[][] {
+  const cellRe = /<Cell\b([^>]*)>([\s\S]*?)<\/Cell>|<Cell\b([^>]*)\/>/g;
+  const dataRe = /<Data\b[^>]*>([\s\S]*?)<\/Data>/;
+  const indexRe = /ss:Index="(\d+)"/;
+  const unescape = (s: string) => s
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&amp;/g, '&');
+
+  const rows: string[][] = [];
+  const rowRe = /<Row\b[^>]*>([\s\S]*?)<\/Row>/g;
+  let rowMatch: RegExpExecArray | null;
+  while ((rowMatch = rowRe.exec(text))) {
+    const cells: string[] = [];
+    let col = 0;
+    let cellMatch: RegExpExecArray | null;
+    cellRe.lastIndex = 0;
+    while ((cellMatch = cellRe.exec(rowMatch[1]))) {
+      const attrs = cellMatch[1] ?? cellMatch[3] ?? '';
+      const idxAttr = attrs.match(indexRe);
+      if (idxAttr) col = Number(idxAttr[1]) - 1; // ss:Index é 1-based
+      const inner = cellMatch[2] ?? '';
+      const data = inner.match(dataRe);
+      while (cells.length < col) cells.push('');
+      cells[col] = data ? unescape(data[1]) : '';
+      col++;
+    }
+    rows.push(cells);
+  }
+  return rows;
+}
+
 export function parseLeadExport(buffer: Buffer): ExportedLead[] {
   const text = decode(buffer);
-  const firstLine = text.slice(0, text.search(/\r?\n/));
-  const delimiter = firstLine.includes('\t') ? '\t' : ',';
-  const table = parseDelimited(text, delimiter);
+  const isXml = /^\s*<\?xml|^\s*<Workbook/i.test(text.slice(0, 64));
+  let table: string[][];
+  if (isXml) {
+    table = parseSpreadsheetXml(text);
+  } else {
+    const firstLine = text.slice(0, text.search(/\r?\n/));
+    const delimiter = firstLine.includes('\t') ? '\t' : ',';
+    table = parseDelimited(text, delimiter);
+  }
   if (table.length === 0) return [];
 
   const header = table[0].map(h => h.trim().toLowerCase());
@@ -133,7 +179,11 @@ export function parseLeadExport(buffer: Buffer): ExportedLead[] {
   }
 
   return table.slice(1).map(r => ({
-    id: (r[idx.id] || '').trim(),
+    // O CSV grava o id como "l:123", o XLS como "123". Sem tirar o prefixo, o
+    // mesmo lead exportado nos dois formatos vira dois ids distintos e a
+    // deduplicação não o reconhece — foi o que inflou o Criativo 07 de 104 para
+    // 185, contando cada lead duas vezes.
+    id: (r[idx.id] || '').trim().replace(/^l:/, ''),
     date: (r[idx.created] || '').trim().slice(0, 10),
     campaignName: (r[idx.campaign] || '').trim(),
     adSetName: (r[idx.adSet] || '').trim(),
@@ -142,10 +192,15 @@ export function parseLeadExport(buffer: Buffer): ExportedLead[] {
   })).filter(l => l.id && /^\d{4}-\d{2}-\d{2}$/.test(l.date));
 }
 
-/** Janela declarada no nome do arquivo: "..._Leads_2026-09-10_2026-09-13.csv". */
+/** Janela declarada no nome: "..._Leads_2026-09-10_2026-09-13.csv" (ou .xls). */
 export function rangeFromFileName(fileName: string): DateRange | null {
   const m = fileName.match(/_Leads_(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})/i);
   return m ? { since: m[1], until: m[2] } : null;
+}
+
+/** Nome de export da Meta, em qualquer um dos formatos que o Gerenciador gera. */
+export function isLeadExportFile(fileName: string): boolean {
+  return /_Leads_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.(csv|xls)$/i.test(fileName);
 }
 
 export function adKeyFor(campaignName: string, adSetName: string, adName: string): string {

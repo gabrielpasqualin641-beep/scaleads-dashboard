@@ -73,7 +73,7 @@ accountsRouter.post('/:id/test', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Conta não encontrada.' });
     }
     const result = await AdAccountService.testConnection(pathParam(req, 'id'));
-    res.json(result);
+    res.json({ success: true, data: result });
   } catch (err: any) {
     res.status(500).json({ success: false, error: 'Erro ao testar conexão com a conta.' });
   }

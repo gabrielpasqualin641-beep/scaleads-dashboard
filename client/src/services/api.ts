@@ -236,6 +236,13 @@ export const api = {
     accessToken?: string;
   }) => request<AdAccount>('/api/accounts', { method: 'POST', body: JSON.stringify(data) }, 'Erro ao criar conta'),
 
+  testAccountConnection: (accountId: string) =>
+    request<{ success: boolean; message: string; dataSource?: string }>(
+      `/api/accounts/${accountId}/test`,
+      { method: 'POST' },
+      'Erro ao testar conexão com a conta'
+    ),
+
   // Dashboard
   getDashboardOverview: (clientId: string, accountId: string = 'all', period: PeriodParams = {}) =>
     request<DashboardOverviewResponse>(

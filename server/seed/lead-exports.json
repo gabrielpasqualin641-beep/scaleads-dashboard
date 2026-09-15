@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-14T13:03:02.048Z",
+  "updatedAt": "2026-09-15T13:22:45.563Z",
   "accounts": {
     "2103876490513769": {
       "sheet_ad_ia-e2-cap-p1-frio-on-01-29-2026-form7_00-auto-pfrio-adv-criativo-07_criativo-07": {
@@ -11,13 +11,13 @@
         "coverage": [
           {
             "since": "2026-09-11",
-            "until": "2026-09-14"
+            "until": "2026-09-15"
           }
         ],
         "daily": {
           "2026-09-14": {
-            "leads": 9,
-            "mqls": 3,
+            "leads": 30,
+            "mqls": 12,
             "indefinidos": 0
           },
           "2026-09-13": {
@@ -33,6 +33,11 @@
           "2026-09-11": {
             "leads": 5,
             "mqls": 1,
+            "indefinidos": 0
+          },
+          "2026-09-15": {
+            "leads": 2,
+            "mqls": 0,
             "indefinidos": 0
           }
         }

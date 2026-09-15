@@ -16,8 +16,12 @@ export const ReportView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  // Leitura do período escrita pelo gestor, por cliente. Fica no navegador.
-  const notesKey = `scale_report_notes_${selectedClient?.id || 'sem_cliente'}`;
+  const clientId = selectedClient?.id || 'sem_cliente';
+  const notesKey = `scale_report_notes_${clientId}`;
+  const cpagdKey = `scale_meta_cpagd_${clientId}`;
+  const cacKey = `scale_meta_cac_${clientId}`;
+  const volMinKey = `scale_meta_vol_min_${clientId}`;
+
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
@@ -37,23 +41,18 @@ export const ReportView: React.FC = () => {
     }
   };
 
-  // Metas editáveis salvas no LocalStorage
-  const [metaCpagd, setMetaCpagd] = useState<number>(() => {
-    const saved = localStorage.getItem('scale_meta_cpagd');
-    return saved ? Number(saved) : 85;
-  });
-  const [metaCac, setMetaCac] = useState<number>(() => {
-    const saved = localStorage.getItem('scale_meta_cac');
-    return saved ? Number(saved) : 300;
-  });
-  const [volMin, setVolMin] = useState<number>(() => {
-    const saved = localStorage.getItem('scale_meta_vol_min');
-    return saved ? Number(saved) : 3;
-  });
+  // Metas editáveis salvas no LocalStorage por cliente (com fallback do Briefing)
+  const [metaCpagd, setMetaCpagd] = useState<number>(85);
+  const [metaCac, setMetaCac] = useState<number>(300);
+  const [volMin, setVolMin] = useState<number>(3);
 
   const handleSaveMeta = (key: string, val: number, setter: (v: number) => void) => {
     setter(val);
-    localStorage.setItem(key, String(val));
+    try {
+      localStorage.setItem(key, String(val));
+    } catch {
+      /* storage indisponível */
+    }
   };
 
   useEffect(() => {
@@ -61,7 +60,7 @@ export const ReportView: React.FC = () => {
     const loadReportData = async () => {
       try {
         setLoading(true);
-        const [adsData, overData] = await Promise.all([
+        const [adsData, overData, briefData] = await Promise.all([
           api.getAds(selectedClient.id, selectedAccountId, undefined, {
             preset,
             startDate,
@@ -75,10 +74,23 @@ export const ReportView: React.FC = () => {
             endDate,
             compare,
             includeMetaTax
-          })
+          }),
+          api.getBrief(selectedClient.id).catch(() => null)
         ]);
         setAds(adsData);
         setOverview(overData);
+
+        // Carrega metas do cliente (localStorage específico > Briefing do cliente > fallback padrão)
+        const savedCpagd = localStorage.getItem(cpagdKey);
+        const savedCac = localStorage.getItem(cacKey);
+        const savedVolMin = localStorage.getItem(volMinKey);
+
+        const defaultCpagd = briefData?.targetCpl ?? 85;
+        const defaultCac = briefData?.targetCpa ?? 300;
+
+        setMetaCpagd(savedCpagd !== null ? Number(savedCpagd) : defaultCpagd);
+        setMetaCac(savedCac !== null ? Number(savedCac) : defaultCac);
+        setVolMin(savedVolMin !== null ? Number(savedVolMin) : 3);
       } catch (e) {
         console.error('Erro ao carregar dados do relatório:', e);
       } finally {
@@ -86,7 +98,7 @@ export const ReportView: React.FC = () => {
       }
     };
     loadReportData();
-  }, [selectedClient, selectedAccountId, preset, startDate, endDate, compare, includeMetaTax]);
+  }, [selectedClient, selectedAccountId, preset, startDate, endDate, compare, includeMetaTax, cpagdKey, cacKey, volMinKey]);
 
   if (loading && !overview) return <TableSkeleton />;
   if (!overview) return null;
@@ -318,7 +330,7 @@ _Dados extraídos do Meta Ads via ScaleAds Performance Hub_`;
           <Target size={16} style={{ color: 'var(--accent-blue)' }} />
           <h3 style={{ fontSize: '14px', fontWeight: 800 }}>Metas & Parâmetros da Conta</h3>
           <span style={{ fontSize: '11.5px', color: 'var(--muted)', marginLeft: 'auto' }}>
-            Ajuste os valores para calibrar a coloração semântica e análise dos anúncios.
+            Salvo por cliente no navegador · Sincronizado com o Briefing quando disponível.
           </span>
         </div>
 
@@ -328,7 +340,7 @@ _Dados extraídos do Meta Ads via ScaleAds Performance Hub_`;
             <input
               type="number"
               value={metaCpagd}
-              onChange={e => handleSaveMeta('scale_meta_cpagd', Number(e.target.value), setMetaCpagd)}
+              onChange={e => handleSaveMeta(cpagdKey, Number(e.target.value), setMetaCpagd)}
               min="0"
               step="5"
             />
@@ -338,7 +350,7 @@ _Dados extraídos do Meta Ads via ScaleAds Performance Hub_`;
             <input
               type="number"
               value={metaCac}
-              onChange={e => handleSaveMeta('scale_meta_cac', Number(e.target.value), setMetaCac)}
+              onChange={e => handleSaveMeta(cacKey, Number(e.target.value), setMetaCac)}
               min="0"
               step="10"
             />
@@ -348,7 +360,7 @@ _Dados extraídos do Meta Ads via ScaleAds Performance Hub_`;
             <input
               type="number"
               value={volMin}
-              onChange={e => handleSaveMeta('scale_meta_vol_min', Number(e.target.value), setVolMin)}
+              onChange={e => handleSaveMeta(volMinKey, Number(e.target.value), setVolMin)}
               min="1"
               step="1"
             />

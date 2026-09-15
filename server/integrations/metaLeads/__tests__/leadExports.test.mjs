@@ -124,3 +124,66 @@ test('a chave do criativo é a mesma que a planilha usa', () => {
     'sheet_ad_ia-e2-cap-p1-frio-on-01-29-2026-form7_00-auto-pfrio-adv-criativo-estatico_criativo-estatico-faca-um-raio-x'
   );
 });
+
+/*
+ * Quando o export é pedido como .xls, o Gerenciador entrega XML "SpreadsheetML",
+ * não binário — mesmas colunas do CSV, dentro de <Row><Cell><Data>. Célula vazia
+ * some do XML e a próxima traz ss:Index dizendo a coluna; sem isso, tudo desloca.
+ */
+test('lê o formato .xls (SpreadsheetML) igual ao csv', () => {
+  const cell = v => v === '' ? '<Cell/>' : `<Cell><Data ss:Type="String">${v}</Data></Cell>`;
+  const row = vs => `<Row>${vs.map(cell).join('')}</Row>`;
+  const header = ['id','created_time','ad_id','ad_name','adset_id','adset_name','campaign_id',
+    'campaign_name','form_id','form_name','is_organic','platform',
+    'qual_é_o_faturamento_anual_da_sua_empres?_'];
+  const lead = ['l:9','2026-09-15T10:00:00-03:00','ag:1',ANUNCIO,'as:1',CONJUNTO,'c:1',CAMPANHA,
+    'f:1','IA | FORM-01','false','ig','acima_de_r$_500.000,00'];
+  const xml = `<?xml version="1.0"?><Workbook xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">`
+    + `<Worksheet><Table>${row(header)}${row(lead)}</Table></Worksheet></Workbook>`;
+  const leads = parseLeadExport(Buffer.from(xml, 'utf8'));
+  assert.equal(leads.length, 1);
+  assert.equal(leads[0].adName, ANUNCIO);
+  assert.equal(leads[0].date, '2026-09-15');
+  assert.equal(leads[0].faturamento, 'acima_de_r$_500.000,00');
+});
+
+test('ss:Index preserva o alinhamento quando há célula vazia no meio', () => {
+  // Lead sem faturamento: a Meta omite a célula 13 e a seguinte (nome_completo)
+  // vem com ss:Index="14". Sem respeitar o índice, o nome cairia na coluna do
+  // faturamento e o lead seria classificado por um texto que não é o dele.
+  const cell = v => `<Cell><Data ss:Type="String">${v}</Data></Cell>`;
+  const row = vs => `<Row>${vs.map(cell).join('')}</Row>`;
+  const header = ['id','created_time','ad_id','ad_name','adset_id','adset_name','campaign_id',
+    'campaign_name','form_id','form_name','is_organic','platform',
+    'qual_é_o_faturamento_anual_da_sua_empres?_','nome_completo'];
+  const dados = ['l:9','2026-09-15T10:00:00-03:00','ag:1',ANUNCIO,'as:1',CONJUNTO,'c:1',CAMPANHA,
+    'f:1','IA | FORM-01','false','ig']; // 12 células; faturamento (13) omitido
+  const leadRow = `<Row>${dados.map(cell).join('')}<Cell ss:Index="14"><Data ss:Type="String">Fulano</Data></Cell></Row>`;
+  const xml = `<?xml version="1.0"?><Workbook xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">`
+    + `<Worksheet><Table>${row(header)}${leadRow}</Table></Worksheet></Workbook>`;
+  const leads = parseLeadExport(Buffer.from(xml, 'utf8'));
+  assert.equal(leads.length, 1);
+  assert.equal(leads[0].faturamento, null, 'faturamento omitido é null, não o nome');
+});
+
+/*
+ * O CSV do Gerenciador grava o id como "l:123"; o XLS grava "123". O mesmo lead
+ * exportado nos dois formatos precisa deduplicar — senão o criativo conta cada
+ * lead duas vezes. Foi o que inflou o Criativo 07 de 104 para 185.
+ */
+test('id com e sem prefixo l: é o mesmo lead', () => {
+  const cell = v => `<Cell><Data ss:Type="String">${v}</Data></Cell>`;
+  const header = ['id','created_time','ad_id','ad_name','adset_id','adset_name','campaign_id',
+    'campaign_name','form_id','form_name','is_organic','platform','qual_é_o_faturamento_anual_da_sua_empres?_'];
+  const linha = id => ['<Row>'+[id,'2026-09-11T10:00:00-03:00','ag:1',ANUNCIO,'as:1',CONJUNTO,'c:1',
+    CAMPANHA,'f:1','IA | FORM-01','false','ig','acima_de_r$_500.000,00'].map(cell).join('')+'</Row>'].join('');
+  const xls = id => Buffer.from(`<?xml version="1.0"?><Workbook xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">`
+    + `<Worksheet><Table><Row>${header.map(cell).join('')}</Row>${linha(id)}</Table></Worksheet></Workbook>`, 'utf8');
+
+  const files = [
+    { fileName: ARQUIVO.replace('.csv', '.xls'), leads: parseLeadExport(xls('l:777')) }, // csv-style
+    { fileName: ARQUIVO.replace('.csv', ' (1).xls'), leads: parseLeadExport(xls('777')) } // xls-style
+  ];
+  const { report } = mergeExports(vazio(), files, contaUnica);
+  assert.equal(report[0].leads, 1, 'l:777 e 777 são o mesmo lead');
+});

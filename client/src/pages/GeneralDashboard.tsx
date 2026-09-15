@@ -9,7 +9,8 @@ import {
   ShoppingBag,
   TrendingUp,
   Award,
-  AlertTriangle
+  AlertTriangle,
+  Info
 } from 'lucide-react';
 import { DashboardOverviewResponse } from '../types';
 import { metricText, DATA_SOURCE_LABEL, isDemoData } from '../utils/metrics';
@@ -117,6 +118,9 @@ export const GeneralDashboard: React.FC = () => {
   const targets = data.targets ?? { cpl: null, cpmql: null, cpa: null, cpm: null, roas: null };
   const excluded = data.excludedCampaigns ?? [];
   const warnings = data.dataWarnings ?? [];
+  const hasDemographics = Object.values(data.demographics || {}).some(
+    arr => Array.isArray(arr) && arr.length > 0
+  );
   const nd = (k: string) => m.unavailable.includes(k as never);
   const moneyTarget = (v: number | null) => (v === null ? undefined : `meta ${formatMoney(v)}`);
   const formatMoney = (v: number) =>
@@ -523,58 +527,90 @@ export const GeneralDashboard: React.FC = () => {
       </div>
 
       {/* 4. Acumulado por Funil */}
-      <div>
-        <div className="section-label">Acumulado por Segmento / Funil</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
-          {data.funnelSegments.map(seg => (
-            <div key={seg.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h4 style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--ink)' }}>{seg.name}</h4>
-                <span className="tabular-nums" style={{ fontSize: '12px', fontWeight: 700, color: 'var(--good)' }}>
-                  ROAS {seg.roas.toFixed(2)}x
-                </span>
+      {data.funnelSegments.length > 0 && (
+        <div>
+          <div className="section-label">Acumulado por Segmento / Funil</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+            {data.funnelSegments.map(seg => (
+              <div key={seg.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h4 style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--ink)' }}>{seg.name}</h4>
+                  <span className="tabular-nums" style={{ fontSize: '12px', fontWeight: 700, color: 'var(--good)' }}>
+                    ROAS {seg.roas.toFixed(2)}x
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
+                  <div style={{ padding: '8px', background: 'var(--bg)', borderRadius: '8px' }}>
+                    <div style={{ color: 'var(--muted)', fontSize: '10.5px' }}>Investimento</div>
+                    <div style={{ fontWeight: 700, color: 'var(--bad)' }} className="tabular-nums">{formatMoney(seg.spend)}</div>
+                  </div>
+                  <div style={{ padding: '8px', background: 'var(--bg)', borderRadius: '8px' }}>
+                    <div style={{ color: 'var(--muted)', fontSize: '10.5px' }}>Faturamento</div>
+                    <div style={{ fontWeight: 700, color: 'var(--good)' }} className="tabular-nums">{formatMoney(seg.revenue)}</div>
+                  </div>
+                  <div style={{ padding: '8px', background: 'var(--bg)', borderRadius: '8px' }}>
+                    <div style={{ color: 'var(--muted)', fontSize: '10.5px' }}>Leads / CPL</div>
+                    <div style={{ fontWeight: 700 }} className="tabular-nums">{seg.leads} · {formatMoney(seg.cpl)}</div>
+                  </div>
+                  <div style={{ padding: '8px', background: 'var(--bg)', borderRadius: '8px' }}>
+                    <div style={{ color: 'var(--muted)', fontSize: '10.5px' }}>MQLs / CPMQL</div>
+                    <div style={{ fontWeight: 700, color: 'var(--accent-blue)' }} className="tabular-nums">{seg.mqls} · {formatMoney(seg.cpmql)}</div>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
-                <div style={{ padding: '8px', background: 'var(--bg)', borderRadius: '8px' }}>
-                  <div style={{ color: 'var(--muted)', fontSize: '10.5px' }}>Investimento</div>
-                  <div style={{ fontWeight: 700, color: 'var(--bad)' }} className="tabular-nums">{formatMoney(seg.spend)}</div>
-                </div>
-                <div style={{ padding: '8px', background: 'var(--bg)', borderRadius: '8px' }}>
-                  <div style={{ color: 'var(--muted)', fontSize: '10.5px' }}>Faturamento</div>
-                  <div style={{ fontWeight: 700, color: 'var(--good)' }} className="tabular-nums">{formatMoney(seg.revenue)}</div>
-                </div>
-                <div style={{ padding: '8px', background: 'var(--bg)', borderRadius: '8px' }}>
-                  <div style={{ color: 'var(--muted)', fontSize: '10.5px' }}>Leads / CPL</div>
-                  <div style={{ fontWeight: 700 }} className="tabular-nums">{seg.leads} · {formatMoney(seg.cpl)}</div>
-                </div>
-                <div style={{ padding: '8px', background: 'var(--bg)', borderRadius: '8px' }}>
-                  <div style={{ color: 'var(--muted)', fontSize: '10.5px' }}>MQLs / CPMQL</div>
-                  <div style={{ fontWeight: 700, color: 'var(--accent-blue)' }} className="tabular-nums">{seg.mqls} · {formatMoney(seg.cpmql)}</div>
-                </div>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 5. Demographics Breakdown */}
-      <div>
-        <div className="section-label">Perfil Demográfico &middot; Qualificação e Origem das Leads</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
-          <DemographicsChart title="Top Países" items={data.demographics.countries} />
-          <DemographicsChart title="Top Estados (BR)" items={data.demographics.states} />
-          <DemographicsChart title="Momento Profissional" items={data.demographics.moments} />
-          <DemographicsChart title="Experiência Prévia" items={data.demographics.experiences} />
-          <DemographicsChart title="Objetivo Principal" items={data.demographics.results} />
-          <DemographicsChart title="Disposta a Investir?" items={data.demographics.invest} />
+      {hasDemographics && (
+        <div>
+          <div className="section-label">Perfil Demográfico &middot; Qualificação e Origem das Leads</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+            <DemographicsChart title="Top Países" items={data.demographics.countries} />
+            <DemographicsChart title="Top Estados (BR)" items={data.demographics.states} />
+            <DemographicsChart title="Momento Profissional" items={data.demographics.moments} />
+            <DemographicsChart title="Experiência Prévia" items={data.demographics.experiences} />
+            <DemographicsChart title="Objetivo Principal" items={data.demographics.results} />
+            <DemographicsChart title="Disposta a Investir?" items={data.demographics.invest} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 6. Qualified Leads Table */}
-      <div>
-        <div className="section-label">Amostra de Leads Qualificados (Score A & B)</div>
-        <DataTable data={data.qualifiedLeads} columns={qLeadColumns} maxHeight="280px" />
-      </div>
+      {data.qualifiedLeads.length > 0 && (
+        <div>
+          <div className="section-label">Amostra de Leads Qualificados (Score A & B)</div>
+          <DataTable data={data.qualifiedLeads} columns={qLeadColumns} maxHeight="280px" />
+        </div>
+      )}
+
+      {/* Aviso informativo elegante quando os dados reais não trazem demografia/leads nominais */}
+      {!isDemoData(data.dataSource) && !hasDemographics && (
+        <div
+          className="card"
+          style={{
+            padding: '16px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            backgroundColor: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '10px'
+          }}
+        >
+          <Info size={18} style={{ color: 'var(--muted)', flexShrink: 0 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>
+              Detalhamento demográfico e lista nominal de leads
+            </span>
+            <span style={{ fontSize: '12px', color: 'var(--muted)', lineHeight: 1.45 }}>
+              Dados demográficos agregados e nomes individuais não são fornecidos pela Meta Ads API nesta integração. O ScaleAds segue o princípio de exibir exclusivamente métricas reais reportadas, sem estimativas inventadas.
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

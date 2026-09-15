@@ -6,6 +6,7 @@ import {
   parseLeadExport,
   readSnapshotFile,
   writeSnapshotFile,
+  isLeadExportFile,
   ImportedFile
 } from '../integrations/metaLeads/leadExports.js';
 import { sheetsSnapshotStore } from '../integrations/sheets/SheetsSnapshotStore.js';
@@ -14,7 +15,7 @@ import { db } from '../db/database.js';
 /**
  * Importa exports de leads da Meta.
  *
- *   npm run leads:import                      # todo *_Leads_*.csv da pasta Downloads
+ *   npm run leads:import                      # todo *_Leads_*.csv/.xls da pasta Downloads
  *   npm run leads:import -- arquivo.csv ...   # arquivos específicos
  *   npm run leads:import -- C:\pasta          # todo *_Leads_*.csv da pasta
  *
@@ -32,9 +33,9 @@ function collect(args: string[]): string[] {
     }
     if (fs.statSync(alvo).isDirectory()) {
       for (const f of fs.readdirSync(alvo)) {
-        // Só o nome que o Gerenciador gera. "_leads_" solto casava com o modelo
-        // de importação do Kommo, que tem outro formato e não é export da Meta.
-        if (/_Leads_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.csv$/.test(f)) files.push(path.join(alvo, f));
+        // Só o nome que o Gerenciador gera, em .csv ou .xls. "_leads_" solto
+        // casava com o modelo de importação do Kommo, que não é export da Meta.
+        if (isLeadExportFile(f)) files.push(path.join(alvo, f));
       }
     } else files.push(alvo);
   }

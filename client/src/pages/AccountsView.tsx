@@ -2,11 +2,17 @@ import React, { useState } from 'react';
 import { CreditCard, CheckCircle, RefreshCw, Plus, Globe, Clock, ShieldCheck } from 'lucide-react';
 import { useClient } from '../context/ClientContext';
 import { AdAccount } from '../types';
+import { api } from '../services/api';
+
+interface TestResultState {
+  message: string;
+  success: boolean;
+}
 
 export const AccountsView: React.FC = () => {
   const { accounts, selectedClient, createAccount } = useClient();
   const [testingId, setTestingId] = useState<string | null>(null);
-  const [testResults, setTestResults] = useState<Record<string, string>>({});
+  const [testResults, setTestResults] = useState<Record<string, TestResultState>>({});
   const [isAddingAccount, setIsAddingAccount] = useState(false);
 
   // Form states
@@ -18,11 +24,22 @@ export const AccountsView: React.FC = () => {
   const handleTestConnection = async (accId: string) => {
     try {
       setTestingId(accId);
-      const res = await fetch(`/api/accounts/${accId}/test`, { method: 'POST' });
-      const json = await res.json();
-      setTestResults(prev => ({ ...prev, [accId]: json.message || 'Conexão ativa e validada.' }));
+      const res = await api.testAccountConnection(accId);
+      setTestResults(prev => ({
+        ...prev,
+        [accId]: {
+          success: res.success,
+          message: res.message || (res.success ? 'Conexão ativa e validada.' : 'Falha ao testar conexão.')
+        }
+      }));
     } catch (e: any) {
-      setTestResults(prev => ({ ...prev, [accId]: 'Falha ao testar conexão.' }));
+      setTestResults(prev => ({
+        ...prev,
+        [accId]: {
+          success: false,
+          message: e.message || 'Falha ao testar conexão.'
+        }
+      }));
     } finally {
       setTestingId(null);
     }
@@ -132,7 +149,7 @@ export const AccountsView: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
         {accounts.map(acc => {
           const isTesting = testingId === acc.id;
-          const resultMsg = testResults[acc.id];
+          const result = testResults[acc.id];
           return (
             <div key={acc.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
@@ -193,9 +210,18 @@ export const AccountsView: React.FC = () => {
                 </div>
               </div>
 
-              {resultMsg && (
-                <div style={{ padding: '8px 10px', backgroundColor: 'var(--good-bg)', color: 'var(--good)', borderRadius: '8px', fontSize: '11.5px', fontWeight: 600 }}>
-                  ✓ {resultMsg}
+              {result && (
+                <div
+                  style={{
+                    padding: '8px 10px',
+                    backgroundColor: result.success ? 'var(--good-bg)' : 'var(--bad-bg)',
+                    color: result.success ? 'var(--good)' : 'var(--bad)',
+                    borderRadius: '8px',
+                    fontSize: '11.5px',
+                    fontWeight: 600
+                  }}
+                >
+                  {result.success ? '✓' : '✕'} {result.message}
                 </div>
               )}
 
