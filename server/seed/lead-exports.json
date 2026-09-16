@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-15T13:22:45.563Z",
+  "updatedAt": "2026-09-16T12:39:54.157Z",
   "accounts": {
     "2103876490513769": {
       "sheet_ad_ia-e2-cap-p1-frio-on-01-29-2026-form7_00-auto-pfrio-adv-criativo-07_criativo-07": {
@@ -67,6 +67,25 @@
           "2026-09-11": {
             "leads": 6,
             "mqls": 4,
+            "indefinidos": 0
+          }
+        }
+      },
+      "sheet_ad_ia-e2-cap-p1-frio-on-01-29-2026-form7-copia_00-auto-pfrio-adv-criativo-07_criativo-07": {
+        "adKey": "sheet_ad_ia-e2-cap-p1-frio-on-01-29-2026-form7-copia_00-auto-pfrio-adv-criativo-07_criativo-07",
+        "adName": "Criativo 07",
+        "adSetName": "00 | AUTO | PFRIO ADV | Criativo 07",
+        "campaignName": "IA | E2-CAP | P1-FRIO | ON | 01-29-2026 | FORM7 — Cópia",
+        "coverage": [
+          {
+            "since": "2026-09-15",
+            "until": "2026-09-15"
+          }
+        ],
+        "daily": {
+          "2026-09-15": {
+            "leads": 10,
+            "mqls": 3,
             "indefinidos": 0
           }
         }
