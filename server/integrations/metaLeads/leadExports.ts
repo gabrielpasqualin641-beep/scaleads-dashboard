@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { qualify } from '../kommo/qualification.js';
 import { slugify } from '../sheets/fetchAndAggregate.js';
+import { dataFile } from '../../config/paths.js';
 
 /**
  * Export manual de leads da Meta, reduzido a contagens por criativo e por dia.
@@ -189,7 +190,12 @@ export function parseLeadExport(buffer: Buffer): ExportedLead[] {
     adSetName: (r[idx.adSet] || '').trim(),
     adName: (r[idx.ad] || '').trim(),
     faturamento: idx.faturamento >= 0 ? (r[idx.faturamento] || '').trim() || null : null
-  })).filter(l => l.id && /^\d{4}-\d{2}-\d{2}$/.test(l.date));
+  })).filter(l =>
+    l.id &&
+    /^\d{4}-\d{2}-\d{2}$/.test(l.date) &&
+    // Lead de teste da Meta: vem com faturamento "dummy" e não é um lead real.
+    !/^<test lead/i.test(l.faturamento || '')
+  );
 }
 
 /** Janela declarada no nome: "..._Leads_2026-09-10_2026-09-13.csv" (ou .xls). */
@@ -332,6 +338,18 @@ export function mergeExports(
 
 const EMPTY: LeadExportSnapshot = { version: 1, updatedAt: new Date(0).toISOString(), accounts: {} };
 
+/**
+ * Segunda fonte, ao vivo: a planilha de backup de leads sincronizada pelo
+ * servidor. Fica no disco de dados (runtime), separada do seed commitado.
+ *
+ * São duas origens de propósito. O seed carrega o histórico que veio de
+ * exports manuais e é versionado — sobrevive a deploy. O arquivo ao vivo é
+ * regenerado da planilha a cada sincronização e não vai para o git. O store
+ * lê os dois e junta na leitura, com a planilha ao vivo prevalecendo quando o
+ * mesmo dia aparece nas duas (é a mais fresca).
+ */
+const LIVE_FILE = dataFile('lead-exports-live.json');
+
 export function readSnapshotFile(file = SEED_FILE): LeadExportSnapshot {
   try {
     if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf-8')) as LeadExportSnapshot;
@@ -346,22 +364,55 @@ export function writeSnapshotFile(snapshot: LeadExportSnapshot, file = SEED_FILE
   fs.writeFileSync(file, JSON.stringify(snapshot, null, 2) + '\n', 'utf-8');
 }
 
+export function readLiveFile(): LeadExportSnapshot {
+  return readSnapshotFile(LIVE_FILE);
+}
+
+export function writeLiveFile(snapshot: LeadExportSnapshot): void {
+  writeSnapshotFile(snapshot, LIVE_FILE);
+}
+
+/**
+ * Junta seed (histórico) e ao vivo (planilha) num snapshot só.
+ *
+ * Por anúncio, os dias das duas fontes se somam num mapa único; quando o mesmo
+ * dia existe nos dois, o ao vivo vence, porque reflete a planilha mais recente.
+ * A cobertura é a união das janelas — um dia coberto por qualquer das fontes
+ * conta como coberto.
+ */
+function mergeSnapshots(seed: LeadExportSnapshot, live: LeadExportSnapshot): LeadExportSnapshot {
+  const merged: LeadExportSnapshot = JSON.parse(JSON.stringify(seed));
+  for (const [accountId, ads] of Object.entries(live.accounts)) {
+    const conta = (merged.accounts[accountId] ||= {});
+    for (const [adKey, ad] of Object.entries(ads)) {
+      const atual = conta[adKey];
+      if (!atual) {
+        conta[adKey] = JSON.parse(JSON.stringify(ad));
+        continue;
+      }
+      atual.daily = { ...atual.daily, ...ad.daily };
+      atual.coverage = mergeRanges([...atual.coverage, ...ad.coverage]);
+    }
+  }
+  merged.updatedAt = live.updatedAt > seed.updatedAt ? live.updatedAt : seed.updatedAt;
+  return merged;
+}
+
 class LeadExportStore {
   private cache: LeadExportSnapshot | null = null;
-  private mtime = 0;
+  private signature = '';
 
-  /** Relê o arquivo quando ele muda — o import roda fora do servidor. */
+  /** Recarrega quando qualquer das duas fontes muda no disco. */
   private data(): LeadExportSnapshot {
-    try {
-      const stat = fs.statSync(SEED_FILE);
-      if (!this.cache || stat.mtimeMs !== this.mtime) {
-        this.cache = readSnapshotFile();
-        this.mtime = stat.mtimeMs;
-      }
-    } catch {
-      this.cache = this.cache || JSON.parse(JSON.stringify(EMPTY));
+    const mtimeOf = (f: string) => {
+      try { return fs.statSync(f).mtimeMs; } catch { return 0; }
+    };
+    const sig = `${mtimeOf(SEED_FILE)}:${mtimeOf(LIVE_FILE)}`;
+    if (!this.cache || sig !== this.signature) {
+      this.cache = mergeSnapshots(readSnapshotFile(), readLiveFile());
+      this.signature = sig;
     }
-    return this.cache!;
+    return this.cache;
   }
 
   private ads(accountId: string): AdLeadExport[] {

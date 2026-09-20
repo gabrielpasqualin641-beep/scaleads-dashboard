@@ -17,6 +17,7 @@ import { AuthService } from './services/AuthService.js';
 import { DATA_DIR, DATA_DIR_IS_EPHEMERAL, DATA_DIR_WARNING } from './config/paths.js';
 import { SheetsIngestionService } from './integrations/sheets/SheetsIngestionService.js';
 import { KommoSyncService } from './services/KommoSyncService.js';
+import { LeadSheetSyncService } from './services/LeadSheetSyncService.js';
 
 dotenv.config();
 
@@ -161,5 +162,12 @@ app.listen(Number(PORT), '0.0.0.0', () => {
   if (KommoSyncService.configured()) {
     void KommoSyncService.sync();
     setInterval(() => void KommoSyncService.sync(), SHEETS_SYNC_INTERVAL_MS);
+  }
+
+  // Planilha de backup de leads: alimenta o MQL por criativo de forma
+  // automática, no mesmo ritmo do Adveronix. Substitui o export manual.
+  if (LeadSheetSyncService.configured()) {
+    void LeadSheetSyncService.syncAll();
+    setInterval(() => void LeadSheetSyncService.syncAll(), SHEETS_SYNC_INTERVAL_MS);
   }
 });

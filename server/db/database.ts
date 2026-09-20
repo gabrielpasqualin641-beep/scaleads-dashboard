@@ -103,6 +103,7 @@ const META_ACCOUNTS: Array<{
   mcpQueryable?: boolean;
   mcpUnavailableReason?: string;
   excludedCampaigns?: string[];
+  leadSheetUrl?: string;
   /**
    * Planilha do Adveronix que alimenta a conta. Fica no seed, e não só no
    * store.json, porque o disco da hospedagem é efêmero no plano atual: um
@@ -135,7 +136,10 @@ const META_ACCOUNTS: Array<{
     // A campanha de WhatsApp está pausada e entrega conversas, não leads. O
     // Adveronix não exporta conversas, então o resultado dela é invisível aqui:
     // somar o gasto dela inflaria CPL e CPMQL do formulário.
-    excludedCampaigns: ['WPP'] }
+    excludedCampaigns: ['WPP'],
+    // Planilha de backup que recebe todos os leads das campanhas, com o
+    // faturamento — alimenta o MQL por criativo automaticamente.
+    leadSheetUrl: 'https://docs.google.com/spreadsheets/d/1J80qVrBXa36OjiMGedOi3ObUVFxY8NJfIIVCvhKlGbM/edit?gid=0#gid=0' }
 ];
 
 const SEED_ACCOUNTS: AdAccount[] = META_ACCOUNTS.map(a => {
@@ -155,7 +159,8 @@ const SEED_ACCOUNTS: AdAccount[] = META_ACCOUNTS.map(a => {
     mcpQueryable: a.mcpQueryable ?? true,
     mcpUnavailableReason: a.mcpUnavailableReason,
     sheetsUrl: a.sheetsUrl,
-    excludedCampaigns: a.excludedCampaigns
+    excludedCampaigns: a.excludedCampaigns,
+    leadSheetUrl: a.leadSheetUrl
   };
   return { ...account, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' };
 });
@@ -220,6 +225,11 @@ class Database {
         if (!existing.excludedCampaigns && account.excludedCampaigns) {
           existing.excludedCampaigns = account.excludedCampaigns;
           console.log(`[DB] Exclusão de campanha do seed aplicada a ${existing.name}.`);
+          changed = true;
+        }
+        if (!existing.leadSheetUrl && account.leadSheetUrl) {
+          existing.leadSheetUrl = account.leadSheetUrl;
+          console.log(`[DB] Planilha de leads do seed aplicada a ${existing.name}.`);
           changed = true;
         }
       }

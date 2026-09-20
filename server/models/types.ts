@@ -219,6 +219,12 @@ export interface AdAccount {
    */
   sheetsUrl?: string;
   /**
+   * Planilha de backup de leads (mesmo formato do export da Meta) que alimenta
+   * o MQL por criativo de forma automática. Lida a cada ciclo; substitui o
+   * export manual e a dependência do Kommo para atribuição por anúncio.
+   */
+  leadSheetUrl?: string;
+  /**
    * Campanhas que não entram nos totais da conta, casadas por trecho do nome.
    *
    * Existe porque campanhas com objetivos diferentes não somam: uma de
