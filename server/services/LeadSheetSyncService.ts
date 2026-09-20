@@ -1,12 +1,11 @@
 import { db } from '../db/database.js';
-import { sheetsSnapshotStore } from '../integrations/sheets/SheetsSnapshotStore.js';
 import { toCsvExportUrl } from '../integrations/sheets/fetchAndAggregate.js';
 import {
   parseLeadExport,
   mergeExports,
   readLiveFile,
   writeLiveFile,
-  ImportedFile
+  LeadExportSnapshot
 } from '../integrations/metaLeads/leadExports.js';
 
 /**
@@ -34,26 +33,12 @@ export class LeadSheetSyncService {
     return this.accounts().length > 0;
   }
 
-  /** Resolve a conta pelo criativo, casando com o anúncio de mesmo nome na planilha do Adveronix. */
-  private static resolver() {
-    const planilhas = this.accountsWithSnapshot();
-    return (adKey: string): string | null => {
-      const donas = planilhas.filter(acc => acc.ads.some(ad => ad.id === adKey));
-      return donas.length === 1 ? donas[0].accountId : null;
-    };
-  }
-
-  private static accountsWithSnapshot() {
-    return db.getAllAccounts()
-      .map(acc => sheetsSnapshotStore.getAccount(acc.externalAccountId))
-      .filter((acc): acc is NonNullable<typeof acc> => !!acc);
-  }
-
   public static async syncAll(): Promise<void> {
     const contas = this.accounts();
     if (contas.length === 0) return;
 
-    const files: ImportedFile[] = [];
+    let live: LeadExportSnapshot = readLiveFile();
+
     for (const conta of contas) {
       try {
         const res = await fetch(toCsvExportUrl(conta.leadSheetUrl!));
@@ -65,25 +50,30 @@ export class LeadSheetSyncService {
         // A planilha não carrega janela no nome; parseLeadExport tira a janela
         // das datas que os leads têm.
         const leads = parseLeadExport(Buffer.from(text, 'utf-8'));
-        files.push({ fileName: `leadsheet_${conta.externalAccountId}.csv`, leads });
+
+        // A planilha é configurada nesta conta, então todo lead dela é desta
+        // conta — não precisa consultar o snapshot do Adveronix para descobrir
+        // a conta (o que criava uma corrida no boot, quando o snapshot ainda
+        // não tinha carregado). O criativo cujo nome não existir no Adveronix
+        // fica guardado mas não é exibido; nenhum lead é perdido por timing.
+        const { snapshot, report } = mergeExports(
+          live,
+          [{ fileName: `leadsheet_${conta.externalAccountId}.csv`, leads }],
+          () => conta.externalAccountId
+        );
+        live = snapshot;
+
+        for (const r of report) {
+          console.log(
+            `[Lead sheet] ${conta.name} · ${r.adName}: ${r.coverage.since} a ${r.coverage.until} · ` +
+            `${r.leads} leads, ${r.mqls} MQL, ${r.indefinidos} sem faturamento.`
+          );
+        }
       } catch (err) {
         console.error(`[Lead sheet] Falha ao ler a planilha de ${conta.name}:`, err instanceof Error ? err.message : err);
       }
     }
 
-    if (files.length === 0) return;
-
-    const { snapshot, report, unmatched } = mergeExports(readLiveFile(), files, this.resolver());
-    writeLiveFile(snapshot);
-
-    for (const r of report) {
-      console.log(
-        `[Lead sheet] ${r.adName}: ${r.coverage.since} a ${r.coverage.until} · ` +
-        `${r.leads} leads, ${r.mqls} MQL, ${r.indefinidos} sem faturamento.`
-      );
-    }
-    if (unmatched.length > 0) {
-      console.warn(`[Lead sheet] Criativos sem correspondente na planilha do Adveronix (ignorados): ${unmatched.join('; ')}`);
-    }
+    writeLiveFile(live);
   }
 }
