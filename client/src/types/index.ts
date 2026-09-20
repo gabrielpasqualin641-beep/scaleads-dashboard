@@ -249,6 +249,13 @@ export interface QualifiedLeadItem {
   appointmentBooked: boolean;
 }
 
+export interface MqlSource {
+  origin: 'export' | 'kommo' | 'none';
+  coverage?: { since: string; until: string };
+  adsCovered?: number;
+  adsTotal?: number;
+}
+
 export interface CampaignData {
   id: string;
   adAccountId: string;
@@ -258,6 +265,7 @@ export interface CampaignData {
   objective?: string;
   metrics: NormalizedMetrics;
   dailyMetrics?: DailyMetricItem[];
+  mqlSource?: MqlSource;
 }
 
 export interface AdSetData {
@@ -270,6 +278,7 @@ export interface AdSetData {
   status: EntityStatus;
   metrics: NormalizedMetrics;
   dailyMetrics?: DailyMetricItem[];
+  mqlSource?: MqlSource;
 }
 
 export interface AdData {
@@ -289,6 +298,7 @@ export interface AdData {
   dailyMetrics?: DailyMetricItem[];
   /** Janela do export manual de onde sai o MQL do criativo. */
   mqlCoverage?: { since: string; until: string } | null;
+  mqlSource?: MqlSource;
 }
 
 /** Metas de custo do cliente, vindas do briefing. Espelha o tipo do servidor. */

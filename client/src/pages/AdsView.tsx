@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ExternalLink, CheckCircle, Sparkles } from 'lucide-react';
 import { AdData } from '../types';
-import { metricText, dropEmptyMetricColumns } from '../utils/metrics';
+import { metricText, dropEmptyMetricColumns, mqlSourceLabel } from '../utils/metrics';
 import { api } from '../services/api';
 import { useClient } from '../context/ClientContext';
 import { usePeriod } from '../context/PeriodContext';
@@ -150,7 +150,11 @@ export const AdsView: React.FC = () => {
       id: 'mqls',
       header: 'MQLs',
       accessor: a => a.metrics.mqls,
-      cell: (v, row) => metricText(row.metrics, 'mqls', v, formatNum),
+      cell: (v, row) => (
+        <span title={mqlSourceLabel(row.mqlSource)} style={{ cursor: 'help', borderBottom: '1px dotted var(--border)' }}>
+          {metricText(row.metrics, 'mqls', v, formatNum)}
+        </span>
+      ),
       heatmap: true,
       heatmapColor: 'var(--heat-mqls)'
     },
@@ -230,7 +234,7 @@ export const AdsView: React.FC = () => {
         return (
           <div className="hidden-cols-note">
             MQL por criativo vem do export de leads da Meta, que cobre {br(since)} a {br(until)}. Fora
-            dessa janela o MQL do criativo não entra na conta; criativo sem export aparece como N/D.
+            dessa janela o MQL do criativo não entra na conta; criativo sem export aparece como N/D. Passe o mouse na coluna MQL para ver a origem de cada linha.
           </div>
         );
       })()}

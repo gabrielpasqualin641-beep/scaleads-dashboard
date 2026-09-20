@@ -63,3 +63,33 @@ export function dropEmptyMetricColumns<C extends { id: string }, R>(
 
   return { columns: kept, hidden };
 }
+
+import { MqlSource } from '../types';
+
+/** dd/mm a partir de AAAA-MM-DD. */
+function brDate(d: string): string {
+  return d.split('-').reverse().slice(0, 2).join('/');
+}
+
+/**
+ * Frase que explica de onde veio o MQL da entidade, para conferência.
+ *
+ * Abaixo do nível de conta o MQL só pode vir do export manual da Meta — o CRM
+ * recebe o lead sem a campanha de origem. Quando não há export, a frase diz
+ * isso em vez de deixar o N/D mudo.
+ */
+export function mqlSourceLabel(source?: MqlSource): string {
+  if (!source || source.origin === 'none') {
+    return 'MQL não disponível neste nível: sem export de leads da Meta para este item. '
+      + 'O CRM não atribui MQL por campanha/criativo.';
+  }
+  if (source.origin === 'kommo') return 'MQL do CRM (Kommo), no total da conta.';
+  const janela = source.coverage ? ` · janela ${brDate(source.coverage.since)}–${brDate(source.coverage.until)}` : '';
+  const cobertura = source.adsTotal && source.adsTotal > 1
+    ? ` · ${source.adsCovered} de ${source.adsTotal} criativos com export`
+    : '';
+  const parcial = source.adsTotal && source.adsCovered !== undefined && source.adsCovered < source.adsTotal
+    ? ' (parcial — os criativos sem export não entram)'
+    : '';
+  return `MQL do export manual da Meta${janela}${cobertura}${parcial}.`;
+}

@@ -5,7 +5,8 @@ import {
   AdData,
   DailyMetricItem,
   PeriodSelection,
-  NormalizedMetrics
+  NormalizedMetrics,
+  MqlSource
 } from '../models/types.js';
 import { AdvertisingProvider } from './AdvertisingProvider.js';
 import { NormalizerService, RawMetricInput } from '../services/NormalizerService.js';
@@ -69,13 +70,40 @@ export class SheetsAdsProvider implements AdvertisingProvider {
   }
 
   /**
-   * Métricas da entidade dentro do período selecionado.
+   * MQL de um conjunto de criativos, somado do export manual da Meta.
    *
-   * Antes usava a linha consolidada do snapshot, que soma a planilha inteira:
-   * as tabelas de campanha, conjunto e anúncio mostravam o histórico todo, fosse
-   * qual fosse a data escolhida. Com o MQL por criativo isso deixava de ser só
-   * impreciso e virava contraditório — MQL do período dividido por leads de
-   * todos os tempos.
+   * É a única origem possível de MQL abaixo do nível de conta: o CRM recebe o
+   * lead sem a campanha de origem. Reporta a janela coberta e quantos criativos
+   * têm export, para o número ser conferível — se metade dos criativos não foi
+   * exportada, o MQL da campanha é parcial, e isso precisa ficar visível.
+   */
+  private exportMqlSource(
+    accountId: string,
+    adKeys: string[],
+    period: PeriodSelection
+  ): { mqls: number | null; source: MqlSource } {
+    let mqls = 0;
+    let covered = 0;
+    let since = '';
+    let until = '';
+    for (const adKey of adKeys) {
+      const e = leadExportStore.forAd(accountId, adKey, period.startDate, period.endDate);
+      if (!e) continue;
+      mqls += e.mqls;
+      covered++;
+      if (!since || e.coverage.since < since) since = e.coverage.since;
+      if (!until || e.coverage.until > until) until = e.coverage.until;
+    }
+    if (covered === 0) return { mqls: null, source: { origin: 'none' } };
+    return {
+      mqls,
+      source: { origin: 'export', coverage: { since, until }, adsCovered: covered, adsTotal: adKeys.length }
+    };
+  }
+
+  /**
+   * Métricas da entidade no período selecionado. `mqls` vem de fora — do export
+   * manual, agregado por criativo — porque o MQL não está na planilha.
    */
   private entityMetrics(
     series: SheetsDailyRow[] | undefined,
@@ -306,15 +334,20 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     const ticket = this.averageTicketFor(externalAccountId);
 
     const patterns = this.exclusionsFor(externalAccountId);
-    return acc.campaigns.filter(c => !this.isExcluded(c.name, patterns)).map(row => ({
-      id: row.id,
-      adAccountId: externalAccountId,
-      externalCampaignId: row.id,
-      name: row.name,
-      status: 'UNKNOWN', // a planilha não reporta status de veiculação
-      metrics: this.entityMetrics(acc.dailyByEntity.campaigns[row.id], period, ticket),
-      dailyMetrics: this.entityDaily(acc.dailyByEntity.campaigns[row.id], period, ticket)
-    }));
+    return acc.campaigns.filter(c => !this.isExcluded(c.name, patterns)).map(row => {
+      const adKeys = acc.ads.filter(a => a.campaignId === row.id).map(a => a.id);
+      const { mqls, source } = this.exportMqlSource(externalAccountId, adKeys, period);
+      return {
+        id: row.id,
+        adAccountId: externalAccountId,
+        externalCampaignId: row.id,
+        name: row.name,
+        status: 'UNKNOWN', // a planilha não reporta status de veiculação
+        metrics: this.entityMetrics(acc.dailyByEntity.campaigns[row.id], period, ticket, mqls),
+        dailyMetrics: this.entityDaily(acc.dailyByEntity.campaigns[row.id], period, ticket),
+        mqlSource: source
+      };
+    });
   }
 
   public async getAdSets(_accessToken: string, externalAccountId: string, period: PeriodSelection, campaignId?: string): Promise<AdSetData[]> {
@@ -328,17 +361,22 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     const visible = acc.adSets.filter(a => !hidden.has(a.campaignId || ''));
     const rows = campaignId ? visible.filter(a => a.campaignId === campaignId) : visible;
 
-    return rows.map(row => ({
-      id: row.id,
-      adAccountId: externalAccountId,
-      campaignId: row.campaignId || '',
-      campaignName: campaignNames.get(row.campaignId || '') || 'N/D',
-      externalAdSetId: row.id,
-      name: row.name,
-      status: 'UNKNOWN', // a planilha não reporta status de veiculação
-      metrics: this.entityMetrics(acc.dailyByEntity.adSets[row.id], period, ticket),
-      dailyMetrics: this.entityDaily(acc.dailyByEntity.adSets[row.id], period, ticket)
-    }));
+    return rows.map(row => {
+      const adKeys = acc.ads.filter(a => a.adSetId === row.id).map(a => a.id);
+      const { mqls, source } = this.exportMqlSource(externalAccountId, adKeys, period);
+      return {
+        id: row.id,
+        adAccountId: externalAccountId,
+        campaignId: row.campaignId || '',
+        campaignName: campaignNames.get(row.campaignId || '') || 'N/D',
+        externalAdSetId: row.id,
+        name: row.name,
+        status: 'UNKNOWN', // a planilha não reporta status de veiculação
+        metrics: this.entityMetrics(acc.dailyByEntity.adSets[row.id], period, ticket, mqls),
+        dailyMetrics: this.entityDaily(acc.dailyByEntity.adSets[row.id], period, ticket),
+        mqlSource: source
+      };
+    });
   }
 
   public async getAds(_accessToken: string, externalAccountId: string, period: PeriodSelection, adSetId?: string): Promise<AdData[]> {
@@ -369,7 +407,10 @@ export class SheetsAdsProvider implements AdvertisingProvider {
         status: 'UNKNOWN', // a planilha não reporta status de veiculação
         metrics: this.entityMetrics(acc.dailyByEntity.ads[row.id], period, ticket, exportado?.mqls ?? null),
         dailyMetrics: this.entityDaily(acc.dailyByEntity.ads[row.id], period, ticket),
-        mqlCoverage: exportado?.coverage ?? null
+        mqlCoverage: exportado?.coverage ?? null,
+        mqlSource: exportado
+          ? { origin: 'export', coverage: exportado.coverage, adsCovered: 1, adsTotal: 1 }
+          : { origin: 'none' }
       };
     });
   }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CampaignData } from '../types';
-import { metricText, dropEmptyMetricColumns } from '../utils/metrics';
+import { metricText, dropEmptyMetricColumns, mqlSourceLabel } from '../utils/metrics';
 import { api } from '../services/api';
 import { useClient } from '../context/ClientContext';
 import { usePeriod } from '../context/PeriodContext';
@@ -139,7 +139,11 @@ export const CampaignsView: React.FC = () => {
       id: 'mqls',
       header: 'MQLs',
       accessor: c => c.metrics.mqls,
-      cell: (v, row) => metricText(row.metrics, 'mqls', v, formatNum),
+      cell: (v, row) => (
+        <span title={mqlSourceLabel(row.mqlSource)} style={{ cursor: 'help', borderBottom: '1px dotted var(--border)' }}>
+          {metricText(row.metrics, 'mqls', v, formatNum)}
+        </span>
+      ),
       heatmap: true,
       heatmapColor: 'var(--heat-mqls)'
     },
@@ -221,6 +225,26 @@ export const CampaignsView: React.FC = () => {
           {hiddenColumns.map(c => c.header).join(', ')}.
         </div>
       )}
+
+      {(() => {
+        const wins = campaigns.map(x => x.mqlSource?.coverage).filter((c): c is { since: string; until: string } => !!c);
+        if (wins.length === 0) {
+          return (
+            <div className="hidden-cols-note">
+              <b>MQL:</b> nenhum item deste nível tem export de leads da Meta, então o MQL aparece como N/D. O CRM não atribui MQL por campanha/criativo.
+            </div>
+          );
+        }
+        const br = (d: string) => d.split('-').reverse().slice(0, 2).join('/');
+        const since = wins.map(w => w.since).sort()[0];
+        const until = wins.map(w => w.until).sort().slice(-1)[0];
+        return (
+          <div className="hidden-cols-note">
+            <b>MQL:</b> origem export manual da Meta, janela {br(since)}–{br(until)}. Passe o mouse na coluna MQL para ver a origem de cada linha; item sem export aparece como N/D.
+          </div>
+        );
+      })()}
+
 
 
       {/* Gráfico Pareado com Métricas */}

@@ -259,6 +259,23 @@ export interface NormalizedMetrics {
   unavailable: MetricName[];
 }
 
+/**
+ * De onde saiu o MQL de uma entidade, para o número ser conferível.
+ *
+ * No nível de campanha, conjunto e criativo o MQL só pode vir do export manual
+ * da Meta: o CRM recebe o lead sem saber de qual anúncio veio, então não
+ * atribui MQL por campanha. `origin: 'none'` é ausência de export, que o painel
+ * mostra como N/D — nunca como zero.
+ */
+export interface MqlSource {
+  origin: 'export' | 'kommo' | 'none';
+  /** Janela que o export cobre, quando origin é 'export'. */
+  coverage?: { since: string; until: string };
+  /** Em campanha/conjunto: criativos com export, de quantos ao todo. */
+  adsCovered?: number;
+  adsTotal?: number;
+}
+
 export interface CampaignData {
   id: string;
   adAccountId: string;
@@ -268,6 +285,8 @@ export interface CampaignData {
   objective?: string;
   metrics: NormalizedMetrics;
   dailyMetrics?: DailyMetricItem[];
+  /** Origem do MQL desta entidade, para conferência. */
+  mqlSource?: MqlSource;
 }
 
 export interface AdSetData {
@@ -280,6 +299,8 @@ export interface AdSetData {
   status: EntityStatus;
   metrics: NormalizedMetrics;
   dailyMetrics?: DailyMetricItem[];
+  /** Origem do MQL desta entidade, para conferência. */
+  mqlSource?: MqlSource;
 }
 
 export interface AdData {
@@ -303,6 +324,8 @@ export interface AdData {
    * nenhum export cobre o criativo.
    */
   mqlCoverage?: { since: string; until: string } | null;
+  /** Origem do MQL desta entidade, para conferência. */
+  mqlSource?: MqlSource;
 }
 
 export interface DailyMetricItem {
