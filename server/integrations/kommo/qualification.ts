@@ -121,3 +121,58 @@ export function qualify(label: string | null | undefined, threshold = MQL_THRESH
   // faixa "até o limite", que é onde o cliente traçou a linha.
   return floor >= threshold ? 'mql' : 'nao_mql';
 }
+
+/* -------------------------------------------------------------------------- */
+/* Qualificação por resposta de múltipla escolha                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Nem toda conta qualifica o lead por faturamento. Há formulário em que o MQL
+ * é uma resposta específica de múltipla escolha — por exemplo, a posição do
+ * lead diante do valor do investimento ("estou pronto para investir" vs. "não
+ * tenho condições agora"). Aqui não há faixa numérica a interpretar: cada
+ * opção é um texto fixo, e o que decide é qual delas o lead marcou.
+ *
+ * A regra diz qual coluna carrega a resposta e quais respostas contam como MQL
+ * e como não-MQL. O mesmo princípio da qualificação por faturamento vale: uma
+ * resposta que não casa com nenhuma opção conhecida vira `indefinido` — nunca
+ * um palpite —, para aparecer separada e ser corrigida em vez de contaminar o
+ * número.
+ */
+export interface AnswerQualifier {
+  kind: 'answer';
+  /** Trecho que identifica a coluna da pergunta no cabeçalho da planilha. */
+  columnIncludes: string;
+  /** Trechos que, presentes na resposta, marcam o lead como MQL. */
+  mqlIncludes: string[];
+  /** Trechos das demais respostas conhecidas — reconhecidas, mas não-MQL. */
+  naoMqlIncludes: string[];
+}
+
+export type LeadQualifier = { kind: 'faturamento' } | AnswerQualifier;
+
+export function qualifyByAnswer(answer: string | null | undefined, rule: AnswerQualifier): Qualification {
+  if (answer === null || answer === undefined || String(answer).trim() === '') return 'indefinido';
+  const text = flatten(String(answer));
+  if (!text) return 'indefinido';
+  const hits = (needles: string[]) => needles.some(n => text.includes(flatten(n)));
+  if (hits(rule.mqlIncludes)) return 'mql';
+  if (hits(rule.naoMqlIncludes)) return 'nao_mql';
+  // Resposta fora do conjunto conhecido: indefinido, não palpite.
+  return 'indefinido';
+}
+
+/** Função de veredito da conta, a partir da regra dela (faturamento por padrão). */
+export function qualifierFn(rule?: LeadQualifier): (answer: string | null | undefined) => Qualification {
+  if (rule && rule.kind === 'answer') return answer => qualifyByAnswer(answer, rule);
+  return answer => qualify(answer);
+}
+
+/**
+ * Predicado que encontra, no cabeçalho, a coluna que carrega a resposta usada
+ * para qualificar. Faturamento por padrão; a regra de resposta aponta a sua.
+ */
+export function qualifierColumn(rule?: LeadQualifier): (header: string) => boolean {
+  const needle = rule && rule.kind === 'answer' ? flatten(rule.columnIncludes) : 'faturamento';
+  return header => flatten(header).includes(needle);
+}

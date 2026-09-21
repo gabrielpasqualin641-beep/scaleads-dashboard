@@ -48,15 +48,23 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     return brief?.averageTicket ?? null;
   }
 
-  private toRaw(row: SheetsMetricSet, ticket: number | null, mqls: number | null = null): RawMetricInput {
+  private toRaw(
+    row: SheetsMetricSet,
+    ticket: number | null,
+    mqls: number | null = null,
+    hasSpend: boolean = true
+  ): RawMetricInput {
     return {
-      spend: row.spend,
-      impressions: row.impressions,
+      // Origem sem mídia (planilha só de leads): gasto/impressões/cliques são
+      // N/D, não zero — zero afirmaria "não veiculou" onde a verdade é "esta
+      // origem não mede".
+      spend: hasSpend ? row.spend : null,
+      impressions: hasSpend ? row.impressions : null,
       // Reach só vem preenchido quando não houve agregação; frequência deriva
       // dele no normalizador e fica N/D junto.
       reach: row.reach,
       frequency: null,
-      clicks: row.clicks,
+      clicks: hasSpend ? row.clicks : null,
       leads: row.leads,
       // MQL vem do CRM, nao da planilha: e a qualificacao humana do lead.
       // Ausente quando a conta nao esta ligada a um CRM.
@@ -109,11 +117,12 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     series: SheetsDailyRow[] | undefined,
     period: PeriodSelection,
     ticket: number | null,
-    mqls: number | null = null
+    mqls: number | null = null,
+    hasSpend: boolean = true
   ): NormalizedMetrics {
     const rows = (series || []).filter(d => d.date >= period.startDate && d.date <= period.endDate);
     const merged = this.mergeRows(rows, period.startDate);
-    return NormalizerService.calculateMetrics(this.toRaw(merged, ticket, mqls), period.includeMetaTax ?? true);
+    return NormalizerService.calculateMetrics(this.toRaw(merged, ticket, mqls, hasSpend), period.includeMetaTax ?? true);
   }
 
   /**
@@ -143,13 +152,13 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     return algum ? total : null;
   }
 
-  private entityDaily(series: SheetsDailyRow[] | undefined, period: PeriodSelection, ticket: number | null): DailyMetricItem[] | undefined {
+  private entityDaily(series: SheetsDailyRow[] | undefined, period: PeriodSelection, ticket: number | null, hasSpend: boolean = true): DailyMetricItem[] | undefined {
     if (!series || series.length === 0) return undefined;
     const rows = series.filter(d => d.date >= period.startDate && d.date <= period.endDate);
     if (rows.length === 0) return undefined;
 
     return rows.map(row => {
-      const m = NormalizerService.calculateMetrics(this.toRaw(row, ticket), period.includeMetaTax ?? true);
+      const m = NormalizerService.calculateMetrics(this.toRaw(row, ticket, null, hasSpend), period.includeMetaTax ?? true);
       return {
         date: row.date,
         spend: m.spend,
@@ -169,6 +178,11 @@ export class SheetsAdsProvider implements AdvertisingProvider {
         unavailable: m.unavailable
       };
     });
+  }
+
+  /** A origem desta conta reporta mídia? A planilha só de leads, não. */
+  private spendReported(externalAccountId: string): boolean {
+    return sheetsSnapshotStore.getAccount(externalAccountId)?.hasSpend !== false;
   }
 
   /** Trechos de nome de campanha que esta conta mantém fora dos totais. */
@@ -272,10 +286,11 @@ export class SheetsAdsProvider implements AdvertisingProvider {
   public async getDailyInsights(_accessToken: string, externalAccountId: string, period: PeriodSelection): Promise<DailyMetricItem[]> {
     const ticket = this.averageTicketFor(externalAccountId);
     const rows = this.dailyRows(externalAccountId, period);
+    const hasSpend = this.spendReported(externalAccountId);
 
     return rows.map(row => {
       const mqls = this.mqlForDate(externalAccountId, row.date);
-      const m = NormalizerService.calculateMetrics(this.toRaw(row, ticket, mqls), period.includeMetaTax ?? true);
+      const m = NormalizerService.calculateMetrics(this.toRaw(row, ticket, mqls, hasSpend), period.includeMetaTax ?? true);
       return {
         date: row.date,
         spend: m.spend,
@@ -322,7 +337,8 @@ export class SheetsAdsProvider implements AdvertisingProvider {
           reach: null
         },
         ticket,
-        this.mqlForPeriod(externalAccountId, period)
+        this.mqlForPeriod(externalAccountId, period),
+        this.spendReported(externalAccountId)
       ),
       period.includeMetaTax ?? true
     );
@@ -332,6 +348,7 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     const acc = sheetsSnapshotStore.getAccount(externalAccountId);
     if (!acc) return [];
     const ticket = this.averageTicketFor(externalAccountId);
+    const hasSpend = acc.hasSpend !== false;
 
     const patterns = this.exclusionsFor(externalAccountId);
     return acc.campaigns.filter(c => !this.isExcluded(c.name, patterns)).map(row => {
@@ -343,8 +360,8 @@ export class SheetsAdsProvider implements AdvertisingProvider {
         externalCampaignId: row.id,
         name: row.name,
         status: 'UNKNOWN', // a planilha não reporta status de veiculação
-        metrics: this.entityMetrics(acc.dailyByEntity.campaigns[row.id], period, ticket, mqls),
-        dailyMetrics: this.entityDaily(acc.dailyByEntity.campaigns[row.id], period, ticket),
+        metrics: this.entityMetrics(acc.dailyByEntity.campaigns[row.id], period, ticket, mqls, hasSpend),
+        dailyMetrics: this.entityDaily(acc.dailyByEntity.campaigns[row.id], period, ticket, hasSpend),
         mqlSource: source
       };
     });
@@ -354,6 +371,7 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     const acc = sheetsSnapshotStore.getAccount(externalAccountId);
     if (!acc) return [];
     const ticket = this.averageTicketFor(externalAccountId);
+    const hasSpend = acc.hasSpend !== false;
 
     const campaignNames = new Map(acc.campaigns.map(c => [c.id, c.name]));
     const patterns = this.exclusionsFor(externalAccountId);
@@ -372,8 +390,8 @@ export class SheetsAdsProvider implements AdvertisingProvider {
         externalAdSetId: row.id,
         name: row.name,
         status: 'UNKNOWN', // a planilha não reporta status de veiculação
-        metrics: this.entityMetrics(acc.dailyByEntity.adSets[row.id], period, ticket, mqls),
-        dailyMetrics: this.entityDaily(acc.dailyByEntity.adSets[row.id], period, ticket),
+        metrics: this.entityMetrics(acc.dailyByEntity.adSets[row.id], period, ticket, mqls, hasSpend),
+        dailyMetrics: this.entityDaily(acc.dailyByEntity.adSets[row.id], period, ticket, hasSpend),
         mqlSource: source
       };
     });
@@ -383,6 +401,7 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     const acc = sheetsSnapshotStore.getAccount(externalAccountId);
     if (!acc) return [];
     const ticket = this.averageTicketFor(externalAccountId);
+    const hasSpend = acc.hasSpend !== false;
 
     const campaignNames = new Map(acc.campaigns.map(c => [c.id, c.name]));
     const adSetNames = new Map(acc.adSets.map(a => [a.id, a.name]));
@@ -405,8 +424,8 @@ export class SheetsAdsProvider implements AdvertisingProvider {
         externalAdId: row.id,
         name: row.name,
         status: 'UNKNOWN', // a planilha não reporta status de veiculação
-        metrics: this.entityMetrics(acc.dailyByEntity.ads[row.id], period, ticket, exportado?.mqls ?? null),
-        dailyMetrics: this.entityDaily(acc.dailyByEntity.ads[row.id], period, ticket),
+        metrics: this.entityMetrics(acc.dailyByEntity.ads[row.id], period, ticket, exportado?.mqls ?? null, hasSpend),
+        dailyMetrics: this.entityDaily(acc.dailyByEntity.ads[row.id], period, ticket, hasSpend),
         mqlCoverage: exportado?.coverage ?? null,
         mqlSource: exportado
           ? { origin: 'export', coverage: exportado.coverage, adsCovered: 1, adsTotal: 1 }

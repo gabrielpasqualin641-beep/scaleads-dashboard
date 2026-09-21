@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { qualify } from '../kommo/qualification.js';
+import { qualify, Qualification } from '../kommo/qualification.js';
 import { slugify } from '../sheets/fetchAndAggregate.js';
 import { dataFile } from '../../config/paths.js';
 
@@ -68,7 +68,12 @@ export interface ExportedLead {
   campaignName: string;
   adSetName: string;
   adName: string;
-  faturamento: string | null;
+  /**
+   * Resposta que qualifica o lead. Na maioria das contas é o faturamento; em
+   * outras, uma opção de múltipla escolha (ex.: posição sobre o investimento).
+   * Qual coluna a preenche é decidido por `parseLeadExport`.
+   */
+  qualifierAnswer: string | null;
 }
 
 /** O Gerenciador exporta em UTF-16 com BOM; um CSV reaberto e salvo pode virar UTF-8. */
@@ -147,7 +152,16 @@ function parseSpreadsheetXml(text: string): string[][] {
   return rows;
 }
 
-export function parseLeadExport(buffer: Buffer): ExportedLead[] {
+/**
+ * Lê o export de leads. `matchQualifier` escolhe a coluna cuja resposta
+ * qualifica o lead — por padrão a de faturamento, mas uma conta pode apontar
+ * outra (ex.: a pergunta sobre o investimento). A coluna é opcional: se não
+ * existir, o lead entra com `qualifierAnswer` nulo e cai em indefinido.
+ */
+export function parseLeadExport(
+  buffer: Buffer,
+  matchQualifier: (header: string) => boolean = h => h.includes('faturamento')
+): ExportedLead[] {
   const text = decode(buffer);
   const isXml = /^\s*<\?xml|^\s*<Workbook/i.test(text.slice(0, 64));
   let table: string[][];
@@ -169,12 +183,12 @@ export function parseLeadExport(buffer: Buffer): ExportedLead[] {
     campaign: col(h => h === 'campaign_name'),
     adSet: col(h => h === 'adset_name'),
     ad: col(h => h === 'ad_name'),
-    // A pergunta vira nome de coluna e muda com o texto do formulário; o que
-    // se mantém é a palavra "faturamento".
-    faturamento: col(h => h.includes('faturamento'))
+    // A pergunta vira nome de coluna e muda com o texto do formulário; qual
+    // coluna qualifica é decidido por quem chama.
+    qualifier: col(matchQualifier)
   };
 
-  const faltando = Object.entries(idx).filter(([k, v]) => v < 0 && k !== 'faturamento').map(([k]) => k);
+  const faltando = Object.entries(idx).filter(([k, v]) => v < 0 && k !== 'qualifier').map(([k]) => k);
   if (faltando.length > 0) {
     throw new Error(`Export sem as colunas esperadas: ${faltando.join(', ')}.`);
   }
@@ -189,12 +203,12 @@ export function parseLeadExport(buffer: Buffer): ExportedLead[] {
     campaignName: (r[idx.campaign] || '').trim(),
     adSetName: (r[idx.adSet] || '').trim(),
     adName: (r[idx.ad] || '').trim(),
-    faturamento: idx.faturamento >= 0 ? (r[idx.faturamento] || '').trim() || null : null
+    qualifierAnswer: idx.qualifier >= 0 ? (r[idx.qualifier] || '').trim() || null : null
   })).filter(l =>
     l.id &&
     /^\d{4}-\d{2}-\d{2}$/.test(l.date) &&
-    // Lead de teste da Meta: vem com faturamento "dummy" e não é um lead real.
-    !/^<test lead/i.test(l.faturamento || '')
+    // Lead de teste da Meta: vem com a resposta "dummy" e não é um lead real.
+    !/^<test lead/i.test(l.qualifierAnswer || '')
   );
 }
 
@@ -266,7 +280,8 @@ export interface ImportReport {
 export function mergeExports(
   snapshot: LeadExportSnapshot,
   files: ImportedFile[],
-  resolveAccount: (adKey: string) => string | null
+  resolveAccount: (adKey: string) => string | null,
+  classify: (answer: string | null) => Qualification = answer => qualify(answer)
 ): { snapshot: LeadExportSnapshot; report: ImportReport[]; unmatched: string[] } {
   // Agrupa por anúncio, somando todos os arquivos da rodada.
   const porAnuncio = new Map<string, { sample: ExportedLead; leads: Map<string, ExportedLead>; ranges: DateRange[] }>();
@@ -316,7 +331,7 @@ export function mergeExports(
     const resumo = { leads: 0, mqls: 0, indefinidos: 0 };
     for (const lead of leads) {
       const cell = (atual.daily[lead.date] ||= { leads: 0, mqls: 0, indefinidos: 0 });
-      const verdict = qualify(lead.faturamento);
+      const verdict = classify(lead.qualifierAnswer);
       cell.leads++;
       resumo.leads++;
       if (verdict === 'mql') { cell.mqls++; resumo.mqls++; }

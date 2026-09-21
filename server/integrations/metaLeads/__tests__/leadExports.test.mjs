@@ -39,7 +39,7 @@ test('lê o formato do Gerenciador, com nomes que contêm "|"', () => {
   assert.equal(leads[0].adName, ANUNCIO);
   assert.equal(leads[0].campaignName, CAMPANHA);
   assert.equal(leads[0].date, '2026-09-11');
-  assert.equal(leads[0].faturamento, 'até_r$_200.000,00');
+  assert.equal(leads[0].qualifierAnswer, 'até_r$_200.000,00');
 });
 
 test('não guarda nada que identifique o lead', () => {
@@ -144,7 +144,7 @@ test('lê o formato .xls (SpreadsheetML) igual ao csv', () => {
   assert.equal(leads.length, 1);
   assert.equal(leads[0].adName, ANUNCIO);
   assert.equal(leads[0].date, '2026-09-15');
-  assert.equal(leads[0].faturamento, 'acima_de_r$_500.000,00');
+  assert.equal(leads[0].qualifierAnswer, 'acima_de_r$_500.000,00');
 });
 
 test('ss:Index preserva o alinhamento quando há célula vazia no meio', () => {
@@ -163,7 +163,7 @@ test('ss:Index preserva o alinhamento quando há célula vazia no meio', () => {
     + `<Worksheet><Table>${row(header)}${leadRow}</Table></Worksheet></Workbook>`;
   const leads = parseLeadExport(Buffer.from(xml, 'utf8'));
   assert.equal(leads.length, 1);
-  assert.equal(leads[0].faturamento, null, 'faturamento omitido é null, não o nome');
+  assert.equal(leads[0].qualifierAnswer, null, 'faturamento omitido é null, não o nome');
 });
 
 /*

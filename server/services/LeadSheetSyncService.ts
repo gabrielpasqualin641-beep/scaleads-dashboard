@@ -7,6 +7,9 @@ import {
   writeLiveFile,
   LeadExportSnapshot
 } from '../integrations/metaLeads/leadExports.js';
+import { snapshotFromLeads } from '../integrations/metaLeads/leadSnapshot.js';
+import { sheetsSnapshotStore } from '../integrations/sheets/SheetsSnapshotStore.js';
+import { qualifierFn, qualifierColumn } from '../integrations/kommo/qualification.js';
 
 /**
  * Sincroniza a planilha de backup de leads.
@@ -47,9 +50,15 @@ export class LeadSheetSyncService {
         if (/^\s*<(!doctype|html)/i.test(text)) {
           throw new Error('planilha não pública (o Google devolveu login)');
         }
+        // A regra de MQL é da conta: a maioria qualifica por faturamento; a
+        // CA01 qualifica pela resposta sobre o investimento. A regra diz tanto
+        // qual coluna carrega a resposta quanto como classificá-la.
+        const classify = qualifierFn(conta.leadQualifier);
+        const matchColumn = qualifierColumn(conta.leadQualifier);
+
         // A planilha não carrega janela no nome; parseLeadExport tira a janela
         // das datas que os leads têm.
-        const leads = parseLeadExport(Buffer.from(text, 'utf-8'));
+        const leads = parseLeadExport(Buffer.from(text, 'utf-8'), matchColumn);
 
         // A planilha é configurada nesta conta, então todo lead dela é desta
         // conta — não precisa consultar o snapshot do Adveronix para descobrir
@@ -59,14 +68,25 @@ export class LeadSheetSyncService {
         const { snapshot, report } = mergeExports(
           live,
           [{ fileName: `leadsheet_${conta.externalAccountId}.csv`, leads }],
-          () => conta.externalAccountId
+          () => conta.externalAccountId,
+          classify
         );
         live = snapshot;
+
+        // Conta sem Adveronix: a planilha de leads é a única origem, então ela
+        // também monta a árvore de campanha/conjunto/anúncio (só com contagem de
+        // leads; mídia fica N/D). Conta com Adveronix não é tocada aqui — seu
+        // snapshot de mídia vem da ingestão própria e o MQL entra por cima.
+        if (!conta.sheetsUrl && leads.length > 0) {
+          sheetsSnapshotStore.upsertAccount(
+            snapshotFromLeads(leads, conta.externalAccountId, conta.leadSheetUrl!)
+          );
+        }
 
         for (const r of report) {
           console.log(
             `[Lead sheet] ${conta.name} · ${r.adName}: ${r.coverage.since} a ${r.coverage.until} · ` +
-            `${r.leads} leads, ${r.mqls} MQL, ${r.indefinidos} sem faturamento.`
+            `${r.leads} leads, ${r.mqls} MQL, ${r.indefinidos} sem resposta.`
           );
         }
       } catch (err) {

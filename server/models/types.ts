@@ -1,3 +1,6 @@
+import type { LeadQualifier } from '../integrations/kommo/qualification.js';
+export type { LeadQualifier };
+
 export type AccountPlatform = 'meta_ads' | 'google_ads' | 'tiktok_ads' | 'linkedin_ads';
 export type AccountStatus = 'active' | 'paused' | 'archived' | 'error' | 'token_expired';
 export type EntityStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED' | 'IN_PROCESS' | 'WITH_ISSUES' | 'UNKNOWN';
@@ -224,6 +227,12 @@ export interface AdAccount {
    * export manual e a dependência do Kommo para atribuição por anúncio.
    */
   leadSheetUrl?: string;
+  /**
+   * Regra que decide o MQL desta conta. Ausente = por faturamento (>= R$200k).
+   * Uma conta cujo formulário qualifica por outra pergunta (ex.: a posição
+   * sobre o valor do investimento) aponta aqui a coluna e as respostas.
+   */
+  leadQualifier?: LeadQualifier;
   /**
    * Campanhas que não entram nos totais da conta, casadas por trecho do nome.
    *

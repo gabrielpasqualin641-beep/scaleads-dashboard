@@ -45,6 +45,12 @@ export interface SheetsAccountSnapshot {
   range: { since: string; until: string };
   /** Colunas de métrica que esta planilha realmente traz preenchidas. */
   availableMetrics: string[];
+  /**
+   * Se a origem reporta mídia (gasto/impressões/cliques). O Adveronix reporta;
+   * a planilha de backup de leads, não. Ausente ou `true` = reporta. Quando
+   * `false`, o provider trata gasto/impressões/cliques como N/D em vez de zero.
+   */
+  hasSpend?: boolean;
   daily: SheetsDailyRow[];
   campaigns: SheetsEntityRow[];
   adSets: SheetsEntityRow[];

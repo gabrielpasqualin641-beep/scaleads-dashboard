@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Client, AdAccount, User } from '../models/types.js';
+import { Client, AdAccount, User, LeadQualifier } from '../models/types.js';
 import { dataFile, ensureDataDir } from '../config/paths.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -104,6 +104,7 @@ const META_ACCOUNTS: Array<{
   mcpUnavailableReason?: string;
   excludedCampaigns?: string[];
   leadSheetUrl?: string;
+  leadQualifier?: LeadQualifier;
   /**
    * Planilha do Adveronix que alimenta a conta. Fica no seed, e não só no
    * store.json, porque o disco da hospedagem é efêmero no plano atual: um
@@ -139,7 +140,23 @@ const META_ACCOUNTS: Array<{
     excludedCampaigns: ['WPP'],
     // Planilha de backup que recebe todos os leads das campanhas, com o
     // faturamento — alimenta o MQL por criativo automaticamente.
-    leadSheetUrl: 'https://docs.google.com/spreadsheets/d/1J80qVrBXa36OjiMGedOi3ObUVFxY8NJfIIVCvhKlGbM/edit?gid=0#gid=0' }
+    leadSheetUrl: 'https://docs.google.com/spreadsheets/d/1J80qVrBXa36OjiMGedOi3ObUVFxY8NJfIIVCvhKlGbM/edit?gid=0#gid=0' },
+  // A CA01 é da campanha "SDC | ... | FORM7". A origem é só a planilha de leads
+  // (sem Adveronix): ela monta a árvore de campanha/conjunto/anúncio com a
+  // contagem de leads, e gasto/CPL/CPM ficam N/D até o Adveronix desta conta
+  // entrar. O externalAccountId é sintético e estável — os dados vêm todos da
+  // planilha, não do MCP; por isso a conta fica fora do MCP.
+  { id: 'acc_mg_ca01', clientId: 'client_marcio_giacobelli', externalAccountId: 'ca01_giacobelli', name: 'CA01 - Giacobelli', businessId: '837672811168332', businessName: 'Giacobelli', mcpEnabled: false, mcpQueryable: false, mcpUnavailableReason: 'Conta alimentada pela planilha de leads; sem coleta via MCP.',
+    leadSheetUrl: 'https://docs.google.com/spreadsheets/d/1a-bUrbN8fuJWPBSEIc24Kp-h--xHeQLTFOLljS50NkQ/edit?gid=0#gid=0',
+    // O MQL aqui não é faturamento: é a posição do lead sobre o investimento de
+    // R$17.500. MQL = quem respondeu que tem o valor e está pronto para
+    // investir; as outras duas opções são reconhecidas e ficam fora do MQL.
+    leadQualifier: {
+      kind: 'answer',
+      columnIncludes: 'investimento',
+      mqlIncludes: ['pronto para investir'],
+      naoMqlIncludes: ['nao tenho condicoes', 'preciso entender melhor']
+    } }
 ];
 
 const SEED_ACCOUNTS: AdAccount[] = META_ACCOUNTS.map(a => {
@@ -160,7 +177,8 @@ const SEED_ACCOUNTS: AdAccount[] = META_ACCOUNTS.map(a => {
     mcpUnavailableReason: a.mcpUnavailableReason,
     sheetsUrl: a.sheetsUrl,
     excludedCampaigns: a.excludedCampaigns,
-    leadSheetUrl: a.leadSheetUrl
+    leadSheetUrl: a.leadSheetUrl,
+    leadQualifier: a.leadQualifier
   };
   return { ...account, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' };
 });
@@ -230,6 +248,11 @@ class Database {
         if (!existing.leadSheetUrl && account.leadSheetUrl) {
           existing.leadSheetUrl = account.leadSheetUrl;
           console.log(`[DB] Planilha de leads do seed aplicada a ${existing.name}.`);
+          changed = true;
+        }
+        if (!existing.leadQualifier && account.leadQualifier) {
+          existing.leadQualifier = account.leadQualifier;
+          console.log(`[DB] Regra de MQL do seed aplicada a ${existing.name}.`);
           changed = true;
         }
       }
