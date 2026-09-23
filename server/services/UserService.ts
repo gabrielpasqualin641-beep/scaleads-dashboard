@@ -63,6 +63,8 @@ export class UserService {
     role: UserRole;
     clientIds: string[];
     password: string;
+    /** Provisória gerada: troca obrigatória. Senha escolhida pelo admin: não. */
+    mustChangePassword?: boolean;
   }): { user: PublicUser } {
     const email = input.email.trim().toLowerCase();
     if (db.getUserByEmail(email)) {
@@ -77,7 +79,7 @@ export class UserService {
       // Admin enxerga tudo, então não faz sentido guardar escopo para ele.
       clientIds: input.role === 'admin' ? [] : this.sanitizeClientIds(input.clientIds),
       passwordHash: createPasswordHash(input.password),
-      mustChangePassword: true
+      mustChangePassword: input.mustChangePassword ?? true
     });
 
     return { user: this.toPublic(created) };
@@ -122,6 +124,19 @@ export class UserService {
     }
 
     db.updateUser(id, { passwordHash: createPasswordHash(newPassword), mustChangePassword: false });
+    return null;
+  }
+
+  /**
+   * Admin define a senha de alguém (ex.: a senha que o cliente vai usar).
+   * Não força troca: foi escolhida de propósito e já foi combinada com a pessoa.
+   */
+  public static setPassword(id: string, password: string): string | null {
+    const user = db.getUserById(id);
+    if (!user) return 'Usuário não encontrado.';
+    const invalid = this.validatePassword(password);
+    if (invalid) return invalid;
+    db.updateUser(id, { passwordHash: createPasswordHash(password), mustChangePassword: false });
     return null;
   }
 

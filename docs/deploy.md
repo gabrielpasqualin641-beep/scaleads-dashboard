@@ -22,6 +22,7 @@ Todas obrigatórias, exceto onde indicado.
 | `AUTH_SECRET` | `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
 | `MCP_INGEST_KEY` | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `DATA_DIR` | Caminho do volume montado |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Alternativa gratuita ao volume: usuários, clientes e briefings ficam num Redis do Upstash e são restaurados a cada boot. Use no Render free. |
 | `CORS_ORIGIN` | URL do front, quando ele estiver em outro domínio |
 | `NODE_ENV` | `production` |
 | `ANTHROPIC_API_KEY` | Opcional — só para o estudo de estratégia |

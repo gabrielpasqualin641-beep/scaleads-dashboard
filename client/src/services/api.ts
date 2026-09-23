@@ -152,7 +152,7 @@ export const api = {
   assignableClients: () =>
     request<AssignableClient[]>('/api/users/assignable-clients', {}, 'Erro ao carregar clientes'),
 
-  createUser: (data: { name: string; email: string; role: UserRole; clientIds: string[] }) =>
+  createUser: (data: { name: string; email: string; role: UserRole; clientIds: string[]; password?: string }) =>
     request<{ user: AuthUser; temporaryPassword: string | null; notice: string }>(
       '/api/users',
       { method: 'POST', body: JSON.stringify(data) },
@@ -163,6 +163,13 @@ export const api = {
     id: string,
     updates: { name?: string; role?: UserRole; clientIds?: string[]; status?: 'active' | 'suspended' }
   ) => request<AuthUser>(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(updates) }, 'Erro ao atualizar usuário'),
+
+  setUserPassword: (id: string, password: string) =>
+    request<unknown>(
+      `/api/users/${id}/password`,
+      { method: 'PUT', body: JSON.stringify({ password }) },
+      'Erro ao definir a senha'
+    ),
 
   resetUserPassword: (id: string) =>
     request<{ temporaryPassword: string; notice: string }>(

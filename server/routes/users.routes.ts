@@ -51,7 +51,9 @@ usersRouter.post('/', (req, res) => {
       email,
       role: parsedRole,
       clientIds: Array.isArray(clientIds) ? clientIds : [],
-      password: finalPassword
+      password: finalPassword,
+      // Senha escolhida pelo admin já é a definitiva; só a provisória exige troca.
+      mustChangePassword: !password
     });
 
     res.status(201).json({
@@ -60,7 +62,9 @@ usersRouter.post('/', (req, res) => {
         user,
         // Mostrada uma única vez: não fica recuperável depois.
         temporaryPassword: generated,
-        notice: `O usuário deverá trocar a senha no primeiro acesso (mínimo ${MIN_PASSWORD_LENGTH} caracteres).`
+        notice: generated
+          ? `O usuário deverá trocar a senha no primeiro acesso (mínimo ${MIN_PASSWORD_LENGTH} caracteres).`
+          : 'Acesso criado com a senha definida.'
       }
     });
   } catch (err: any) {
@@ -116,6 +120,15 @@ usersRouter.put('/:id', (req, res) => {
   });
 
   res.json({ success: true, data: updated });
+});
+
+usersRouter.put('/:id/password', (req, res) => {
+  const { password } = req.body as { password?: string };
+  const error = UserService.setPassword(pathParam(req, 'id'), password || '');
+  if (error) {
+    return res.status(error === 'Usuário não encontrado.' ? 404 : 400).json({ success: false, error });
+  }
+  res.json({ success: true, message: 'Senha definida.' });
 });
 
 usersRouter.post('/:id/reset-password', (req, res) => {

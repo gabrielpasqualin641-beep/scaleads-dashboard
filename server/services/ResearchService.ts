@@ -3,6 +3,7 @@ import path from 'path';
 import Anthropic from '@anthropic-ai/sdk';
 import { ProjectBrief, NormalizedMetrics } from '../models/types.js';
 import { dataFile, ensureDataDir } from '../config/paths.js';
+import { persist } from '../persistence/remoteState.js';
 
 /**
  * Estudo de estratégia de mídia, gerado pela API da Claude com busca web.
@@ -117,6 +118,7 @@ function loadAll(): Record<string, ResearchStudy> {
 function saveAll(all: Record<string, ResearchStudy>): void {
   ensureDataDir();
   fs.writeFileSync(FILE, JSON.stringify(all, null, 2), 'utf-8');
+  persist('research.json');
 }
 
 function briefToText(brief: ProjectBrief | null): string {

@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { ProjectBrief } from '../models/types.js';
 import { dataFile, ensureDataDir } from '../config/paths.js';
+import { persist } from '../persistence/remoteState.js';
 
 const FILE = dataFile('briefs.json');
 
@@ -62,6 +63,7 @@ export class BriefService {
   private static save(all: Record<string, ProjectBrief>): void {
     ensureDataDir();
     fs.writeFileSync(FILE, JSON.stringify(all, null, 2), 'utf-8');
+    persist('briefs.json');
   }
 
   public static get(clientId: string): ProjectBrief | null {

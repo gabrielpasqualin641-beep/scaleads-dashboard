@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { UserPlus, Trash2, KeyRound, Copy, Check, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
+import { UserPlus, Trash2, KeyRound, Copy, Check, ShieldCheck, AlertCircle, Loader2, Lock, Eye, EyeOff } from 'lucide-react';
 import { AuthUser, AssignableClient, UserRole } from '../types';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -22,7 +22,15 @@ export const UsersView: React.FC = () => {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<UserRole>('viewer');
   const [clientIds, setClientIds] = useState<string[]>([]);
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // "Definir senha" de um usuário existente: um por vez, inline no card.
+  const [passwordFor, setPasswordFor] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Senha provisória: só existe nesta tela, logo após criar/redefinir.
   const [tempPassword, setTempPassword] = useState<{ email: string; password: string } | null>(null);
@@ -51,6 +59,8 @@ export const UsersView: React.FC = () => {
     setEmail('');
     setRole('viewer');
     setClientIds([]);
+    setPassword('');
+    setShowPassword(false);
     setShowForm(false);
   };
 
@@ -58,12 +68,15 @@ export const UsersView: React.FC = () => {
     e.preventDefault();
     if (submitting) return;
     setActionError(null);
+    setNotice(null);
     setSubmitting(true);
     try {
-      const result = await api.createUser({ name, email, role, clientIds });
+      const result = await api.createUser({ name, email, role, clientIds, password: password || undefined });
       if (result.temporaryPassword) {
         setTempPassword({ email: result.user.email, password: result.temporaryPassword });
         setCopied(false);
+      } else {
+        setNotice(`Acesso de ${result.user.email} criado com a senha que você definiu.`);
       }
       resetForm();
       await load();
@@ -116,6 +129,24 @@ export const UsersView: React.FC = () => {
       await load();
     } catch (err: any) {
       setActionError(err.message || 'Erro ao redefinir a senha');
+    }
+  };
+
+  const handleSetPassword = async (target: AuthUser) => {
+    if (savingPassword) return;
+    setActionError(null);
+    setNotice(null);
+    setSavingPassword(true);
+    try {
+      await api.setUserPassword(target.id, newPassword);
+      setNotice(`Senha de ${target.email} definida. Ela já vale no próximo login.`);
+      setPasswordFor(null);
+      setNewPassword('');
+      await load();
+    } catch (err: any) {
+      setActionError(err.message || 'Erro ao definir a senha');
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -189,6 +220,13 @@ export const UsersView: React.FC = () => {
         </div>
       )}
 
+      {notice && (
+        <div role="status" className="card" style={{ padding: '10px 13px', borderColor: 'var(--good)', color: 'var(--good)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 600 }}>
+          <Check size={15} /> {notice}
+          <button type="button" className="btn btn-sm" onClick={() => setNotice(null)} style={{ marginLeft: 'auto' }}>Fechar</button>
+        </div>
+      )}
+
       {actionError && (
         <div role="alert" className="card" style={{ padding: '10px 13px', borderColor: 'var(--bad)', color: 'var(--bad)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 600 }}>
           <AlertCircle size={15} /> {actionError}
@@ -212,9 +250,27 @@ export const UsersView: React.FC = () => {
                 {ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
               </select>
             </div>
+            <div>
+              <label htmlFor="nu-password" style={labelStyle}>Senha (opcional)</label>
+              <div style={{ position: 'relative' }}>
+                <input id="nu-password" type={showPassword ? 'text' : 'password'} value={password}
+                  onChange={e => setPassword(e.target.value)} disabled={submitting} autoComplete="new-password"
+                  placeholder="Em branco = gera provisória" style={{ ...inputStyle, paddingRight: '34px' }} />
+                <button type="button" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: 0 }}>
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
           </div>
 
-          <p style={{ fontSize: '11.5px', color: 'var(--muted)', marginTop: '-6px' }}>{ROLE_DESCRIPTIONS[role]}</p>
+          <p style={{ fontSize: '11.5px', color: 'var(--muted)', marginTop: '-6px' }}>
+            {ROLE_DESCRIPTIONS[role]}{' '}
+            {password
+              ? 'Com a senha definida por você, a pessoa entra direto, sem precisar trocar.'
+              : 'Sem senha, o painel gera uma provisória e a pessoa troca no primeiro acesso.'}
+            {' '}Mínimo de 10 caracteres, com letras e números.
+          </p>
 
           {role !== 'admin' && (
             <div>
@@ -292,8 +348,14 @@ export const UsersView: React.FC = () => {
                   {u.status === 'active' ? 'Ativo' : 'Suspenso'}
                 </button>
 
+                <button type="button" className="btn btn-sm"
+                  onClick={() => { setPasswordFor(passwordFor === u.id ? null : u.id); setNewPassword(''); setActionError(null); }}
+                  style={{ gap: '5px' }} title="Escolher a senha deste usuário">
+                  <Lock size={13} /> Definir senha
+                </button>
+
                 <button type="button" className="btn btn-sm" onClick={() => handleReset(u)} style={{ gap: '5px' }} title="Gerar nova senha provisória">
-                  <KeyRound size={13} /> Redefinir
+                  <KeyRound size={13} /> Provisória
                 </button>
 
                 <button type="button" className="btn btn-sm" onClick={() => handleDelete(u)} disabled={isSelf}
@@ -301,6 +363,21 @@ export const UsersView: React.FC = () => {
                   <Trash2 size={13} />
                 </button>
               </div>
+
+              {passwordFor === u.id && (
+                <form onSubmit={e => { e.preventDefault(); handleSetPassword(u); }}
+                  style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} autoFocus
+                    autoComplete="new-password" placeholder="Nova senha (mín. 10, letras e números)" disabled={savingPassword}
+                    style={{ ...inputStyle, width: 'auto', flex: 1, minWidth: '220px' }} />
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={savingPassword || newPassword.length === 0} style={{ gap: '5px' }}>
+                    {savingPassword ? <Loader2 size={13} className="spin" /> : <Check size={13} />} Salvar senha
+                  </button>
+                  <button type="button" className="btn btn-sm" onClick={() => { setPasswordFor(null); setNewPassword(''); }} disabled={savingPassword}>
+                    Cancelar
+                  </button>
+                </form>
+              )}
 
               {u.role !== 'admin' && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>

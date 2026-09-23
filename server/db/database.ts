@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { Client, AdAccount, User, LeadQualifier } from '../models/types.js';
 import { dataFile, ensureDataDir } from '../config/paths.js';
+import { persist } from '../persistence/remoteState.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -283,6 +284,7 @@ class Database {
   private saveData(data: DatabaseSchema) {
     try {
       fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+      persist('store.json');
     } catch (e) {
       console.error('[DB] Erro ao salvar store.json:', e);
     }
