@@ -152,13 +152,24 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     return algum ? total : null;
   }
 
-  private entityDaily(series: SheetsDailyRow[] | undefined, period: PeriodSelection, ticket: number | null, hasSpend: boolean = true): DailyMetricItem[] | undefined {
+  /**
+   * Série diária da entidade. `mqlFor` dá o MQL de cada dia (do export de
+   * leads, somado pelos criativos da entidade); sem ele, o MQL diário é N/D.
+   */
+  private entityDaily(
+    series: SheetsDailyRow[] | undefined,
+    period: PeriodSelection,
+    ticket: number | null,
+    hasSpend: boolean = true,
+    mqlFor?: (date: string) => number | null
+  ): DailyMetricItem[] | undefined {
     if (!series || series.length === 0) return undefined;
     const rows = series.filter(d => d.date >= period.startDate && d.date <= period.endDate);
     if (rows.length === 0) return undefined;
 
     return rows.map(row => {
-      const m = NormalizerService.calculateMetrics(this.toRaw(row, ticket, null, hasSpend), period.includeMetaTax ?? true);
+      const mqls = mqlFor ? mqlFor(row.date) : null;
+      const m = NormalizerService.calculateMetrics(this.toRaw(row, ticket, mqls, hasSpend), period.includeMetaTax ?? true);
       return {
         date: row.date,
         spend: m.spend,
@@ -361,7 +372,8 @@ export class SheetsAdsProvider implements AdvertisingProvider {
         name: row.name,
         status: 'UNKNOWN', // a planilha não reporta status de veiculação
         metrics: this.entityMetrics(acc.dailyByEntity.campaigns[row.id], period, ticket, mqls, hasSpend),
-        dailyMetrics: this.entityDaily(acc.dailyByEntity.campaigns[row.id], period, ticket, hasSpend),
+        dailyMetrics: this.entityDaily(acc.dailyByEntity.campaigns[row.id], period, ticket, hasSpend,
+          date => this.exportMqlSource(externalAccountId, adKeys, { ...period, startDate: date, endDate: date }).mqls),
         mqlSource: source
       };
     });
@@ -391,7 +403,8 @@ export class SheetsAdsProvider implements AdvertisingProvider {
         name: row.name,
         status: 'UNKNOWN', // a planilha não reporta status de veiculação
         metrics: this.entityMetrics(acc.dailyByEntity.adSets[row.id], period, ticket, mqls, hasSpend),
-        dailyMetrics: this.entityDaily(acc.dailyByEntity.adSets[row.id], period, ticket, hasSpend),
+        dailyMetrics: this.entityDaily(acc.dailyByEntity.adSets[row.id], period, ticket, hasSpend,
+          date => this.exportMqlSource(externalAccountId, adKeys, { ...period, startDate: date, endDate: date }).mqls),
         mqlSource: source
       };
     });
@@ -425,7 +438,8 @@ export class SheetsAdsProvider implements AdvertisingProvider {
         name: row.name,
         status: 'UNKNOWN', // a planilha não reporta status de veiculação
         metrics: this.entityMetrics(acc.dailyByEntity.ads[row.id], period, ticket, exportado?.mqls ?? null, hasSpend),
-        dailyMetrics: this.entityDaily(acc.dailyByEntity.ads[row.id], period, ticket, hasSpend),
+        dailyMetrics: this.entityDaily(acc.dailyByEntity.ads[row.id], period, ticket, hasSpend,
+          date => leadExportStore.forAd(externalAccountId, row.id, date, date)?.mqls ?? null),
         mqlCoverage: exportado?.coverage ?? null,
         mqlSource: exportado
           ? { origin: 'export', coverage: exportado.coverage, adsCovered: 1, adsTotal: 1 }

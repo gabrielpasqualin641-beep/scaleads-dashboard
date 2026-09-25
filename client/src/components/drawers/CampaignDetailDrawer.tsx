@@ -4,6 +4,7 @@ import { X, ExternalLink, TrendingUp, Layers } from 'lucide-react';
 import { CampaignData, AdSetData, AdData } from '../../types';
 import { metricText } from '../../utils/metrics';
 import { CreativeThumb } from '../common/CreativeThumb';
+import { CampaignMetricsGrid } from '../charts/CampaignMetricsGrid';
 import { api } from '../../services/api';
 import { useClient } from '../../context/ClientContext';
 import { usePeriod } from '../../context/PeriodContext';
@@ -88,7 +89,7 @@ export const CampaignDetailDrawer: React.FC<CampaignDetailDrawerProps> = ({
     >
       <div
         style={{
-          width: '640px',
+          width: '960px',
           maxWidth: '92vw',
           backgroundColor: 'var(--surface)',
           borderLeft: '1px solid var(--border)',
@@ -170,6 +171,9 @@ export const CampaignDetailDrawer: React.FC<CampaignDetailDrawerProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Todas as métricas, dia a dia */}
+          <CampaignMetricsGrid daily={campaign.dailyMetrics} totals={campaign.metrics} />
 
           {/* Ad Sets List */}
           <div>
