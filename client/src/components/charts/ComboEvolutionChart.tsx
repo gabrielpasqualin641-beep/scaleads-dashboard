@@ -1,9 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Chart as ChartJS, registerables } from 'chart.js';
-import { DailyMetricItem } from '../../types';
+import { DailyMetricItem, MetricName } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 
 ChartJS.register(...registerables);
+
+/**
+ * Valor do dia, ou null quando a origem não tem base para ele — CPMQL num dia
+ * sem MQL, por exemplo. Null vira buraco na linha; zero diria "custou nada".
+ */
+function valueOf(d: DailyMetricItem, key: keyof DailyMetricItem & MetricName): number | null {
+  return d.unavailable?.includes(key) ? null : (d[key] as number);
+}
 
 interface ComboEvolutionChartProps {
   dailyData: DailyMetricItem[];
@@ -50,7 +58,7 @@ export const ComboEvolutionChart: React.FC<ComboEvolutionChartProps> = ({
         {
           type: 'bar' as const,
           label: 'Leads Totais',
-          data: dailyData.map(d => d.leads),
+          data: dailyData.map(d => valueOf(d, 'leads')),
           backgroundColor: isDark ? 'rgba(59, 130, 246, 0.65)' : 'rgba(37, 99, 235, 0.75)',
           borderRadius: 4,
           yAxisID: 'y'
@@ -58,7 +66,7 @@ export const ComboEvolutionChart: React.FC<ComboEvolutionChartProps> = ({
         {
           type: 'bar' as const,
           label: 'MQLs (Qualificados)',
-          data: dailyData.map(d => d.mqls),
+          data: dailyData.map(d => valueOf(d, 'mqls')),
           backgroundColor: isDark ? 'rgba(34, 197, 94, 0.75)' : 'rgba(22, 163, 74, 0.85)',
           borderRadius: 4,
           yAxisID: 'y'
@@ -66,7 +74,7 @@ export const ComboEvolutionChart: React.FC<ComboEvolutionChartProps> = ({
         {
           type: 'line' as const,
           label: 'Investimento (R$)',
-          data: dailyData.map(d => d.spend),
+          data: dailyData.map(d => valueOf(d, 'spend')),
           borderColor: '#EF4444',
           backgroundColor: 'rgba(239, 68, 68, 0.08)',
           borderWidth: 2,
@@ -82,7 +90,7 @@ export const ComboEvolutionChart: React.FC<ComboEvolutionChartProps> = ({
         {
           type: 'line' as const,
           label: 'Custo por Lead (CPL)',
-          data: dailyData.map(d => d.cpl),
+          data: dailyData.map(d => valueOf(d, 'cpl')),
           borderColor: '#2563EB',
           borderWidth: 2.5,
           pointRadius: 3,
@@ -92,7 +100,7 @@ export const ComboEvolutionChart: React.FC<ComboEvolutionChartProps> = ({
         {
           type: 'line' as const,
           label: 'Custo por MQL (CPMQL)',
-          data: dailyData.map(d => d.cpmql),
+          data: dailyData.map(d => valueOf(d, 'cpmql')),
           borderColor: '#D97706',
           borderWidth: 2.5,
           pointRadius: 3,
@@ -105,7 +113,7 @@ export const ComboEvolutionChart: React.FC<ComboEvolutionChartProps> = ({
         {
           type: 'bar' as const,
           label: 'Vendas (Qtd)',
-          data: dailyData.map(d => d.conversions),
+          data: dailyData.map(d => valueOf(d, 'conversions')),
           backgroundColor: 'rgba(37, 99, 235, 0.75)',
           borderRadius: 4,
           yAxisID: 'y'
@@ -113,7 +121,7 @@ export const ComboEvolutionChart: React.FC<ComboEvolutionChartProps> = ({
         {
           type: 'line' as const,
           label: 'Faturamento (R$)',
-          data: dailyData.map(d => d.revenue),
+          data: dailyData.map(d => valueOf(d, 'revenue')),
           borderColor: '#16A34A',
           backgroundColor: 'rgba(22, 163, 74, 0.1)',
           borderWidth: 2.5,
@@ -128,7 +136,7 @@ export const ComboEvolutionChart: React.FC<ComboEvolutionChartProps> = ({
         {
           type: 'line' as const,
           label: 'ROAS (x)',
-          data: dailyData.map(d => d.roas),
+          data: dailyData.map(d => valueOf(d, 'roas')),
           borderColor: '#16A34A',
           borderWidth: 3,
           pointRadius: 4,
@@ -175,6 +183,7 @@ export const ComboEvolutionChart: React.FC<ComboEvolutionChartProps> = ({
               label: (item: any) => {
                 const label = item.dataset.label || '';
                 const val = item.raw;
+                if (val === null || val === undefined) return ` ${label}: N/D`;
                 if (label.includes('(R$)') || label.includes('CPL') || label.includes('CPMQL') || label.includes('Faturamento')) {
                   return ` ${label}: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(val)}`;
                 }

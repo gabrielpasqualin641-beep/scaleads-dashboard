@@ -2,9 +2,13 @@ import { StatusBadge } from '../common/StatusBadge';
 import React, { useEffect, useState } from 'react';
 import { X, ExternalLink, TrendingUp, Layers } from 'lucide-react';
 import { CampaignData, AdSetData, AdData } from '../../types';
-import { metricText } from '../../utils/metrics';
+import { metricText, dropEmptyMetricColumns } from '../../utils/metrics';
 import { CreativeThumb } from '../common/CreativeThumb';
-import { CampaignMetricsGrid } from '../charts/CampaignMetricsGrid';
+import { FunnelStage } from '../common/FunnelStage';
+import { ComboEvolutionChart } from '../charts/ComboEvolutionChart';
+import { DailyIndicatorPairs } from '../charts/DailyIndicatorPairs';
+import { DataTable } from '../common/DataTable';
+import { buildDailyColumns, buildDailyFooter } from '../../utils/dailyColumns';
 import { api } from '../../services/api';
 import { useClient } from '../../context/ClientContext';
 import { usePeriod } from '../../context/PeriodContext';
@@ -70,6 +74,11 @@ export const CampaignDetailDrawer: React.FC<CampaignDetailDrawerProps> = ({
 
   if (!campaign) return null;
 
+  // Série do dia mais antigo ao mais recente; a tabela mostra invertida (hoje no topo).
+  const daily = [...(campaign.dailyMetrics || [])].sort((x, y) => x.date.localeCompare(y.date));
+  // Coluna que a origem não mede em nenhum dia não entra (ex.: vendas numa conta de formulário).
+  const { columns: dailyColumns } = dropEmptyMetricColumns(buildDailyColumns(), daily, d => d);
+
   const formatMoney = (v: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
   const formatNum = (v: number) => new Intl.NumberFormat('pt-BR').format(v || 0);
@@ -89,8 +98,8 @@ export const CampaignDetailDrawer: React.FC<CampaignDetailDrawerProps> = ({
     >
       <div
         style={{
-          width: '960px',
-          maxWidth: '92vw',
+          width: '1120px',
+          maxWidth: '96vw',
           backgroundColor: 'var(--surface)',
           borderLeft: '1px solid var(--border)',
           height: '100%',
@@ -132,48 +141,44 @@ export const CampaignDetailDrawer: React.FC<CampaignDetailDrawerProps> = ({
 
         {/* Drawer Content */}
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Quick Metrics Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-            <div className="card" style={{ padding: '12px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Investimento</div>
-              <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--bad)', marginTop: '4px' }} className="tabular-nums">
-                {metricText(campaign.metrics, 'spend', campaign.metrics.spend, formatMoney)}
-              </div>
+          {daily.length === 0 ? (
+            <div className="card" style={{ padding: '18px', textAlign: 'center', color: 'var(--muted)', fontSize: '12.5px' }}>
+              Esta campanha não tem série diária no período selecionado.
             </div>
-            <div className="card" style={{ padding: '12px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Leads & MQLs</div>
-              <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--accent-blue)', marginTop: '4px' }} className="tabular-nums">
-                {metricText(campaign.metrics, 'leads', campaign.metrics.leads, formatNum)} <span style={{ fontSize: '12px', color: 'var(--good)' }}>({metricText(campaign.metrics, 'mqls', campaign.metrics.mqls, formatNum)} MQLs)</span>
+          ) : (
+            <>
+              {/* 1. Funil + combinação diária */}
+              <div>
+                <div className="section-label">Funil &amp; Combinação Diária</div>
+                <div className="funnel-chart-grid">
+                  <div className="card">
+                    <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px' }}>Funil da Campanha</h3>
+                    <FunnelStage metrics={campaign.metrics} />
+                  </div>
+                  <div>
+                    <ComboEvolutionChart dailyData={daily} />
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="card" style={{ padding: '12px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--muted)' }}>CPL & CPMQL</div>
-              <div style={{ fontSize: '18px', fontWeight: 800, marginTop: '4px' }} className="tabular-nums">
-                {metricText(campaign.metrics, 'cpl', campaign.metrics.cpl, formatMoney)} <span style={{ fontSize: '11px', color: 'var(--muted)' }}>/ {metricText(campaign.metrics, 'cpmql', campaign.metrics.cpmql, formatMoney)}</span>
-              </div>
-            </div>
-            <div className="card" style={{ padding: '12px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Agendamentos</div>
-              <div style={{ fontSize: '18px', fontWeight: 800, marginTop: '4px' }} className="tabular-nums">
-                {metricText(campaign.metrics, 'appointments', campaign.metrics.appointments, formatNum)}
-              </div>
-            </div>
-            <div className="card" style={{ padding: '12px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Vendas & CAC</div>
-              <div style={{ fontSize: '18px', fontWeight: 800, marginTop: '4px' }} className="tabular-nums">
-                {metricText(campaign.metrics, 'conversions', campaign.metrics.conversions, formatNum)} <span style={{ fontSize: '11px', color: 'var(--muted)' }}>({metricText(campaign.metrics, 'cpa', campaign.metrics.cpa, formatMoney)})</span>
-              </div>
-            </div>
-            <div className="card" style={{ padding: '12px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Faturamento & ROAS</div>
-              <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--good)', marginTop: '4px' }} className="tabular-nums">
-                {metricText(campaign.metrics, 'revenue', campaign.metrics.revenue, formatMoney)} <span style={{ fontSize: '12px' }}>({metricText(campaign.metrics, 'roas', campaign.metrics.roas, n => n.toFixed(2) + 'x')})</span>
-              </div>
-            </div>
-          </div>
 
-          {/* Todas as métricas, dia a dia */}
-          <CampaignMetricsGrid daily={campaign.dailyMetrics} totals={campaign.metrics} />
+              {/* 2. Tabela diária com heatmap */}
+              <div>
+                <div className="section-label">Detalhamento Diário &middot; Histórico com Heatmap</div>
+                <DataTable
+                  data={[...daily].reverse()}
+                  columns={dailyColumns}
+                  maxHeight="320px"
+                  footerData={buildDailyFooter(campaign.metrics, 'TOTAL GERAL')}
+                />
+              </div>
+
+              {/* 3. Indicadores por dia */}
+              <div>
+                <div className="section-label">Indicadores por Dia</div>
+                <DailyIndicatorPairs daily={daily} />
+              </div>
+            </>
+          )}
 
           {/* Ad Sets List */}
           <div>

@@ -20,6 +20,7 @@ import { usePeriod } from '../context/PeriodContext';
 import { KpiCard, KpiStatus } from '../components/common/KpiCard';
 import { FunnelStage } from '../components/common/FunnelStage';
 import { DataTable, ColumnDef } from '../components/common/DataTable';
+import { buildDailyColumns, buildDailyFooter } from '../utils/dailyColumns';
 import { ComboEvolutionChart } from '../components/charts/ComboEvolutionChart';
 import { DemographicsChart } from '../components/charts/DemographicsChart';
 import { KpiSkeletonGrid, ChartSkeleton, TableSkeleton } from '../components/common/Skeletons';
@@ -127,97 +128,8 @@ export const GeneralDashboard: React.FC = () => {
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
   const formatNum = (v: number) => new Intl.NumberFormat('pt-BR').format(v || 0);
 
-  // Colunas da Tabela Diária
-  const dailyColumns: ColumnDef<any>[] = [
-    {
-      id: 'date',
-      header: 'Data',
-      accessor: d => d.date.split('-').reverse().join('/'),
-      align: 'left',
-      sticky: true,
-      width: '100px'
-    },
-    {
-      id: 'spend',
-      header: 'Investimento',
-      accessor: d => d.spend,
-      cell: (v, row) => metricText(row, 'spend', v, formatMoney),
-      heatmap: true,
-      heatmapColor: 'var(--heat-gasto)'
-    },
-    {
-      id: 'impressions',
-      header: 'Impressões',
-      accessor: d => d.impressions,
-      cell: (v, row) => metricText(row, 'impressions', v, formatNum)
-    },
-    {
-      id: 'clicks',
-      header: 'Cliques',
-      accessor: d => d.clicks,
-      cell: (v, row) => metricText(row, 'clicks', v, formatNum)
-    },
-    {
-      id: 'leads',
-      header: 'Leads',
-      accessor: d => d.leads,
-      cell: (v, row) => metricText(row, 'leads', v, formatNum),
-      heatmap: true,
-      heatmapColor: 'var(--heat-leads)'
-    },
-    {
-      id: 'cpl',
-      header: 'CPL',
-      accessor: d => d.cpl,
-      cell: (v, row) => metricText(row, 'cpl', v, formatMoney)
-    },
-    {
-      id: 'mqls',
-      header: 'MQLs',
-      accessor: d => d.mqls,
-      cell: (v, row) => metricText(row, 'mqls', v, formatNum),
-      heatmap: true,
-      heatmapColor: 'var(--heat-mqls)'
-    },
-    {
-      id: 'cpmql',
-      header: 'CPMQL',
-      accessor: d => d.cpmql,
-      cell: (v, row) => metricText(row, 'cpmql', v, formatMoney)
-    },
-    {
-      id: 'appointments',
-      header: 'Agendamentos',
-      accessor: d => d.appointments,
-      cell: (v, row) => metricText(row, 'appointments', v, formatNum)
-    },
-    {
-      id: 'conversions',
-      header: 'Vendas',
-      accessor: d => d.conversions,
-      cell: (v, row) => metricText(row, 'conversions', v, formatNum),
-      heatmap: true,
-      heatmapColor: 'var(--heat-vendas)'
-    },
-    {
-      id: 'revenue',
-      header: 'Receita',
-      accessor: d => d.revenue,
-      cell: (v, row) => metricText(row, 'revenue', v, formatMoney),
-      heatmap: true,
-      heatmapColor: 'var(--heat-rec)'
-    },
-    {
-      id: 'roas',
-      header: 'ROAS',
-      accessor: d => d.roas,
-      cell: (v, row) => (
-        <span style={{ fontWeight: 800, color: 'var(--good)' }}>
-          {metricText(row, 'roas', v, n => `${n.toFixed(2)}x`)}
-        </span>
-      )
-    }
-  ];
+  // Colunas da Tabela Diária — compartilhadas com o raio-X da campanha.
+  const dailyColumns = buildDailyColumns();
 
   // Colunas de Leads Qualificados
   const qLeadColumns: ColumnDef<any>[] = [
@@ -509,20 +421,7 @@ export const GeneralDashboard: React.FC = () => {
           data={[...data.dailyTrends].reverse()}
           columns={dailyColumns}
           maxHeight="340px"
-          footerData={{
-            date: 'TOTAL ACUMULADO',
-            spend: metricText(m, 'spend', m.spend, formatMoney),
-            impressions: metricText(m, 'impressions', m.impressions, formatNum),
-            clicks: metricText(m, 'clicks', m.clicks, formatNum),
-            leads: metricText(m, 'leads', m.leads, formatNum),
-            cpl: metricText(m, 'cpl', m.cpl, formatMoney),
-            mqls: metricText(m, 'mqls', m.mqls, formatNum),
-            cpmql: metricText(m, 'cpmql', m.cpmql, formatMoney),
-            appointments: metricText(m, 'appointments', m.appointments, formatNum),
-            conversions: metricText(m, 'conversions', m.conversions, formatNum),
-            revenue: metricText(m, 'revenue', m.revenue, formatMoney),
-            roas: metricText(m, 'roas', m.roas, n => `${n.toFixed(2)}x`)
-          }}
+          footerData={buildDailyFooter(m)}
         />
       </div>
 
