@@ -18,10 +18,10 @@ import { buildSnapshot, isConfigured } from '../integrations/metaMarketing/ca01I
  * Sem `META_ACCESS_TOKEN`/`META_CA01_ACCOUNT_ID`, o serviço é inerte.
  */
 
-// 63 dias cobrem a visão padrão ("últimos 30 dias") e a comparação com o
-// período anterior. Puxar mais no boot deixaria a CA 01 em N/D por minutos a
-// cada reinício do Render; janelas maiores ficam sob demanda pela rota.
-const DEFAULT_WINDOW_DAYS = 63;
+// 33 dias cobrem a visão padrão ("últimos 30 dias") e populam rápido (~40s),
+// o que importa no Render free, onde cada reinício ressincroniza. A comparação
+// com o período anterior e janelas maiores ficam sob demanda pela rota.
+const DEFAULT_WINDOW_DAYS = 33;
 
 function ca01AccountId(): string | null {
   // A conta do painel cujo nome é a CA 01. O id externo dela é sintético
@@ -42,12 +42,22 @@ export class MetaCa01SyncService {
     return isConfigured() && !!ca01AccountId();
   }
 
+  /** O que falta para a CA 01 sincronizar — para o log dizer a causa exata. */
+  public static configStatus(): { configured: boolean; missing: string[] } {
+    const missing: string[] = [];
+    if (!process.env.META_ACCESS_TOKEN?.trim()) missing.push('META_ACCESS_TOKEN');
+    if (!process.env.META_CA01_ACCOUNT_ID?.trim()) missing.push('META_CA01_ACCOUNT_ID');
+    if (!ca01AccountId()) missing.push('conta CA 01 no painel');
+    return { configured: missing.length === 0, missing };
+  }
+
   public static async sync(range = defaultRange()): Promise<{ ok: boolean; message?: string }> {
     const accountId = ca01AccountId();
     if (!accountId) return { ok: false, message: 'Conta CA 01 não encontrada no painel.' };
     if (!isConfigured()) return { ok: false, message: 'Meta não configurada.' };
 
     try {
+      console.log(`[Meta CA01] Sincronizando ${range.since} a ${range.until} (conta ${accountId})...`);
       const snapshot = await buildSnapshot(accountId, range.since, range.until);
       // Sem linha nenhuma: não regrava, para não apagar a planilha de leads que
       // já está no snapshot (fallback).

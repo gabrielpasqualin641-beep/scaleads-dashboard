@@ -174,6 +174,10 @@ app.listen(Number(PORT), '0.0.0.0', () => {
   // A CA 01 roda logo depois: a planilha grava o snapshot só com os leads, e a
   // Meta regrava por cima com a mídia — ela precisa ser a última a escrever. Se
   // a Meta não estiver configurada ou falhar, o snapshot da planilha permanece.
+  const ca01Status = MetaCa01SyncService.configStatus();
+  if (!ca01Status.configured) {
+    console.warn(`⚠️  [Meta CA01] Não vai sincronizar da Meta — faltando: ${ca01Status.missing.join(', ')}.`);
+  }
   if (LeadSheetSyncService.configured() || MetaCa01SyncService.configured()) {
     const syncLeadsThenMeta = async () => {
       if (LeadSheetSyncService.configured()) await LeadSheetSyncService.syncAll();
