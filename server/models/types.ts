@@ -253,6 +253,11 @@ export interface AdAccount {
    * campanha: é um total, mantido à mão.
    */
   manualRevenue?: number;
+  /**
+   * Nº de vendas/contratos fechados informado à mão, par do `manualRevenue`.
+   * Entra como Vendas no total da conta e refaz CAC e ticket médio. Só total.
+   */
+  manualSales?: number;
 }
 
 export interface NormalizedMetrics {

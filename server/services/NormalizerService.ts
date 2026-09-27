@@ -96,6 +96,35 @@ export class NormalizerService {
   }
 
   /**
+   * Sobrepõe faturamento e/ou vendas informados à mão (contratos fechados) no
+   * total já calculado, e refaz o que deriva deles: ROAS, CAC e ticket médio.
+   * Só o que foi informado muda — o resto continua como veio da origem.
+   */
+  public static applyManualTotals(m: NormalizedMetrics, opts: { revenue?: number | null; sales?: number | null }): void {
+    const round = (v: number) => Number(v.toFixed(2));
+    const drop = (k: MetricName) => { m.unavailable = m.unavailable.filter(x => x !== k); };
+    const hasRevenue = typeof opts.revenue === 'number';
+    const hasSales = typeof opts.sales === 'number';
+
+    if (hasSales) {
+      const sales = opts.sales as number;
+      m.conversions = sales;
+      drop('conversions');
+      if (m.spend > 0 && sales > 0) { m.cpa = round(m.spend / sales); drop('cpa'); }
+    }
+    if (hasRevenue) {
+      const revenue = opts.revenue as number;
+      m.revenue = round(revenue);
+      drop('revenue');
+      if (m.spend > 0) { m.roas = round(revenue / m.spend); drop('roas'); }
+    }
+    if (hasRevenue && hasSales && (opts.sales as number) > 0) {
+      m.ticketMedio = round((opts.revenue as number) / (opts.sales as number));
+      drop('ticketMedio');
+    }
+  }
+
+  /**
    * Calcula a variação percentual entre o valor atual e o anterior
    * Fórmula: ((atual - anterior) / anterior) * 100
    * Retorna null quando o valor anterior for 0 ou indefinido.

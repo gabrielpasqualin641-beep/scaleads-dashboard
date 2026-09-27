@@ -49,9 +49,10 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     return brief?.averageTicket ?? null;
   }
 
-  /** Faturamento informado à mão (contratos fechados), quando existe. */
-  private manualRevenueFor(externalAccountId: string): number | null {
-    return db.getAccountByExternalId(externalAccountId)?.manualRevenue ?? null;
+  /** Faturamento e vendas informados à mão (contratos fechados), quando existem. */
+  private manualTotalsFor(externalAccountId: string): { revenue: number | null; sales: number | null } {
+    const acc = db.getAccountByExternalId(externalAccountId);
+    return { revenue: acc?.manualRevenue ?? null, sales: acc?.manualSales ?? null };
   }
 
   private toRaw(
@@ -393,15 +394,9 @@ export class SheetsAdsProvider implements AdvertisingProvider {
       period.includeMetaTax ?? true
     );
 
-    // Faturamento informado à mão (contratos fechados): entra no total e gera o
-    // ROAS contra o investimento do período. Só no total da conta — não é
-    // distribuído por dia nem por campanha.
-    const manual = this.manualRevenueFor(externalAccountId);
-    if (manual !== null) {
-      metrics.revenue = Number(manual.toFixed(2));
-      metrics.roas = metrics.spend > 0 ? Number((manual / metrics.spend).toFixed(2)) : metrics.roas;
-      metrics.unavailable = metrics.unavailable.filter(m => m !== 'revenue' && (m !== 'roas' || metrics.spend <= 0));
-    }
+    // Faturamento/vendas informados à mão (contratos fechados): entram no total
+    // e geram ROAS e CAC. Só no total da conta — não distribuídos por dia.
+    NormalizerService.applyManualTotals(metrics, this.manualTotalsFor(externalAccountId));
     return metrics;
   }
 

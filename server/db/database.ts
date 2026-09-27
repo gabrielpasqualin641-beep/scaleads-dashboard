@@ -105,6 +105,7 @@ const META_ACCOUNTS: Array<{
   mcpUnavailableReason?: string;
   excludedCampaigns?: string[];
   manualRevenue?: number;
+  manualSales?: number;
   leadSheetUrl?: string;
   leadQualifier?: LeadQualifier;
   /**
@@ -140,9 +141,11 @@ const META_ACCOUNTS: Array<{
     // Adveronix não exporta conversas, então o resultado dela é invisível aqui:
     // somar o gasto dela inflaria CPL e CPMQL do formulário.
     excludedCampaigns: ['WPP'],
-    // Faturamento de contratos fechados, informado à mão (a captação fecha fora
-    // do anúncio, então a Meta/planilha não reporta venda). Gera o ROAS.
+    // Faturamento e nº de contratos fechados, informados à mão (a captação
+    // fecha fora do anúncio, então a Meta/planilha não reporta venda). Geram
+    // ROAS, CAC e ticket médio.
     manualRevenue: 31000,
+    manualSales: 2,
     // Planilha de backup que recebe todos os leads das campanhas, com o
     // faturamento — alimenta o MQL por criativo automaticamente.
     leadSheetUrl: 'https://docs.google.com/spreadsheets/d/1J80qVrBXa36OjiMGedOi3ObUVFxY8NJfIIVCvhKlGbM/edit?gid=0#gid=0' },
@@ -183,6 +186,7 @@ const SEED_ACCOUNTS: AdAccount[] = META_ACCOUNTS.map(a => {
     sheetsUrl: a.sheetsUrl,
     excludedCampaigns: a.excludedCampaigns,
     manualRevenue: a.manualRevenue,
+    manualSales: a.manualSales,
     leadSheetUrl: a.leadSheetUrl,
     leadQualifier: a.leadQualifier
   };
@@ -266,6 +270,11 @@ class Database {
         if (account.manualRevenue !== undefined && existing.manualRevenue !== account.manualRevenue) {
           existing.manualRevenue = account.manualRevenue;
           console.log(`[DB] Faturamento manual do seed aplicado a ${existing.name}: ${account.manualRevenue}.`);
+          changed = true;
+        }
+        if (account.manualSales !== undefined && existing.manualSales !== account.manualSales) {
+          existing.manualSales = account.manualSales;
+          console.log(`[DB] Vendas manuais do seed aplicadas a ${existing.name}: ${account.manualSales}.`);
           changed = true;
         }
       }

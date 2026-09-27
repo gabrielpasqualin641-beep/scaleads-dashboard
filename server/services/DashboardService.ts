@@ -177,6 +177,16 @@ export class DashboardService {
 
     const currentMetrics = NormalizerService.calculateMetrics(this.sumContributions(dailyTrends), false);
 
+    // Faturamento e vendas de contratos fechados, informados à mão: entram no
+    // total da conta (a captação fecha fora do anúncio, então a origem não
+    // reporta venda). Só no total — não são distribuídos por dia.
+    const manualRevenue = targetAccounts.reduce((s, a) => s + (a.manualRevenue ?? 0), 0);
+    const manualSales = targetAccounts.reduce((s, a) => s + (a.manualSales ?? 0), 0);
+    NormalizerService.applyManualTotals(currentMetrics, {
+      revenue: targetAccounts.some(a => a.manualRevenue != null) ? manualRevenue : null,
+      sales: targetAccounts.some(a => a.manualSales != null) ? manualSales : null
+    });
+
     // 2. Coleta dados do período anterior (se comparação ativa)
     let previousMetrics: NormalizedMetrics | null = null;
     const deltas: { [K in keyof NormalizedMetrics]?: number | null } = {};
