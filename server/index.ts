@@ -158,6 +158,9 @@ app.listen(Number(PORT), '0.0.0.0', () => {
   // Contas com planilha configurada (ex.: Adveronix) sincronizam sozinhas a
   // cada 2h, no mesmo ritmo em que a planilha em si é atualizada na origem.
   const SHEETS_SYNC_INTERVAL_MS = 2 * 60 * 60 * 1000;
+  // Origem Meta (API): puxa mais quente, a cada 30 min, porque a Meta atualiza
+  // ao longo do dia — não faz sentido esperar 2h como a planilha.
+  const META_SYNC_INTERVAL_MS = 30 * 60 * 1000;
   SheetsIngestionService.syncAll();
   setInterval(() => SheetsIngestionService.syncAll(), SHEETS_SYNC_INTERVAL_MS);
 
@@ -201,6 +204,9 @@ app.listen(Number(PORT), '0.0.0.0', () => {
       }
     };
     void syncLeadsThenMeta();
-    setInterval(() => void syncLeadsThenMeta(), SHEETS_SYNC_INTERVAL_MS);
+    // 30 min quando há origem Meta (mais quente); 2h quando é só planilha de
+    // leads, que não muda mais rápido que isso.
+    const interval = MetaCa01SyncService.configured() ? META_SYNC_INTERVAL_MS : SHEETS_SYNC_INTERVAL_MS;
+    setInterval(() => void syncLeadsThenMeta(), interval);
   }
 });
