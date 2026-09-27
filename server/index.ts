@@ -181,7 +181,18 @@ app.listen(Number(PORT), '0.0.0.0', () => {
   if (LeadSheetSyncService.configured() || MetaCa01SyncService.configured()) {
     const syncLeadsThenMeta = async () => {
       if (LeadSheetSyncService.configured()) await LeadSheetSyncService.syncAll();
-      if (MetaCa01SyncService.configured()) await MetaCa01SyncService.sync();
+      if (!MetaCa01SyncService.configured()) return;
+      // A Meta pode recusar por limite transitório; tenta de novo antes de
+      // desistir, em vez de esperar o próximo ciclo de 2h. Erro real de token
+      // ou permissão continua saindo no log a cada tentativa.
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        const r = await MetaCa01SyncService.sync();
+        if (r.ok) break;
+        if (attempt < 3) {
+          console.warn(`[Meta CA01] tentativa ${attempt}/3 falhou (${r.message}); nova em 30s.`);
+          await new Promise(res => setTimeout(res, 30_000));
+        }
+      }
     };
     void syncLeadsThenMeta();
     setInterval(() => void syncLeadsThenMeta(), SHEETS_SYNC_INTERVAL_MS);
