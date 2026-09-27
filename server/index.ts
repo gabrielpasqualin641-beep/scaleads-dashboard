@@ -180,8 +180,14 @@ app.listen(Number(PORT), '0.0.0.0', () => {
   }
   if (LeadSheetSyncService.configured() || MetaCa01SyncService.configured()) {
     const syncLeadsThenMeta = async () => {
+      // Sobe a mídia guardada já de cara, para a CA 01 não ficar em N/D no
+      // instante em que a instância acorda no Render.
+      if (MetaCa01SyncService.configured()) MetaCa01SyncService.restoreCached();
       if (LeadSheetSyncService.configured()) await LeadSheetSyncService.syncAll();
       if (!MetaCa01SyncService.configured()) return;
+      // A planilha de leads acabou de reescrever o snapshot da CA 01 só com os
+      // leads; recoloca a mídia guardada até a coleta nova chegar.
+      MetaCa01SyncService.restoreCached();
       // A Meta pode recusar por limite transitório; tenta de novo antes de
       // desistir, em vez de esperar o próximo ciclo de 2h. Erro real de token
       // ou permissão continua saindo no log a cada tentativa.
