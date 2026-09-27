@@ -18,6 +18,8 @@ import { DATA_DIR, DATA_DIR_IS_EPHEMERAL, DATA_DIR_WARNING } from './config/path
 import { SheetsIngestionService } from './integrations/sheets/SheetsIngestionService.js';
 import { KommoSyncService } from './services/KommoSyncService.js';
 import { LeadSheetSyncService } from './services/LeadSheetSyncService.js';
+import { MetaCa01SyncService } from './services/MetaCa01SyncService.js';
+import { metaCa01Router } from './routes/metaCa01.routes.js';
 
 dotenv.config();
 
@@ -98,6 +100,8 @@ app.use('/api/meta-sync', metaSyncRouter);
 // A autenticação do meta-mcp fica dentro do router: POST /snapshot aceita a
 // chave de ingestão, o resto exige sessão de editor.
 app.use('/api/meta-mcp', metaMcpRouter);
+// Dados da CA 01 direto da Meta Marketing API, sob a mesma sessão das demais.
+app.use('/api/meta-ca01', requireAuth, metaCa01Router);
 
 /**
  * Serve o painel já compilado, quando existir.
@@ -166,8 +170,16 @@ app.listen(Number(PORT), '0.0.0.0', () => {
 
   // Planilha de backup de leads: alimenta o MQL por criativo de forma
   // automática, no mesmo ritmo do Adveronix. Substitui o export manual.
-  if (LeadSheetSyncService.configured()) {
-    void LeadSheetSyncService.syncAll();
-    setInterval(() => void LeadSheetSyncService.syncAll(), SHEETS_SYNC_INTERVAL_MS);
+  //
+  // A CA 01 roda logo depois: a planilha grava o snapshot só com os leads, e a
+  // Meta regrava por cima com a mídia — ela precisa ser a última a escrever. Se
+  // a Meta não estiver configurada ou falhar, o snapshot da planilha permanece.
+  if (LeadSheetSyncService.configured() || MetaCa01SyncService.configured()) {
+    const syncLeadsThenMeta = async () => {
+      if (LeadSheetSyncService.configured()) await LeadSheetSyncService.syncAll();
+      if (MetaCa01SyncService.configured()) await MetaCa01SyncService.sync();
+    };
+    void syncLeadsThenMeta();
+    setInterval(() => void syncLeadsThenMeta(), SHEETS_SYNC_INTERVAL_MS);
   }
 });
