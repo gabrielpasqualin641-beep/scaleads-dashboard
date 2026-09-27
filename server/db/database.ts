@@ -104,6 +104,7 @@ const META_ACCOUNTS: Array<{
   mcpQueryable?: boolean;
   mcpUnavailableReason?: string;
   excludedCampaigns?: string[];
+  manualRevenue?: number;
   leadSheetUrl?: string;
   leadQualifier?: LeadQualifier;
   /**
@@ -139,6 +140,9 @@ const META_ACCOUNTS: Array<{
     // Adveronix não exporta conversas, então o resultado dela é invisível aqui:
     // somar o gasto dela inflaria CPL e CPMQL do formulário.
     excludedCampaigns: ['WPP'],
+    // Faturamento de contratos fechados, informado à mão (a captação fecha fora
+    // do anúncio, então a Meta/planilha não reporta venda). Gera o ROAS.
+    manualRevenue: 31000,
     // Planilha de backup que recebe todos os leads das campanhas, com o
     // faturamento — alimenta o MQL por criativo automaticamente.
     leadSheetUrl: 'https://docs.google.com/spreadsheets/d/1J80qVrBXa36OjiMGedOi3ObUVFxY8NJfIIVCvhKlGbM/edit?gid=0#gid=0' },
@@ -178,6 +182,7 @@ const SEED_ACCOUNTS: AdAccount[] = META_ACCOUNTS.map(a => {
     mcpUnavailableReason: a.mcpUnavailableReason,
     sheetsUrl: a.sheetsUrl,
     excludedCampaigns: a.excludedCampaigns,
+    manualRevenue: a.manualRevenue,
     leadSheetUrl: a.leadSheetUrl,
     leadQualifier: a.leadQualifier
   };
@@ -254,6 +259,13 @@ class Database {
         if (!existing.leadQualifier && account.leadQualifier) {
           existing.leadQualifier = account.leadQualifier;
           console.log(`[DB] Regra de MQL do seed aplicada a ${existing.name}.`);
+          changed = true;
+        }
+        // Faturamento manual é mantido no código; o seed manda, para atualizar
+        // o valor bastar mudar aqui e subir.
+        if (account.manualRevenue !== undefined && existing.manualRevenue !== account.manualRevenue) {
+          existing.manualRevenue = account.manualRevenue;
+          console.log(`[DB] Faturamento manual do seed aplicado a ${existing.name}: ${account.manualRevenue}.`);
           changed = true;
         }
       }

@@ -245,6 +245,14 @@ export interface AdAccount {
    * investiu menos do que investiu.
    */
   excludedCampaigns?: string[];
+  /**
+   * Faturamento informado à mão (contratos fechados), quando a origem não
+   * reporta venda — caso de conta de captação, em que o fechamento acontece
+   * fora do anúncio. Entra como Faturamento no total da conta e gera o ROAS
+   * (faturamento ÷ investimento do período). Não é distribuído por dia nem por
+   * campanha: é um total, mantido à mão.
+   */
+  manualRevenue?: number;
 }
 
 export interface NormalizedMetrics {

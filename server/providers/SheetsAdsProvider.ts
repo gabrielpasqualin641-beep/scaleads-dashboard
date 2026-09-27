@@ -49,6 +49,11 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     return brief?.averageTicket ?? null;
   }
 
+  /** Faturamento informado à mão (contratos fechados), quando existe. */
+  private manualRevenueFor(externalAccountId: string): number | null {
+    return db.getAccountByExternalId(externalAccountId)?.manualRevenue ?? null;
+  }
+
   private toRaw(
     row: SheetsMetricSet,
     ticket: number | null,
@@ -368,7 +373,7 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     const sumNullable = (pick: (r: SheetsDailyRow) => number | null): number | null =>
       rows.some(r => pick(r) !== null) ? rows.reduce((total, r) => total + (pick(r) ?? 0), 0) : null;
 
-    return NormalizerService.calculateMetrics(
+    const metrics = NormalizerService.calculateMetrics(
       this.toRaw(
         {
           spend: sum(r => r.spend),
@@ -387,6 +392,17 @@ export class SheetsAdsProvider implements AdvertisingProvider {
       ),
       period.includeMetaTax ?? true
     );
+
+    // Faturamento informado à mão (contratos fechados): entra no total e gera o
+    // ROAS contra o investimento do período. Só no total da conta — não é
+    // distribuído por dia nem por campanha.
+    const manual = this.manualRevenueFor(externalAccountId);
+    if (manual !== null) {
+      metrics.revenue = Number(manual.toFixed(2));
+      metrics.roas = metrics.spend > 0 ? Number((manual / metrics.spend).toFixed(2)) : metrics.roas;
+      metrics.unavailable = metrics.unavailable.filter(m => m !== 'revenue' && (m !== 'roas' || metrics.spend <= 0));
+    }
+    return metrics;
   }
 
   public async getCampaigns(_accessToken: string, externalAccountId: string, period: PeriodSelection): Promise<CampaignData[]> {
