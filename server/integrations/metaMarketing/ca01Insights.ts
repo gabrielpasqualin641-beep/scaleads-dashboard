@@ -66,14 +66,51 @@ export function conversationsOf(row: { actions?: MetaAction[] }): number {
   return actionValue(row.actions, 'onsite_conversion.messaging_conversation_started_7d');
 }
 
-/**
- * Todas as linhas anúncio×dia do período, seguindo a paginação até o fim.
- * `AbortSignal` com timeout para uma resposta que não chega não travar o ciclo.
- */
-export async function fetchAdDaily(since: string, until: string): Promise<MetaRow[]> {
-  const cfg = config();
-  if (!cfg) throw new Error('Meta não configurada (META_ACCESS_TOKEN / META_CA01_ACCOUNT_ID).');
+/** Quebra [since, until] em janelas de no máximo `days` dias. */
+function windows(since: string, until: string, days: number): Array<{ since: string; until: string }> {
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const out: Array<{ since: string; until: string }> = [];
+  let start = new Date(`${since}T00:00:00Z`);
+  const end = new Date(`${until}T00:00:00Z`);
+  while (start <= end) {
+    const stop = new Date(start.getTime() + (days - 1) * 86_400_000);
+    out.push({ since: iso(start), until: iso(stop < end ? stop : end) });
+    start = new Date(stop.getTime() + 86_400_000);
+  }
+  return out;
+}
 
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+/** Uma página, com retry em erro transitório ("temporarily unavailable"/429/5xx). */
+async function fetchPage(url: string): Promise<any> {
+  let lastErr = '';
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (attempt > 0) await sleep(1500 * attempt); // 1.5s, 3s, 4.5s
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60_000);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      const body = await res.json();
+      if (res.ok && !body?.error) return body;
+      const msg = body?.error?.message || `HTTP ${res.status}`;
+      // Transitório: a Meta pede para tentar de novo. Erro de verdade (token,
+      // permissão) não é transitório e sai na hora.
+      const transient = /temporarily unavailable|reduce the amount of data|please reduce|limit reached|try again/i.test(msg) || res.status === 429 || res.status >= 500;
+      lastErr = `Meta respondeu ${res.status}: ${msg}`;
+      if (!transient) throw new Error(lastErr);
+    } catch (err) {
+      lastErr = err instanceof Error ? err.message : String(err);
+      if (!/temporarily unavailable|aborted|network|fetch failed|HTTP 5|429/i.test(lastErr)) throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw new Error(lastErr || 'Meta indisponível após retentativas.');
+}
+
+/** Uma janela, paginada até o fim, com pausa entre páginas para não estourar limite. */
+async function fetchWindow(cfg: { token: string; version: string; accountId: string }, since: string, until: string): Promise<MetaRow[]> {
   const timeRange = encodeURIComponent(JSON.stringify({ since, until }));
   let url =
     `https://graph.facebook.com/${cfg.version}/${cfg.accountId}/insights` +
@@ -82,21 +119,30 @@ export async function fetchAdDaily(since: string, until: string): Promise<MetaRo
 
   const rows: MetaRow[] = [];
   for (let page = 0; page < 50 && url; page++) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30_000);
-    let body: any;
-    try {
-      const res = await fetch(url, { signal: controller.signal });
-      body = await res.json();
-      if (!res.ok || body?.error) {
-        // Mensagem da Meta sem vazar o token (ele não aparece no corpo de erro).
-        throw new Error(`Meta respondeu ${res.status}: ${body?.error?.message || 'erro'}`);
-      }
-    } finally {
-      clearTimeout(timer);
-    }
+    if (page > 0) await sleep(300);
+    const body = await fetchPage(url);
     rows.push(...(body.data as MetaRow[]));
     url = body.paging?.next || '';
+  }
+  return rows;
+}
+
+/**
+ * Todas as linhas anúncio×dia do período.
+ *
+ * A busca é fatiada em janelas de 30 dias: no nível de anúncio com uma linha
+ * por dia, um pedido de 90 dias de uma vez é pesado demais e estoura o tempo
+ * limite da Meta. Cada fatia é rápida, e as linhas se juntam no fim.
+ */
+export async function fetchAdDaily(since: string, until: string): Promise<MetaRow[]> {
+  const cfg = config();
+  if (!cfg) throw new Error('Meta não configurada (META_ACCESS_TOKEN / META_CA01_ACCOUNT_ID).');
+
+  const rows: MetaRow[] = [];
+  const janelas = windows(since, until, 14);
+  for (let i = 0; i < janelas.length; i++) {
+    if (i > 0) await sleep(600); // respiro entre janelas
+    rows.push(...(await fetchWindow(cfg, janelas[i].since, janelas[i].until)));
   }
   return rows;
 }

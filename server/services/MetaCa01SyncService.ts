@@ -18,7 +18,10 @@ import { buildSnapshot, isConfigured } from '../integrations/metaMarketing/ca01I
  * Sem `META_ACCESS_TOKEN`/`META_CA01_ACCOUNT_ID`, o serviço é inerte.
  */
 
-const DEFAULT_WINDOW_DAYS = 90;
+// 63 dias cobrem a visão padrão ("últimos 30 dias") e a comparação com o
+// período anterior. Puxar mais no boot deixaria a CA 01 em N/D por minutos a
+// cada reinício do Render; janelas maiores ficam sob demanda pela rota.
+const DEFAULT_WINDOW_DAYS = 63;
 
 function ca01AccountId(): string | null {
   // A conta do painel cujo nome é a CA 01. O id externo dela é sintético
