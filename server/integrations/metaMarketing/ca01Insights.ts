@@ -34,7 +34,7 @@ export function isConfigured(): boolean {
 const FIELDS = [
   'campaign_name', 'adset_name', 'ad_name',
   'spend', 'impressions', 'reach', 'clicks', 'inline_link_clicks',
-  'actions'
+  'actions', 'action_values'
 ].join(',');
 
 interface MetaAction { action_type: string; value: string }
@@ -49,6 +49,7 @@ interface MetaRow {
   inline_link_clicks?: string;
   reach?: string;
   actions?: MetaAction[];
+  action_values?: MetaAction[];
 }
 
 function actionValue(actions: MetaAction[] | undefined, type: string): number {
@@ -59,6 +60,31 @@ function actionValue(actions: MetaAction[] | undefined, type: string): number {
 /** Leads do dia: o maior entre os dois formatos que a Meta reporta. */
 function leadsOf(row: MetaRow): number {
   return Math.max(actionValue(row.actions, 'lead'), actionValue(row.actions, 'onsite_conversion.lead_grouped'));
+}
+
+/**
+ * Eventos que contam como "venda/conversão" nas campanhas de conversão.
+ * Padrão: compra (os formatos que a Meta usa). Configurável por
+ * `META_CA01_CONVERSION_ACTIONS` (lista separada por vírgula) quando o evento
+ * for outro — ex.: um checkout ou uma conversão personalizada.
+ */
+function conversionTypes(): string[] {
+  const env = process.env.META_CA01_CONVERSION_ACTIONS?.trim();
+  if (env) return env.split(',').map(s => s.trim()).filter(Boolean);
+  return ['omni_purchase', 'purchase', 'offsite_conversion.fb_pixel_purchase', 'onsite_web_purchase'];
+}
+
+/**
+ * Conversões do dia: o primeiro tipo da lista com valor > 0 (evita somar o
+ * mesmo evento reportado em formatos diferentes). `has` distingue "0 vendas"
+ * de "esta linha não mede venda" — sem evento nenhum, conversão fica N/D.
+ */
+function conversionsOf(row: MetaRow, types: string[]): { count: number; value: number; has: boolean } {
+  for (const t of types) {
+    const count = actionValue(row.actions, t);
+    if (count > 0) return { count, value: actionValue(row.action_values, t), has: true };
+  }
+  return { count: 0, value: 0, has: false };
 }
 
 /** Conversas de WhatsApp iniciadas (7 dias). Não entra no snapshot; só no bruto. */
@@ -147,35 +173,50 @@ export async function fetchAdDaily(since: string, until: string): Promise<MetaRo
   return rows;
 }
 
-function metrics(spend: number, impressions: number, clicks: number, leads: number): SheetsMetricSet {
+interface Cell {
+  spend: number; impressions: number; clicks: number; leads: number;
+  conversions: number; hasConv: boolean;
+}
+
+function zeroCell(): Cell {
+  return { spend: 0, impressions: 0, clicks: 0, leads: 0, conversions: 0, hasConv: false };
+}
+
+function metricsOf(c: Cell): SheetsMetricSet {
   return {
-    spend,
-    impressions,
-    clicks,
-    // A CA 01 é conta de captação: não mede landing page view nem conversão de
-    // compra. Ficam N/D, como já ficavam.
+    spend: c.spend,
+    impressions: c.impressions,
+    clicks: c.clicks,
+    // A CA 01 não mede landing page view.
     landingPageViews: null,
-    conversions: null,
-    leads,
+    // Vendas: N/D onde nenhum evento de conversão foi reportado (campanha de
+    // captação), o número real onde houve (campanha de conversão).
+    conversions: c.hasConv ? c.conversions : null,
+    leads: c.leads,
     // Alcance não é somável entre anúncios/dias; fica N/D nos agregados.
     reach: null
   };
 }
 
-interface Group { spend: number; impressions: number; clicks: number; leads: number; byDate: Map<string, { spend: number; impressions: number; clicks: number; leads: number }> }
+interface Group { total: Cell; byDate: Map<string, Cell> }
 
-function emptyGroup(): Group { return { spend: 0, impressions: 0, clicks: 0, leads: 0, byDate: new Map() }; }
+function emptyGroup(): Group { return { total: zeroCell(), byDate: new Map() }; }
 
-function add(g: Group, date: string, spend: number, impressions: number, clicks: number, leads: number): void {
-  g.spend += spend; g.impressions += impressions; g.clicks += clicks; g.leads += leads;
-  const d = g.byDate.get(date) || { spend: 0, impressions: 0, clicks: 0, leads: 0 };
-  d.spend += spend; d.impressions += impressions; d.clicks += clicks; d.leads += leads;
+function bump(c: Cell, spend: number, impressions: number, clicks: number, leads: number, conv: { count: number; has: boolean }): void {
+  c.spend += spend; c.impressions += impressions; c.clicks += clicks; c.leads += leads;
+  if (conv.has) { c.conversions += conv.count; c.hasConv = true; }
+}
+
+function add(g: Group, date: string, spend: number, impressions: number, clicks: number, leads: number, conv: { count: number; has: boolean }): void {
+  bump(g.total, spend, impressions, clicks, leads, conv);
+  const d = g.byDate.get(date) || zeroCell();
+  bump(d, spend, impressions, clicks, leads, conv);
   g.byDate.set(date, d);
 }
 
 function series(g: Group): SheetsDailyRow[] {
   return Array.from(g.byDate.entries())
-    .map(([date, d]) => ({ date, ...metrics(d.spend, d.impressions, d.clicks, d.leads) }))
+    .map(([date, d]) => ({ date, ...metricsOf(d) }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
@@ -196,6 +237,7 @@ export function snapshotFromMeta(rows: MetaRow[], accountId: string, sourceUrl: 
   const adAdSet = new Map<string, string>();
   const account = emptyGroup();
   const dates: string[] = [];
+  const convTypes = conversionTypes();
 
   for (const r of rows) {
     const date = (r.date_start || '').slice(0, 10);
@@ -207,6 +249,7 @@ export function snapshotFromMeta(rows: MetaRow[], accountId: string, sourceUrl: 
     const impressions = Number(r.impressions || 0);
     const clicks = Number(r.clicks || 0);
     const leads = leadsOf(r);
+    const conv = conversionsOf(r, convTypes);
 
     const campId = `sheet_camp_${slugify(c)}`;
     const setId = `sheet_adset_${slugify(c)}_${slugify(s)}`;
@@ -215,14 +258,14 @@ export function snapshotFromMeta(rows: MetaRow[], accountId: string, sourceUrl: 
     setName.set(setId, s || 'Sem nome'); setCampaign.set(setId, campId);
     adName.set(adId, a || 'Sem nome'); adCampaign.set(adId, campId); adAdSet.set(adId, setId);
 
-    add(campaigns.get(campId) || campaigns.set(campId, emptyGroup()).get(campId)!, date, spend, impressions, clicks, leads);
-    add(adSets.get(setId) || adSets.set(setId, emptyGroup()).get(setId)!, date, spend, impressions, clicks, leads);
-    add(ads.get(adId) || ads.set(adId, emptyGroup()).get(adId)!, date, spend, impressions, clicks, leads);
-    add(account, date, spend, impressions, clicks, leads);
+    add(campaigns.get(campId) || campaigns.set(campId, emptyGroup()).get(campId)!, date, spend, impressions, clicks, leads, conv);
+    add(adSets.get(setId) || adSets.set(setId, emptyGroup()).get(setId)!, date, spend, impressions, clicks, leads, conv);
+    add(ads.get(adId) || ads.set(adId, emptyGroup()).get(adId)!, date, spend, impressions, clicks, leads, conv);
+    add(account, date, spend, impressions, clicks, leads, conv);
     dates.push(date);
   }
 
-  const entity = (id: string, name: string, g: Group, extra: object = {}) => ({ id, name, ...metrics(g.spend, g.impressions, g.clicks, g.leads), ...extra });
+  const entity = (id: string, name: string, g: Group, extra: object = {}) => ({ id, name, ...metricsOf(g.total), ...extra });
   const sorted = dates.sort();
 
   return {
