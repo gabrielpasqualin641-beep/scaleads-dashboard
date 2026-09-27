@@ -256,7 +256,7 @@ export class AnalysisService {
     if (!client) throw new Error(`Cliente ${clientId} não encontrado.`);
 
     const accounts = db.getAccountsByClient(clientId);
-    const targets = accountId === 'all' ? accounts : accounts.filter(a => a.id === accountId);
+    const targets = accountId === 'all' ? accounts : accounts.filter(a => a.id === accountId || a.externalAccountId === accountId);
     const brief = BriefService.get(clientId);
 
     const campaigns: Array<{ entity: CampaignData; accId: string; accName: string }> = [];

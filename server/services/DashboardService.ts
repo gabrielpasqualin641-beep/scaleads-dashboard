@@ -129,7 +129,7 @@ export class DashboardService {
     }
 
     const accounts = db.getAccountsByClient(clientId);
-    const targetAccounts = accountId === 'all' ? accounts : accounts.filter(a => a.id === accountId);
+    const targetAccounts = accountId === 'all' ? accounts : accounts.filter(a => a.id === accountId || a.externalAccountId === accountId);
 
     if (targetAccounts.length === 0) {
       throw new Error(`Nenhuma conta de anúncio encontrada para o cliente ${client.name}.`);
@@ -317,7 +317,7 @@ export class DashboardService {
     if (!client) throw new Error(`Cliente ${clientId} não encontrado.`);
 
     const accounts = db.getAccountsByClient(clientId);
-    const targetAccounts = accountId === 'all' ? accounts : accounts.filter(a => a.id === accountId);
+    const targetAccounts = accountId === 'all' ? accounts : accounts.filter(a => a.id === accountId || a.externalAccountId === accountId);
     const campaigns: CampaignData[] = [];
 
     for (const acc of targetAccounts) {
@@ -336,7 +336,7 @@ export class DashboardService {
     campaignId?: string
   ): Promise<AdSetData[]> {
     const accounts = db.getAccountsByClient(clientId);
-    const targetAccounts = accountId === 'all' ? accounts : accounts.filter(a => a.id === accountId);
+    const targetAccounts = accountId === 'all' ? accounts : accounts.filter(a => a.id === accountId || a.externalAccountId === accountId);
     const adSets: AdSetData[] = [];
 
     for (const acc of targetAccounts) {
@@ -355,7 +355,7 @@ export class DashboardService {
     adSetId?: string
   ): Promise<AdData[]> {
     const accounts = db.getAccountsByClient(clientId);
-    const targetAccounts = accountId === 'all' ? accounts : accounts.filter(a => a.id === accountId);
+    const targetAccounts = accountId === 'all' ? accounts : accounts.filter(a => a.id === accountId || a.externalAccountId === accountId);
     const ads: AdData[] = [];
 
     for (const acc of targetAccounts) {

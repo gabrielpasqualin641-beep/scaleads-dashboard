@@ -1,13 +1,14 @@
 import { StatusBadge } from '../common/StatusBadge';
 import React, { useEffect, useState } from 'react';
-import { X, ExternalLink, TrendingUp, Layers } from 'lucide-react';
+import { X, ExternalLink } from 'lucide-react';
 import { CampaignData, AdSetData, AdData } from '../../types';
-import { metricText, dropEmptyMetricColumns } from '../../utils/metrics';
+import { dropEmptyMetricColumns } from '../../utils/metrics';
 import { CreativeThumb } from '../common/CreativeThumb';
 import { FunnelStage } from '../common/FunnelStage';
 import { ComboEvolutionChart } from '../charts/ComboEvolutionChart';
 import { DailyIndicatorPairs } from '../charts/DailyIndicatorPairs';
-import { DataTable } from '../common/DataTable';
+import { DataTable, ColumnDef } from '../common/DataTable';
+import { entityMetricColumns } from '../../utils/entityColumns';
 import { buildDailyColumns, buildDailyFooter } from '../../utils/dailyColumns';
 import { api } from '../../services/api';
 import { useClient } from '../../context/ClientContext';
@@ -27,6 +28,8 @@ export const CampaignDetailDrawer: React.FC<CampaignDetailDrawerProps> = ({
   const [adSets, setAdSets] = useState<AdSetData[]>([]);
   const [ads, setAds] = useState<AdData[]>([]);
   const [loading, setLoading] = useState(false);
+  // Conjunto clicado: filtra a tabela de anúncios. Vazio = todos da campanha.
+  const [selectedAdSetId, setSelectedAdSetId] = useState('');
 
   // Fecha o drawer com Escape
   useEffect(() => {
@@ -40,6 +43,7 @@ export const CampaignDetailDrawer: React.FC<CampaignDetailDrawerProps> = ({
   useEffect(() => {
     if (!campaign || !selectedClient) return;
 
+    setSelectedAdSetId('');
     const loadDrilldown = async () => {
       try {
         setLoading(true);
@@ -79,9 +83,75 @@ export const CampaignDetailDrawer: React.FC<CampaignDetailDrawerProps> = ({
   // Coluna que a origem não mede em nenhum dia não entra (ex.: vendas numa conta de formulário).
   const { columns: dailyColumns } = dropEmptyMetricColumns(buildDailyColumns(), daily, d => d);
 
-  const formatMoney = (v: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
-  const formatNum = (v: number) => new Intl.NumberFormat('pt-BR').format(v || 0);
+  const adSetColumns = dropEmptyMetricColumns<ColumnDef<AdSetData>, AdSetData>(
+    [
+      {
+        id: 'name',
+        header: 'Conjunto',
+        accessor: as => as.name,
+        align: 'left',
+        sticky: true,
+        width: '240px',
+        cell: (name, row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <StatusBadge status={row.status} size={11} />
+            <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{name}</span>
+          </div>
+        )
+      },
+      ...entityMetricColumns<AdSetData>()
+    ],
+    adSets,
+    r => r.metrics
+  ).columns;
+
+  const visibleAds = selectedAdSetId ? ads.filter(ad => ad.adSetId === selectedAdSetId) : ads;
+  const adColumns = dropEmptyMetricColumns<ColumnDef<AdData>, AdData>(
+    [
+      {
+        id: 'preview',
+        header: 'Criativo',
+        accessor: ad => ad.previewUrl,
+        align: 'center',
+        sticky: true,
+        width: '60px',
+        cell: (url, row) => <CreativeThumb url={url} name={row.name} format={row.format} size={40} />
+      },
+      {
+        id: 'name',
+        header: 'Anúncio',
+        accessor: ad => ad.name,
+        align: 'left',
+        width: '240px',
+        cell: (name, row) => (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{name}</span>
+            <span style={{ fontSize: '10.5px', color: 'var(--muted)' }}>{row.adSetName}</span>
+          </div>
+        )
+      },
+      {
+        id: 'link',
+        header: 'Link',
+        accessor: ad => ad.permalinkUrl,
+        align: 'center',
+        cell: url =>
+          url ? (
+            <a href={url} target="_blank" rel="noopener noreferrer" className="btn btn-sm"
+              style={{ padding: '4px 8px', gap: '4px', textDecoration: 'none', color: 'var(--accent-blue)' }}
+              onClick={e => e.stopPropagation()}>
+              <ExternalLink size={12} /> Ver
+            </a>
+          ) : (
+            <span style={{ color: 'var(--muted)', fontSize: '11px' }}>—</span>
+          )
+      },
+      ...entityMetricColumns<AdData>()
+    ],
+    ads,
+    r => r.metrics
+  ).columns;
+
 
   return (
     <div
@@ -180,76 +250,58 @@ export const CampaignDetailDrawer: React.FC<CampaignDetailDrawerProps> = ({
             </>
           )}
 
-          {/* Ad Sets List */}
+          {/* 4. Conjuntos da campanha */}
           <div>
-            <h3 style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted)', fontWeight: 700, marginBottom: '10px' }}>
+            <div className="section-label">
               Conjuntos de Anúncios ({adSets.length})
-            </h3>
+              {selectedAdSetId && (
+                <button type="button" className="btn btn-sm" style={{ marginLeft: '10px' }} onClick={() => setSelectedAdSetId('')}>
+                  Mostrar todos os anúncios
+                </button>
+              )}
+            </div>
             {loading ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)' }}>Carregando conjuntos...</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {adSets.map(as => (
-                  <div
-                    key={as.id}
-                    className="card"
-                    style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--ink)' }}>{as.name}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
-                        Investimento: <b>{formatMoney(as.metrics.spend)}</b> · {as.metrics.leads} leads · CPL: {formatMoney(as.metrics.cpl)}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--accent-blue)' }} className="tabular-nums">
-                        {as.metrics.mqls} MQLs
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--muted)' }} className="tabular-nums">
-                        CPMQL {formatMoney(as.metrics.cpmql)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="card" style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)' }}>Carregando conjuntos...</div>
+            ) : adSets.length === 0 ? (
+              <div className="card" style={{ padding: '16px', textAlign: 'center', color: 'var(--muted)', fontSize: '12.5px' }}>
+                Nenhum conjunto com dado no período.
               </div>
+            ) : (
+              <>
+                <DataTable
+                  data={adSets}
+                  columns={adSetColumns}
+                  onRowClick={as => setSelectedAdSetId(prev => (prev === as.id ? '' : as.id))}
+                  selectedId={selectedAdSetId}
+                  idAccessor={as => as.id}
+                  maxHeight="300px"
+                />
+                <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '6px' }}>
+                  Clique num conjunto para ver só os anúncios dele.
+                </p>
+              </>
             )}
           </div>
 
-          {/* Ads List */}
+          {/* 5. Anúncios da campanha (ou do conjunto selecionado) */}
           <div>
-            <h3 style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted)', fontWeight: 700, marginBottom: '10px' }}>
-              Anúncios & Criativos ({ads.length})
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {ads.map(ad => (
-                <div
-                  key={ad.id}
-                  className="card"
-                  style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '12px' }}
-                >
-                  <CreativeThumb url={ad.previewUrl} name={ad.name} format={ad.format} size={48} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: '12.5px', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {ad.name}
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
-                      Gasto: <b>{formatMoney(ad.metrics.spend)}</b> · {ad.metrics.leads} leads · CTR: {ad.metrics.ctr.toFixed(2)}%
-                    </div>
-                  </div>
-                  {ad.permalinkUrl && (
-                    <a
-                      href={ad.permalinkUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-sm"
-                      style={{ padding: '6px 8px', gap: '4px', textDecoration: 'none', color: 'var(--accent-blue)' }}
-                    >
-                      <ExternalLink size={12} /> Ver Anúncio
-                    </a>
-                  )}
-                </div>
-              ))}
+            <div className="section-label">
+              Anúncios &amp; Criativos ({visibleAds.length})
+              {selectedAdSetId && (
+                <span style={{ textTransform: 'none', fontWeight: 600, marginLeft: '6px' }}>
+                  · conjunto {adSets.find(x => x.id === selectedAdSetId)?.name}
+                </span>
+              )}
             </div>
+            {loading ? (
+              <div className="card" style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)' }}>Carregando anúncios...</div>
+            ) : visibleAds.length === 0 ? (
+              <div className="card" style={{ padding: '16px', textAlign: 'center', color: 'var(--muted)', fontSize: '12.5px' }}>
+                Nenhum anúncio com dado no período.
+              </div>
+            ) : (
+              <DataTable data={visibleAds} columns={adColumns} idAccessor={ad => ad.id} maxHeight="360px" />
+            )}
           </div>
         </div>
       </div>
