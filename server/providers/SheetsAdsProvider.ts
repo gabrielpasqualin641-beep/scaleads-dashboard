@@ -15,6 +15,7 @@ import { SheetsDailyRow, SheetsEntityRow, SheetsMetricSet } from '../integration
 import { db } from '../db/database.js';
 import { BriefService } from '../services/BriefService.js';
 import { kommoMqlStore } from '../integrations/kommo/mqlStore.js';
+import { kommoCreativeStore } from '../integrations/kommo/creativeStore.js';
 import { leadExportStore } from '../integrations/metaLeads/leadExports.js';
 
 /**
@@ -85,6 +86,30 @@ export class SheetsAdsProvider implements AdvertisingProvider {
    * têm export, para o número ser conferível — se metade dos criativos não foi
    * exportada, o MQL da campanha é parcial, e isso precisa ficar visível.
    */
+  /**
+   * MQL de um anúncio, somando o export manual da Meta (leads de formulário) e a
+   * atribuição por UTM do Kommo (leads de landing page). As duas origens cobrem
+   * campanhas diferentes — formulário vs. LP —, então o mesmo lead nunca está
+   * nas duas, e somar não duplica.
+   */
+  private creativeMql(
+    accountId: string,
+    adKey: string,
+    period: PeriodSelection
+  ): { mqls: number; coverage: { since: string; until: string }; fromExport: boolean; fromKommo: boolean } | null {
+    const e = leadExportStore.forAd(accountId, adKey, period.startDate, period.endDate);
+    const k = kommoCreativeStore.forAd(accountId, adKey, period.startDate, period.endDate);
+    if (!e && !k) return null;
+    const sinces = [e?.coverage.since, k?.coverage.since].filter((s): s is string => !!s).sort();
+    const untils = [e?.coverage.until, k?.coverage.until].filter((s): s is string => !!s).sort();
+    return {
+      mqls: (e?.mqls ?? 0) + (k?.mqls ?? 0),
+      coverage: { since: sinces[0], until: untils[untils.length - 1] },
+      fromExport: !!e,
+      fromKommo: !!k
+    };
+  }
+
   private exportMqlSource(
     accountId: string,
     adKeys: string[],
@@ -94,18 +119,27 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     let covered = 0;
     let since = '';
     let until = '';
+    let anyExport = false;
     for (const adKey of adKeys) {
-      const e = leadExportStore.forAd(accountId, adKey, period.startDate, period.endDate);
+      const e = this.creativeMql(accountId, adKey, period);
       if (!e) continue;
       mqls += e.mqls;
       covered++;
+      if (e.fromExport) anyExport = true;
       if (!since || e.coverage.since < since) since = e.coverage.since;
       if (!until || e.coverage.until > until) until = e.coverage.until;
     }
     if (covered === 0) return { mqls: null, source: { origin: 'none' } };
+    // Origem 'kommo' com janela = atribuído por UTM (LP); 'export' = leads de
+    // formulário exportados da Meta. Mistura dos dois vale como export.
     return {
       mqls,
-      source: { origin: 'export', coverage: { since, until }, adsCovered: covered, adsTotal: adKeys.length }
+      source: {
+        origin: anyExport ? 'export' : 'kommo',
+        coverage: { since, until },
+        adsCovered: covered,
+        adsTotal: adKeys.length
+      }
     };
   }
 
@@ -424,9 +458,8 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     const rows = adSetId ? visible.filter(a => a.adSetId === adSetId) : visible;
 
     return rows.map(row => {
-      // MQL por criativo só existe onde houve export: o CRM não sabe de qual
-      // anúncio veio cada lead.
-      const exportado = leadExportStore.forAd(externalAccountId, row.id, period.startDate, period.endDate);
+      // MQL por criativo: export manual da Meta (formulário) + UTM do Kommo (LP).
+      const atribuido = this.creativeMql(externalAccountId, row.id, period);
       return {
         id: row.id,
         adAccountId: externalAccountId,
@@ -437,12 +470,12 @@ export class SheetsAdsProvider implements AdvertisingProvider {
         externalAdId: row.id,
         name: row.name,
         status: 'UNKNOWN', // a planilha não reporta status de veiculação
-        metrics: this.entityMetrics(acc.dailyByEntity.ads[row.id], period, ticket, exportado?.mqls ?? null, hasSpend),
+        metrics: this.entityMetrics(acc.dailyByEntity.ads[row.id], period, ticket, atribuido?.mqls ?? null, hasSpend),
         dailyMetrics: this.entityDaily(acc.dailyByEntity.ads[row.id], period, ticket, hasSpend,
-          date => leadExportStore.forAd(externalAccountId, row.id, date, date)?.mqls ?? null),
-        mqlCoverage: exportado?.coverage ?? null,
-        mqlSource: exportado
-          ? { origin: 'export', coverage: exportado.coverage, adsCovered: 1, adsTotal: 1 }
+          date => this.creativeMql(externalAccountId, row.id, { ...period, startDate: date, endDate: date })?.mqls ?? null),
+        mqlCoverage: atribuido?.coverage ?? null,
+        mqlSource: atribuido
+          ? { origin: atribuido.fromExport ? 'export' : 'kommo', coverage: atribuido.coverage, adsCovered: 1, adsTotal: 1 }
           : { origin: 'none' }
       };
     });

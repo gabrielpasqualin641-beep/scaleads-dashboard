@@ -83,7 +83,12 @@ export function mqlSourceLabel(source?: MqlSource): string {
     return 'MQL não disponível neste nível: sem export de leads da Meta para este item. '
       + 'O CRM não atribui MQL por campanha/criativo.';
   }
-  if (source.origin === 'kommo') return 'MQL do CRM (Kommo), no total da conta.';
+  if (source.origin === 'kommo') {
+    if (source.coverage) {
+      return `MQL do CRM (Kommo), atribuído por UTM da landing page · janela ${brDate(source.coverage.since)}–${brDate(source.coverage.until)}.`;
+    }
+    return 'MQL do CRM (Kommo), no total da conta.';
+  }
   const janela = source.coverage ? ` · janela ${brDate(source.coverage.since)}–${brDate(source.coverage.until)}` : '';
   const cobertura = source.adsTotal && source.adsTotal > 1
     ? ` · ${source.adsCovered} de ${source.adsTotal} criativos com export`
