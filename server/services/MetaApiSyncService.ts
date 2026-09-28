@@ -104,9 +104,10 @@ export class MetaApiSyncService {
       return { ok: true, retry: false };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      // Só limite transitório da Meta vale retentar. Token sem acesso à conta,
-      // conta inexistente, permissão — não retenta, para não travar as outras.
-      const retry = /temporarily unavailable|todas as janelas|timeout|aborted|\b429\b|HTTP 5\d\d|network|fetch failed/i.test(msg);
+      // Token inválido/expirado, permissão, conta inexistente: não retenta (a
+      // retentativa não conserta). Só limite transitório da Meta vale retentar.
+      const auth = /access token|session has expired|expired|oauth|\(#190\)|\(#102\)|\(#200\)|permission|does not exist|unsupported get/i.test(msg);
+      const retry = !auth && /temporarily unavailable|timeout|aborted|\b429\b|HTTP 5\d\d|network|fetch failed/i.test(msg);
       console.error(`[Meta API] Falha ao sincronizar ${account.name}: ${msg}${retry ? '' : ' (não retenta)'}`);
       return { ok: false, retry };
     }

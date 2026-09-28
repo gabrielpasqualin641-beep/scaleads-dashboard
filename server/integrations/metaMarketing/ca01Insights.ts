@@ -169,6 +169,7 @@ export async function fetchAdDaily(cfg: MetaCfg, since: string, until: string): 
   const rows: MetaRow[] = [];
   const janelas = windows(since, until, 14);
   let falhas = 0;
+  let lastErr = '';
   for (let i = 0; i < janelas.length; i++) {
     if (i > 0) await sleep(600); // respiro entre janelas
     try {
@@ -178,10 +179,13 @@ export async function fetchAdDaily(cfg: MetaCfg, since: string, until: string): 
       // a próxima sincronização preenche o buraco. Antes, uma falha congelava o
       // painel no dado antigo.
       falhas++;
-      console.error(`[Meta CA01] Janela ${janelas[i].since} a ${janelas[i].until} falhou: ${err instanceof Error ? err.message : err}`);
+      lastErr = err instanceof Error ? err.message : String(err);
+      // Token inválido/expirado atinge todas as janelas: para logo, não insiste.
+      if (/access token|session has expired|oauth|\(#190\)|\(#102\)/i.test(lastErr)) throw err;
+      console.error(`[Meta] Janela ${janelas[i].since} a ${janelas[i].until} falhou: ${lastErr}`);
     }
   }
-  if (falhas === janelas.length) throw new Error('Todas as janelas falharam na Meta.');
+  if (falhas === janelas.length) throw new Error(`Todas as janelas falharam na Meta: ${lastErr}`);
   return rows;
 }
 
