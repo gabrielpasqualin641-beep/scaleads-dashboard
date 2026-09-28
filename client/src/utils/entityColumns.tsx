@@ -22,8 +22,10 @@ export function entityMetricColumns<T extends WithMetrics>(): ColumnDef<T>[] {
   return [
     { id: 'spend', header: 'Investimento', accessor: r => r.metrics.spend, cell: (v, r) => metricText(r.metrics, 'spend', v, money), heatmap: true, heatmapColor: 'var(--heat-gasto)' },
     { id: 'impressions', header: 'Impressões', accessor: r => r.metrics.impressions, cell: (v, r) => metricText(r.metrics, 'impressions', v, num) },
+    { id: 'frequency', header: 'Frequência', accessor: r => r.metrics.frequency, cell: (v, r) => metricText(r.metrics, 'frequency', v, n => n.toFixed(2)) },
     { id: 'cpm', header: 'CPM', accessor: r => r.metrics.cpm, cell: (v, r) => metricText(r.metrics, 'cpm', v, money) },
     { id: 'clicks', header: 'Cliques', accessor: r => r.metrics.clicks, cell: (v, r) => metricText(r.metrics, 'clicks', v, num) },
+    { id: 'linkClicks', header: 'Cliques no link', accessor: r => r.metrics.linkClicks, cell: (v, r) => metricText(r.metrics, 'linkClicks', v, num) },
     { id: 'ctr', header: 'CTR', accessor: r => r.metrics.ctr, cell: (v, r) => metricText(r.metrics, 'ctr', v, n => `${n.toFixed(2)}%`) },
     { id: 'cpc', header: 'CPC', accessor: r => r.metrics.cpc, cell: (v, r) => metricText(r.metrics, 'cpc', v, money) },
     { id: 'leads', header: 'Leads', accessor: r => r.metrics.leads, cell: (v, r) => metricText(r.metrics, 'leads', v, num), heatmap: true, heatmapColor: 'var(--heat-leads)' },

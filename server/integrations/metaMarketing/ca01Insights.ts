@@ -184,12 +184,12 @@ export async function fetchAdDaily(since: string, until: string): Promise<MetaRo
 }
 
 interface Cell {
-  spend: number; impressions: number; clicks: number; leads: number;
+  spend: number; impressions: number; clicks: number; linkClicks: number; leads: number;
   conversions: number; hasConv: boolean;
 }
 
 function zeroCell(): Cell {
-  return { spend: 0, impressions: 0, clicks: 0, leads: 0, conversions: 0, hasConv: false };
+  return { spend: 0, impressions: 0, clicks: 0, linkClicks: 0, leads: 0, conversions: 0, hasConv: false };
 }
 
 function metricsOf(c: Cell): SheetsMetricSet {
@@ -197,30 +197,35 @@ function metricsOf(c: Cell): SheetsMetricSet {
     spend: c.spend,
     impressions: c.impressions,
     clicks: c.clicks,
+    linkClicks: c.linkClicks,
     // A CA 01 não mede landing page view.
     landingPageViews: null,
     // Vendas: N/D onde nenhum evento de conversão foi reportado (campanha de
     // captação), o número real onde houve (campanha de conversão).
     conversions: c.hasConv ? c.conversions : null,
     leads: c.leads,
-    // Alcance não é somável entre anúncios/dias; fica N/D nos agregados.
-    reach: null
+    // Alcance/frequência vêm por entidade num pedido à parte (dedup da Meta);
+    // aqui, no agregado por soma de dias, ficam N/D.
+    reach: null,
+    frequency: null
   };
 }
+
+interface RowVals { spend: number; impressions: number; clicks: number; linkClicks: number; leads: number; conv: { count: number; has: boolean } }
 
 interface Group { total: Cell; byDate: Map<string, Cell> }
 
 function emptyGroup(): Group { return { total: zeroCell(), byDate: new Map() }; }
 
-function bump(c: Cell, spend: number, impressions: number, clicks: number, leads: number, conv: { count: number; has: boolean }): void {
-  c.spend += spend; c.impressions += impressions; c.clicks += clicks; c.leads += leads;
-  if (conv.has) { c.conversions += conv.count; c.hasConv = true; }
+function bump(c: Cell, v: RowVals): void {
+  c.spend += v.spend; c.impressions += v.impressions; c.clicks += v.clicks; c.linkClicks += v.linkClicks; c.leads += v.leads;
+  if (v.conv.has) { c.conversions += v.conv.count; c.hasConv = true; }
 }
 
-function add(g: Group, date: string, spend: number, impressions: number, clicks: number, leads: number, conv: { count: number; has: boolean }): void {
-  bump(g.total, spend, impressions, clicks, leads, conv);
+function add(g: Group, date: string, v: RowVals): void {
+  bump(g.total, v);
   const d = g.byDate.get(date) || zeroCell();
-  bump(d, spend, impressions, clicks, leads, conv);
+  bump(d, v);
   g.byDate.set(date, d);
 }
 
@@ -255,11 +260,14 @@ export function snapshotFromMeta(rows: MetaRow[], accountId: string, sourceUrl: 
     const c = (r.campaign_name || '').trim();
     const s = (r.adset_name || '').trim();
     const a = (r.ad_name || '').trim();
-    const spend = Number(r.spend || 0);
-    const impressions = Number(r.impressions || 0);
-    const clicks = Number(r.clicks || 0);
-    const leads = leadsOf(r);
-    const conv = conversionsOf(r, convTypes);
+    const v: RowVals = {
+      spend: Number(r.spend || 0),
+      impressions: Number(r.impressions || 0),
+      clicks: Number(r.clicks || 0),
+      linkClicks: Number(r.inline_link_clicks || 0),
+      leads: leadsOf(r),
+      conv: conversionsOf(r, convTypes)
+    };
 
     const campId = `sheet_camp_${slugify(c)}`;
     const setId = `sheet_adset_${slugify(c)}_${slugify(s)}`;
@@ -268,10 +276,10 @@ export function snapshotFromMeta(rows: MetaRow[], accountId: string, sourceUrl: 
     setName.set(setId, s || 'Sem nome'); setCampaign.set(setId, campId);
     adName.set(adId, a || 'Sem nome'); adCampaign.set(adId, campId); adAdSet.set(adId, setId);
 
-    add(campaigns.get(campId) || campaigns.set(campId, emptyGroup()).get(campId)!, date, spend, impressions, clicks, leads, conv);
-    add(adSets.get(setId) || adSets.set(setId, emptyGroup()).get(setId)!, date, spend, impressions, clicks, leads, conv);
-    add(ads.get(adId) || ads.set(adId, emptyGroup()).get(adId)!, date, spend, impressions, clicks, leads, conv);
-    add(account, date, spend, impressions, clicks, leads, conv);
+    add(campaigns.get(campId) || campaigns.set(campId, emptyGroup()).get(campId)!, date, v);
+    add(adSets.get(setId) || adSets.set(setId, emptyGroup()).get(setId)!, date, v);
+    add(ads.get(adId) || ads.set(adId, emptyGroup()).get(adId)!, date, v);
+    add(account, date, v);
     dates.push(date);
   }
 
@@ -298,8 +306,89 @@ export function snapshotFromMeta(rows: MetaRow[], accountId: string, sourceUrl: 
   };
 }
 
+/**
+ * Alcance e frequência por entidade, deduplicados pela Meta para a janela.
+ *
+ * Pedido à parte, sem `time_increment` (uma linha por entidade), porque alcance
+ * não pode ser somado entre dias/anúncios — a mesma pessoa contaria duas vezes.
+ * A chave é o mesmo slug dos ids do snapshot, para casar.
+ */
+interface ReachRow { campaign_name?: string; adset_name?: string; ad_name?: string; reach?: string; frequency?: string }
+
+async function fetchEntityReach(
+  cfg: { token: string; version: string; accountId: string },
+  since: string,
+  until: string,
+  level: 'campaign' | 'adset' | 'ad'
+): Promise<Map<string, { reach: number; frequency: number }>> {
+  const names = level === 'campaign' ? 'campaign_name'
+    : level === 'adset' ? 'campaign_name,adset_name'
+    : 'campaign_name,adset_name,ad_name';
+  const timeRange = encodeURIComponent(JSON.stringify({ since, until }));
+  let url =
+    `https://graph.facebook.com/${cfg.version}/${cfg.accountId}/insights` +
+    `?level=${level}&limit=500&time_range=${timeRange}` +
+    `&fields=${names},reach,frequency&access_token=${encodeURIComponent(cfg.token)}`;
+
+  const out = new Map<string, { reach: number; frequency: number }>();
+  for (let page = 0; page < 20 && url; page++) {
+    if (page > 0) await sleep(300);
+    const body = await fetchPage(url);
+    for (const r of (body.data as ReachRow[])) {
+      const c = slugify((r.campaign_name || '').trim());
+      const s = slugify((r.adset_name || '').trim());
+      const a = slugify((r.ad_name || '').trim());
+      const id = level === 'campaign' ? `sheet_camp_${c}`
+        : level === 'adset' ? `sheet_adset_${c}_${s}`
+        : `sheet_ad_${c}_${s}_${a}`;
+      out.set(id, { reach: Number(r.reach || 0), frequency: Number(r.frequency || 0) });
+    }
+    url = body.paging?.next || '';
+  }
+  return out;
+}
+
+/** Alcance e frequência da conta inteira na janela (uma linha). */
+async function fetchAccountReach(cfg: { token: string; version: string; accountId: string }, since: string, until: string): Promise<{ reach: number | null; frequency: number | null }> {
+  const timeRange = encodeURIComponent(JSON.stringify({ since, until }));
+  const url =
+    `https://graph.facebook.com/${cfg.version}/${cfg.accountId}/insights` +
+    `?level=account&time_range=${timeRange}&fields=reach,frequency&access_token=${encodeURIComponent(cfg.token)}`;
+  const body = await fetchPage(url);
+  const row = (body.data as ReachRow[])[0];
+  return { reach: row ? Number(row.reach || 0) : null, frequency: row ? Number(row.frequency || 0) : null };
+}
+
 /** Snapshot pronto do período. Uma chamada; usado pela rota e pela sincronização. */
 export async function buildSnapshot(accountId: string, since: string, until: string): Promise<SheetsAccountSnapshot> {
+  const cfg = config();
+  if (!cfg) throw new Error('Meta não configurada (META_ACCESS_TOKEN / META_CA01_ACCOUNT_ID).');
+
   const rows = await fetchAdDaily(since, until);
-  return snapshotFromMeta(rows, accountId, 'meta-marketing-api');
+  const snap = snapshotFromMeta(rows, accountId, 'meta-marketing-api');
+
+  // Alcance/frequência por entidade e da conta. Se a Meta recusar (limite),
+  // seguem N/D — o resto do snapshot continua íntegro.
+  try {
+    const [campR, setR, adR, accR] = [
+      await fetchEntityReach(cfg, since, until, 'campaign'),
+      await fetchEntityReach(cfg, since, until, 'adset'),
+      await fetchEntityReach(cfg, since, until, 'ad'),
+      await fetchAccountReach(cfg, since, until)
+    ];
+    const apply = (rows: SheetsAccountSnapshot['campaigns'], map: Map<string, { reach: number; frequency: number }>) => {
+      for (const row of rows) {
+        const rf = map.get(row.id);
+        if (rf) { row.reach = rf.reach; row.frequency = rf.frequency; }
+      }
+    };
+    apply(snap.campaigns, campR);
+    apply(snap.adSets, setR);
+    apply(snap.ads, adR);
+    snap.reach = accR.reach;
+    snap.frequency = accR.frequency;
+  } catch (err) {
+    console.error('[Meta CA01] Alcance/frequência indisponível:', err instanceof Error ? err.message : err);
+  }
+  return snap;
 }

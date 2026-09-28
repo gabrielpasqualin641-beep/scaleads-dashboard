@@ -137,7 +137,7 @@ export interface AssignableClient {
 }
 
 export type MetricName =
-  | 'spend' | 'impressions' | 'reach' | 'frequency' | 'clicks' | 'ctr' | 'cpc' | 'cpm'
+  | 'spend' | 'impressions' | 'reach' | 'frequency' | 'clicks' | 'linkClicks' | 'ctr' | 'cpc' | 'cpm'
   | 'leads' | 'mqls' | 'cpl' | 'cpmql' | 'appointments' | 'cpagd'
   | 'conversions' | 'cpa' | 'revenue' | 'roas' | 'ticketMedio';
 
@@ -174,6 +174,7 @@ export interface NormalizedMetrics {
   reach: number;
   frequency: number;
   clicks: number;
+  linkClicks: number;
   ctr: number;
   cpc: number;
   cpm: number;
@@ -198,6 +199,8 @@ export interface DailyMetricItem {
   impressions: number;
   reach: number;
   clicks: number;
+  linkClicks: number | null;
+  frequency: number | null;
   leads: number;
   mqls: number;
   appointments: number;

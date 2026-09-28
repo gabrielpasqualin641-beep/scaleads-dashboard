@@ -98,10 +98,22 @@ export const CampaignsView: React.FC = () => {
       cell: (v, row) => metricText(row.metrics, 'impressions', v, formatNum)
     },
     {
+      id: 'frequency',
+      header: 'Frequência',
+      accessor: row => row.metrics.frequency,
+      cell: (v, row) => metricText(row.metrics, 'frequency', v, n => n.toFixed(2))
+    },
+    {
       id: 'clicks',
       header: 'Cliques',
       accessor: c => c.metrics.clicks,
       cell: (v, row) => metricText(row.metrics, 'clicks', v, formatNum)
+    },
+    {
+      id: 'linkClicks',
+      header: 'Cliques no link',
+      accessor: row => row.metrics.linkClicks,
+      cell: (v, row) => metricText(row.metrics, 'linkClicks', v, formatNum)
     },
     {
       id: 'ctr',

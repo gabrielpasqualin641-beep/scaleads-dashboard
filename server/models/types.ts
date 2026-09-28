@@ -9,7 +9,7 @@ export type EntityStatus = 'ACTIVE' | 'PAUSED' | 'ARCHIVED' | 'IN_PROCESS' | 'WI
 export type DataSource = 'meta_mcp' | 'meta_graph' | 'sheets' | 'mock';
 
 export type MetricName =
-  | 'spend' | 'impressions' | 'reach' | 'frequency' | 'clicks' | 'ctr' | 'cpc' | 'cpm'
+  | 'spend' | 'impressions' | 'reach' | 'frequency' | 'clicks' | 'linkClicks' | 'ctr' | 'cpc' | 'cpm'
   | 'leads' | 'mqls' | 'cpl' | 'cpmql' | 'appointments' | 'cpagd'
   | 'conversions' | 'cpa' | 'revenue' | 'roas' | 'ticketMedio';
 
@@ -271,6 +271,7 @@ export interface NormalizedMetrics {
   reach: number;
   frequency: number;
   clicks: number;
+  linkClicks: number;
   ctr: number; // in percentage
   cpc: number;
   cpm: number;

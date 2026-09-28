@@ -14,6 +14,13 @@ export interface SheetsMetricSet {
   spend: number;
   impressions: number;
   clicks: number;
+  /** Cliques no link (inline_link_clicks). Somável; N/D quando a origem não traz. */
+  linkClicks?: number | null;
+  /**
+   * Frequência média (impressões ÷ alcance). Não deriva de soma de dias; vem
+   * pronta da origem por entidade, para a janela coletada. N/D quando ausente.
+   */
+  frequency?: number | null;
   landingPageViews: number | null;
   /** Ex.: "Checkouts Initiated". */
   conversions: number | null;
@@ -45,6 +52,9 @@ export interface SheetsAccountSnapshot {
   range: { since: string; until: string };
   /** Colunas de métrica que esta planilha realmente traz preenchidas. */
   availableMetrics: string[];
+  /** Alcance e frequência da conta na janela coletada (deduplicados pela Meta). */
+  reach?: number | null;
+  frequency?: number | null;
   /**
    * Se a origem reporta mídia (gasto/impressões/cliques). O Adveronix reporta;
    * a planilha de backup de leads, não. Ausente ou `true` = reporta. Quando

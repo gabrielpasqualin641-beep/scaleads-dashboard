@@ -67,11 +67,12 @@ export class SheetsAdsProvider implements AdvertisingProvider {
       // origem não mede".
       spend: hasSpend ? row.spend : null,
       impressions: hasSpend ? row.impressions : null,
-      // Reach só vem preenchido quando não houve agregação; frequência deriva
-      // dele no normalizador e fica N/D junto.
-      reach: row.reach,
-      frequency: null,
+      // Alcance e frequência vêm por entidade, deduplicados pela Meta para a
+      // janela; quando a origem os traz, o normalizador usa a frequência pronta.
+      reach: hasSpend ? (row.reach ?? null) : null,
+      frequency: hasSpend ? (row.frequency ?? null) : null,
       clicks: hasSpend ? row.clicks : null,
+      linkClicks: hasSpend ? (row.linkClicks ?? null) : null,
       leads: row.leads,
       // MQL vem do CRM, nao da planilha: e a qualificacao humana do lead.
       // Ausente quando a conta nao esta ligada a um CRM.
@@ -164,10 +165,15 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     period: PeriodSelection,
     ticket: number | null,
     mqls: number | null = null,
-    hasSpend: boolean = true
+    hasSpend: boolean = true,
+    reachFreq?: { reach?: number | null; frequency?: number | null }
   ): NormalizedMetrics {
     const rows = (series || []).filter(d => d.date >= period.startDate && d.date <= period.endDate);
     const merged = this.mergeRows(rows, period.startDate);
+    // Alcance/frequência da entidade (janela coletada) entram aqui — não somam
+    // por dia. Cliques no link e o resto vêm do agregado do período.
+    merged.reach = reachFreq?.reach ?? null;
+    merged.frequency = reachFreq?.frequency ?? null;
     return NormalizerService.calculateMetrics(this.toRaw(merged, ticket, mqls, hasSpend), period.includeMetaTax ?? true);
   }
 
@@ -222,7 +228,9 @@ export class SheetsAdsProvider implements AdvertisingProvider {
         spend: m.spend,
         impressions: m.impressions,
         reach: m.reach,
+        frequency: m.frequency,
         clicks: m.clicks,
+        linkClicks: m.linkClicks,
         leads: m.leads,
         mqls: m.mqls,
         appointments: m.appointments,
@@ -268,11 +276,13 @@ export class SheetsAdsProvider implements AdvertisingProvider {
       spend: rows.reduce((t, r) => t + r.spend, 0),
       impressions: rows.reduce((t, r) => t + r.impressions, 0),
       clicks: rows.reduce((t, r) => t + r.clicks, 0),
+      linkClicks: sumNullable(r => r.linkClicks ?? null),
       landingPageViews: sumNullable(r => r.landingPageViews),
       conversions: sumNullable(r => r.conversions),
       leads: sumNullable(r => r.leads),
       // Alcance não soma entre campanhas: a mesma pessoa pode ter visto as duas.
-      reach: null
+      reach: null,
+      frequency: null
     };
   }
 
@@ -354,7 +364,9 @@ export class SheetsAdsProvider implements AdvertisingProvider {
         spend: m.spend,
         impressions: m.impressions,
         reach: m.reach,
+        frequency: m.frequency,
         clicks: m.clicks,
+        linkClicks: m.linkClicks,
         leads: m.leads,
         mqls: m.mqls,
         appointments: m.appointments,
@@ -381,18 +393,21 @@ export class SheetsAdsProvider implements AdvertisingProvider {
     const sumNullable = (pick: (r: SheetsDailyRow) => number | null): number | null =>
       rows.some(r => pick(r) !== null) ? rows.reduce((total, r) => total + (pick(r) ?? 0), 0) : null;
 
+    // Alcance/frequência da conta na janela coletada (deduplicados pela Meta),
+    // guardados no snapshot — não somam por dia.
+    const acc = sheetsSnapshotStore.getAccount(externalAccountId);
     const metrics = NormalizerService.calculateMetrics(
       this.toRaw(
         {
           spend: sum(r => r.spend),
           impressions: sum(r => r.impressions),
           clicks: sum(r => r.clicks),
+          linkClicks: sumNullable(r => r.linkClicks ?? null),
           landingPageViews: sumNullable(r => r.landingPageViews),
           conversions: sumNullable(r => r.conversions),
           leads: sumNullable(r => r.leads),
-          // Alcance não soma entre dias: a mesma pessoa alcançada ontem e hoje
-          // seria contada duas vezes.
-          reach: null
+          reach: acc?.reach ?? null,
+          frequency: acc?.frequency ?? null
         },
         ticket,
         this.mqlForPeriod(externalAccountId, period),
@@ -423,7 +438,7 @@ export class SheetsAdsProvider implements AdvertisingProvider {
         externalCampaignId: row.id,
         name: row.name,
         status: 'UNKNOWN', // a planilha não reporta status de veiculação
-        metrics: this.entityMetrics(acc.dailyByEntity.campaigns[row.id], period, ticket, mqls, hasSpend),
+        metrics: this.entityMetrics(acc.dailyByEntity.campaigns[row.id], period, ticket, mqls, hasSpend, { reach: row.reach, frequency: row.frequency }),
         dailyMetrics: this.entityDaily(acc.dailyByEntity.campaigns[row.id], period, ticket, hasSpend,
           date => this.exportMqlSource(externalAccountId, adKeys, { ...period, startDate: date, endDate: date }).mqls),
         mqlSource: source
@@ -454,7 +469,7 @@ export class SheetsAdsProvider implements AdvertisingProvider {
         externalAdSetId: row.id,
         name: row.name,
         status: 'UNKNOWN', // a planilha não reporta status de veiculação
-        metrics: this.entityMetrics(acc.dailyByEntity.adSets[row.id], period, ticket, mqls, hasSpend),
+        metrics: this.entityMetrics(acc.dailyByEntity.adSets[row.id], period, ticket, mqls, hasSpend, { reach: row.reach, frequency: row.frequency }),
         dailyMetrics: this.entityDaily(acc.dailyByEntity.adSets[row.id], period, ticket, hasSpend,
           date => this.exportMqlSource(externalAccountId, adKeys, { ...period, startDate: date, endDate: date }).mqls),
         mqlSource: source
@@ -488,7 +503,7 @@ export class SheetsAdsProvider implements AdvertisingProvider {
         externalAdId: row.id,
         name: row.name,
         status: 'UNKNOWN', // a planilha não reporta status de veiculação
-        metrics: this.entityMetrics(acc.dailyByEntity.ads[row.id], period, ticket, atribuido?.mqls ?? null, hasSpend),
+        metrics: this.entityMetrics(acc.dailyByEntity.ads[row.id], period, ticket, atribuido?.mqls ?? null, hasSpend, { reach: row.reach, frequency: row.frequency }),
         dailyMetrics: this.entityDaily(acc.dailyByEntity.ads[row.id], period, ticket, hasSpend,
           date => this.creativeMql(externalAccountId, row.id, { ...period, startDate: date, endDate: date })?.mqls ?? null),
         mqlCoverage: atribuido?.coverage ?? null,

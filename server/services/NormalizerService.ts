@@ -12,6 +12,7 @@ export interface RawMetricInput {
   reach?: number | null;
   frequency?: number | null;
   clicks: number | null;
+  linkClicks?: number | null;
   leads?: number | null;
   mqls?: number | null;
   appointments?: number | null;
@@ -39,6 +40,7 @@ export class NormalizerService {
     const impressions = has(raw.impressions) ? raw.impressions : na('impressions');
     const reach = has(raw.reach) ? raw.reach : na('reach');
     const clicks = has(raw.clicks) ? raw.clicks : na('clicks');
+    const linkClicks = has(raw.linkClicks) ? raw.linkClicks : na('linkClicks');
     const leads = has(raw.leads) ? raw.leads : na('leads');
     const mqls = has(raw.mqls) ? raw.mqls : na('mqls');
     const appointments = has(raw.appointments) ? raw.appointments : na('appointments');
@@ -77,6 +79,7 @@ export class NormalizerService {
       reach,
       frequency,
       clicks,
+      linkClicks,
       ctr,
       cpc,
       cpm,

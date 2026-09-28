@@ -42,7 +42,7 @@ export function buildChartItems(
       color: SERIES_COLORS[idx % SERIES_COLORS.length],
       dailyValues: entity
         .dailyMetrics!.filter(d => !d.unavailable.includes(metric))
-        .map(d => ({ date: d.date, value: d[metric] })),
+        .map(d => ({ date: d.date, value: d[metric] ?? 0 })),
       totalValue: entity.metrics[metric]
     }))
     .filter(item => item.dailyValues.length > 0);
