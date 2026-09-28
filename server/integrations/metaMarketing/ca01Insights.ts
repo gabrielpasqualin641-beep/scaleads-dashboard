@@ -87,6 +87,16 @@ function conversionsOf(row: MetaRow, types: string[]): { count: number; value: n
   return { count: 0, value: 0, has: false };
 }
 
+/** Visitas na página (landing_page_view). */
+function landingViewsOf(row: MetaRow): number {
+  return Math.max(actionValue(row.actions, 'landing_page_view'), actionValue(row.actions, 'omni_landing_page_view'));
+}
+
+/** Engajamento líquido no post (curtidas líquidas) — a Meta não reporta "follow" aqui. */
+function engagementOf(row: MetaRow): number {
+  return actionValue(row.actions, 'onsite_conversion.post_net_like');
+}
+
 /** Conversas de WhatsApp iniciadas (7 dias). Não entra no snapshot; só no bruto. */
 export function conversationsOf(row: { actions?: MetaAction[] }): number {
   return actionValue(row.actions, 'onsite_conversion.messaging_conversation_started_7d');
@@ -185,11 +195,12 @@ export async function fetchAdDaily(since: string, until: string): Promise<MetaRo
 
 interface Cell {
   spend: number; impressions: number; clicks: number; linkClicks: number; leads: number;
+  landingPageViews: number; engagement: number;
   conversions: number; hasConv: boolean;
 }
 
 function zeroCell(): Cell {
-  return { spend: 0, impressions: 0, clicks: 0, linkClicks: 0, leads: 0, conversions: 0, hasConv: false };
+  return { spend: 0, impressions: 0, clicks: 0, linkClicks: 0, leads: 0, landingPageViews: 0, engagement: 0, conversions: 0, hasConv: false };
 }
 
 function metricsOf(c: Cell): SheetsMetricSet {
@@ -198,8 +209,7 @@ function metricsOf(c: Cell): SheetsMetricSet {
     impressions: c.impressions,
     clicks: c.clicks,
     linkClicks: c.linkClicks,
-    // A CA 01 não mede landing page view.
-    landingPageViews: null,
+    landingPageViews: c.landingPageViews,
     // Vendas: N/D onde nenhum evento de conversão foi reportado (campanha de
     // captação), o número real onde houve (campanha de conversão).
     conversions: c.hasConv ? c.conversions : null,
@@ -211,7 +221,7 @@ function metricsOf(c: Cell): SheetsMetricSet {
   };
 }
 
-interface RowVals { spend: number; impressions: number; clicks: number; linkClicks: number; leads: number; conv: { count: number; has: boolean } }
+interface RowVals { spend: number; impressions: number; clicks: number; linkClicks: number; leads: number; landingPageViews: number; engagement: number; conv: { count: number; has: boolean } }
 
 interface Group { total: Cell; byDate: Map<string, Cell> }
 
@@ -219,6 +229,7 @@ function emptyGroup(): Group { return { total: zeroCell(), byDate: new Map() }; 
 
 function bump(c: Cell, v: RowVals): void {
   c.spend += v.spend; c.impressions += v.impressions; c.clicks += v.clicks; c.linkClicks += v.linkClicks; c.leads += v.leads;
+  c.landingPageViews += v.landingPageViews; c.engagement += v.engagement;
   if (v.conv.has) { c.conversions += v.conv.count; c.hasConv = true; }
 }
 
@@ -266,6 +277,8 @@ export function snapshotFromMeta(rows: MetaRow[], accountId: string, sourceUrl: 
       clicks: Number(r.clicks || 0),
       linkClicks: Number(r.inline_link_clicks || 0),
       leads: leadsOf(r),
+      landingPageViews: landingViewsOf(r),
+      engagement: engagementOf(r),
       conv: conversionsOf(r, convTypes)
     };
 
@@ -283,7 +296,7 @@ export function snapshotFromMeta(rows: MetaRow[], accountId: string, sourceUrl: 
     dates.push(date);
   }
 
-  const entity = (id: string, name: string, g: Group, extra: object = {}) => ({ id, name, ...metricsOf(g.total), ...extra });
+  const entity = (id: string, name: string, g: Group, extra: object = {}) => ({ id, name, ...metricsOf(g.total), engagement: g.total.engagement, ...extra });
   const sorted = dates.sort();
 
   return {
@@ -348,6 +361,20 @@ async function fetchEntityReach(
   return out;
 }
 
+/** Objetivo de cada campanha, por id de slug — para rotular a frente. */
+async function fetchObjectives(cfg: { token: string; version: string; accountId: string }, since: string, until: string): Promise<Map<string, string>> {
+  const timeRange = encodeURIComponent(JSON.stringify({ since, until }));
+  const url =
+    `https://graph.facebook.com/${cfg.version}/${cfg.accountId}/insights` +
+    `?level=campaign&time_range=${timeRange}&limit=500&fields=campaign_name,objective&access_token=${encodeURIComponent(cfg.token)}`;
+  const body = await fetchPage(url);
+  const out = new Map<string, string>();
+  for (const r of (body.data as Array<{ campaign_name?: string; objective?: string }>)) {
+    if (r.objective) out.set(`sheet_camp_${slugify((r.campaign_name || '').trim())}`, r.objective);
+  }
+  return out;
+}
+
 /** Alcance e frequência da conta inteira na janela (uma linha). */
 async function fetchAccountReach(cfg: { token: string; version: string; accountId: string }, since: string, until: string): Promise<{ reach: number | null; frequency: number | null }> {
   const timeRange = encodeURIComponent(JSON.stringify({ since, until }));
@@ -389,6 +416,16 @@ export async function buildSnapshot(accountId: string, since: string, until: str
     snap.frequency = accR.frequency;
   } catch (err) {
     console.error('[Meta CA01] Alcance/frequência indisponível:', err instanceof Error ? err.message : err);
+  }
+
+  try {
+    const objectives = await fetchObjectives(cfg, since, until);
+    for (const c of snap.campaigns) {
+      const obj = objectives.get(c.id);
+      if (obj) c.objective = obj;
+    }
+  } catch (err) {
+    console.error('[Meta CA01] Objetivos indisponíveis:', err instanceof Error ? err.message : err);
   }
   return snap;
 }

@@ -25,6 +25,7 @@ import { ComboEvolutionChart } from '../components/charts/ComboEvolutionChart';
 import { DemographicsChart } from '../components/charts/DemographicsChart';
 import { KpiSkeletonGrid, ChartSkeleton, TableSkeleton } from '../components/common/Skeletons';
 import { ErrorState } from '../components/common/ErrorState';
+import { Ca01Overview } from './Ca01Overview';
 
 
 /** dd/mm/aaaa a partir de uma data ISO curta. */
@@ -66,7 +67,7 @@ function returnStatus(value: number | undefined, target: number | null, isNd: bo
 
 
 export const GeneralDashboard: React.FC = () => {
-  const { selectedClient, selectedAccountId } = useClient();
+  const { selectedClient, selectedAccountId, accounts } = useClient();
   const { preset, startDate, endDate, compare, includeMetaTax } = usePeriod();
   const [data, setData] = useState<DashboardOverviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,6 +96,11 @@ export const GeneralDashboard: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [selectedClient, selectedAccountId, preset, startDate, endDate, compare, includeMetaTax]);
+
+  // A CA 01 - Giacobelli tem uma Visão Geral própria, no padrão de relatório do
+  // cliente, alimentada direto pela Meta. Nenhuma outra conta muda.
+  const isCa01 = accounts.find(a => a.id === selectedAccountId)?.externalAccountId === 'ca01_giacobelli';
+  if (isCa01) return <Ca01Overview />;
 
   if (loading && !data) {
     return (

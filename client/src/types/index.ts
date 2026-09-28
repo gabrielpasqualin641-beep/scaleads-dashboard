@@ -381,3 +381,53 @@ export type PeriodPreset =
   | 'custom';
 
 export type AppPage = 'geral' | 'campanhas' | 'conjuntos' | 'anuncios' | 'clientes' | 'contas' | 'relatorio' | 'usuarios' | 'projeto' | 'analise';
+
+// Relatório da CA 01 (Meta Marketing API) para a Visão Geral no padrão do painel.
+export interface Ca01ReportEntity {
+  id: string;
+  name: string;
+  campaignId?: string;
+  adSetId?: string;
+  objective: string | null;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  linkClicks: number | null;
+  ctr: number | null;
+  leads: number | null;
+  cpl: number | null;
+  conversions: number | null;
+  cpa: number | null;
+  landingPageViews: number | null;
+  cpv: number | null;
+  engagement: number | null;
+  cpe: number | null;
+  reach: number | null;
+  frequency: number | null;
+  hasLeads: boolean;
+  hasConversions: boolean;
+}
+
+export interface Ca01Report {
+  accountId: string;
+  range: { since: string; until: string };
+  fetchedAt: string;
+  kpis: {
+    spend: number;
+    impressions: number;
+    clicks: number;
+    linkClicks: number;
+    ctr: number | null;
+    cpm: number | null;
+    leads: number;
+    cpl: number | null;
+    conversions: number;
+    cpa: number | null;
+    landingPageViews: number;
+    reach: number | null;
+    frequency: number | null;
+  };
+  campaigns: Ca01ReportEntity[];
+  adSets: Ca01ReportEntity[];
+  ads: Ca01ReportEntity[];
+}

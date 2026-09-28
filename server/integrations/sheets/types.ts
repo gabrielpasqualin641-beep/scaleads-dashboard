@@ -43,6 +43,10 @@ export interface SheetsEntityRow extends SheetsMetricSet {
   name: string;
   campaignId?: string;
   adSetId?: string;
+  /** Objetivo da campanha na Meta (OUTCOME_LEADS, OUTCOME_SALES, ...). */
+  objective?: string;
+  /** Engajamento líquido no post (onsite_conversion.post_net_like). */
+  engagement?: number | null;
 }
 
 export interface SheetsAccountSnapshot {
