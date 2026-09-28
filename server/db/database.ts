@@ -134,7 +134,7 @@ const META_ACCOUNTS: Array<{
   { id: 'acc_bc_lancamento', clientId: 'client_bruno_corano', externalAccountId: '1149174529505177', name: 'Bruno Corano - Lançamento', businessId: '214306439156169', businessName: 'Bruno Corano' },
 
   // --- Manhattan Connection ---
-  { id: 'acc_mc_main', clientId: 'client_manhattan', externalAccountId: '1905447260119652', name: 'CA - Manhattan Connection', businessId: '103683241464431', businessName: 'Manhattan Connection', mcpEnabled: false, mcpQueryable: false, mcpUnavailableReason: 'Conta alimentada pela Meta Marketing API.', noMql: true, metaAccountId: 'act_1905447260119652' },
+  { id: 'acc_mc_main', clientId: 'client_manhattan', externalAccountId: '1905447260119652', name: 'CA - Manhattan Connection', businessId: '103683241464431', businessName: 'Manhattan Connection', mcpEnabled: false, mcpQueryable: false, mcpUnavailableReason: 'Conta alimentada pela Meta Marketing API.', noMql: true, metaAccountId: 'act_1905447260119652', metaTokenEnv: 'META_TOKEN_MANHATTAN' },
   { id: 'acc_mc_farnel', clientId: 'client_manhattan', externalAccountId: '860328721500659', name: 'FARNEL', businessId: '103683241464431', businessName: 'Manhattan Connection' },
   { id: 'acc_mc_readonly', clientId: 'client_manhattan', externalAccountId: '1721067538928881', name: 'Manhattan Connection (Read-Only)', currency: 'USD', businessId: '103683241464431', businessName: 'Manhattan Connection' },
 
