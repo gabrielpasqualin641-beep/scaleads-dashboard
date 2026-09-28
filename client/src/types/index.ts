@@ -411,6 +411,8 @@ export interface Ca01ReportEntity {
 export interface Ca01Report {
   accountId: string;
   range: { since: string; until: string };
+  /** Janela que o snapshot cobre; o período pedido é recortado a ela. */
+  windowRange?: { since: string; until: string };
   fetchedAt: string;
   kpis: {
     spend: number;

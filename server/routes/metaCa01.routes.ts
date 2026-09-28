@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { buildSnapshot, isConfigured } from '../integrations/metaMarketing/ca01Insights.js';
-import { SheetsAccountSnapshot, SheetsEntityRow } from '../integrations/sheets/types.js';
+import { SheetsAccountSnapshot, SheetsEntityRow, SheetsDailyRow } from '../integrations/sheets/types.js';
 import { sheetsSnapshotStore } from '../integrations/sheets/SheetsSnapshotStore.js';
 import { META_TAX_FACTOR } from '../services/NormalizerService.js';
 import { db } from '../db/database.js';
@@ -69,12 +69,27 @@ function ca01AccountId(): string | null {
 const taxed = (spend: number) => Number((spend * META_TAX_FACTOR).toFixed(2));
 const div = (a: number, b: number | null): number | null => (b && b > 0 ? Number((a / b).toFixed(2)) : null);
 
-/** Métricas de uma entidade do snapshot no formato do relatório (imposto Meta incluso). */
-function reportEntity(e: SheetsEntityRow) {
-  const spend = taxed(e.spend);
-  const leads = e.leads ?? 0;
-  const conversions = e.conversions ?? 0;
-  const lpv = e.landingPageViews ?? 0;
+/** Soma dos dias de uma entidade dentro do período. Reach/frequência não somam. */
+interface DaySum { spend: number; impressions: number; clicks: number; linkClicks: number; landingPageViews: number; engagement: number; leads: number; conversions: number; measuresLeads: boolean; measuresConv: boolean }
+
+function sumDays(daily: SheetsDailyRow[] | undefined, since: string, until: string): DaySum {
+  const s: DaySum = { spend: 0, impressions: 0, clicks: 0, linkClicks: 0, landingPageViews: 0, engagement: 0, leads: 0, conversions: 0, measuresLeads: false, measuresConv: false };
+  for (const d of daily || []) {
+    if (d.date < since || d.date > until) continue;
+    s.spend += d.spend; s.impressions += d.impressions; s.clicks += d.clicks;
+    s.linkClicks += d.linkClicks ?? 0; s.landingPageViews += d.landingPageViews ?? 0; s.engagement += d.engagement ?? 0;
+    if (d.leads != null) { s.leads += d.leads; s.measuresLeads = true; }
+    if (d.conversions != null) { s.conversions += d.conversions; s.measuresConv = true; }
+  }
+  return s;
+}
+
+/** Entidade no formato do relatório, para o período pedido (imposto Meta incluso). */
+function reportEntity(e: SheetsEntityRow, daily: SheetsDailyRow[] | undefined, since: string, until: string, fullWindow: boolean) {
+  const g = sumDays(daily, since, until);
+  const spend = taxed(g.spend);
+  const leads = g.measuresLeads ? g.leads : null;
+  const conversions = g.measuresConv ? g.conversions : null;
   return {
     id: e.id,
     name: e.name,
@@ -82,27 +97,26 @@ function reportEntity(e: SheetsEntityRow) {
     adSetId: e.adSetId,
     objective: e.objective ?? null,
     spend,
-    impressions: e.impressions,
-    clicks: e.clicks,
-    linkClicks: e.linkClicks ?? null,
-    ctr: e.impressions > 0 ? Number(((e.clicks / e.impressions) * 100).toFixed(2)) : null,
-    leads: e.leads ?? null,
-    cpl: div(spend, e.leads ?? null),
-    conversions: e.conversions ?? null,
-    cpa: div(spend, e.conversions ?? null),
-    landingPageViews: e.landingPageViews ?? null,
-    cpv: div(spend, e.landingPageViews ?? null),
-    engagement: e.engagement ?? null,
-    cpe: div(spend, e.engagement ?? null),
-    reach: e.reach ?? null,
-    frequency: e.frequency ?? null,
-    // Vendas e leads são zero de verdade quando a origem mede e não houve;
-    // mantém os brutos para o front decidir o rótulo (— vs 0).
-    hasLeads: e.leads != null,
-    hasConversions: e.conversions != null,
-    _leads: leads,
-    _conversions: conversions,
-    _lpv: lpv
+    impressions: g.impressions,
+    clicks: g.clicks,
+    linkClicks: g.linkClicks,
+    ctr: g.impressions > 0 ? Number(((g.clicks / g.impressions) * 100).toFixed(2)) : null,
+    leads,
+    cpl: div(spend, leads),
+    conversions,
+    cpa: div(spend, conversions),
+    landingPageViews: g.landingPageViews,
+    cpv: div(spend, g.landingPageViews),
+    engagement: g.engagement,
+    cpe: div(spend, g.engagement),
+    // Alcance/frequência não somam por dia: só no período que cobre a janela toda.
+    reach: fullWindow ? (e.reach ?? null) : null,
+    frequency: fullWindow ? (e.frequency ?? null) : null,
+    hasLeads: g.measuresLeads,
+    hasConversions: g.measuresConv,
+    _leads: g.leads,
+    _conversions: g.conversions,
+    _lpv: g.landingPageViews
   };
 }
 
@@ -115,11 +129,22 @@ metaCa01Router.get('/report', (req, res) => {
     return res.status(503).json({ success: false, error: 'Ainda não há coleta da Meta para a CA 01. Aguarde a sincronização.' });
   }
 
-  const campaigns = acc.campaigns.map(reportEntity).sort((a, b) => b.spend - a.spend);
-  const adSets = acc.adSets.map(reportEntity).sort((a, b) => b.spend - a.spend);
-  const ads = acc.ads.map(reportEntity).sort((a, b) => b.spend - a.spend);
+  // Período pedido pelo filtro; recortado à janela que o snapshot cobre.
+  const q = req.query as Record<string, unknown>;
+  const valid = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const since = valid(q.since) && (q.since as string) > acc.range.since ? (q.since as string) : acc.range.since;
+  const until = valid(q.until) && (q.until as string) < acc.range.until ? (q.until as string) : acc.range.until;
+  const fullWindow = since <= acc.range.since && until >= acc.range.until;
 
-  // KPIs da conta: somas do que é somável; alcance/frequência vêm do snapshot.
+  const build = (rows: SheetsEntityRow[], daily: Record<string, SheetsDailyRow[]>) =>
+    rows.map(e => reportEntity(e, daily[e.id], since, until, fullWindow))
+      .filter(e => e.spend > 0 || e.impressions > 0)
+      .sort((a, b) => b.spend - a.spend);
+
+  const campaigns = build(acc.campaigns, acc.dailyByEntity.campaigns);
+  const adSets = build(acc.adSets, acc.dailyByEntity.adSets);
+  const ads = build(acc.ads, acc.dailyByEntity.ads);
+
   const sum = (pick: (e: typeof campaigns[number]) => number) => campaigns.reduce((t, e) => t + pick(e), 0);
   const spend = sum(e => e.spend);
   const impressions = sum(e => e.impressions);
@@ -132,7 +157,8 @@ metaCa01Router.get('/report', (req, res) => {
     success: true,
     data: {
       accountId,
-      range: acc.range,
+      range: { since, until },
+      windowRange: acc.range,
       fetchedAt: acc.fetchedAt,
       kpis: {
         spend,
@@ -146,8 +172,8 @@ metaCa01Router.get('/report', (req, res) => {
         conversions,
         cpa: div(spend, conversions),
         landingPageViews,
-        reach: acc.reach ?? null,
-        frequency: acc.frequency ?? null
+        reach: fullWindow ? (acc.reach ?? null) : null,
+        frequency: fullWindow ? (acc.frequency ?? null) : null
       },
       campaigns,
       adSets,

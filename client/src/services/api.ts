@@ -260,8 +260,8 @@ export const api = {
     ),
 
   // Relatório da CA 01 direto da Meta (Visão Geral no padrão do painel).
-  getCa01Report: () =>
-    request<Ca01Report>('/api/meta-ca01/report', {}, 'Erro ao carregar o relatório da CA 01'),
+  getCa01Report: (since?: string, until?: string) =>
+    request<Ca01Report>(`/api/meta-ca01/report${buildQuery({ since, until })}`, {}, 'Erro ao carregar o relatório da CA 01'),
 
   getCampaigns: (clientId: string, accountId: string = 'all', period: PeriodParams = {}) =>
     request<CampaignData[]>(

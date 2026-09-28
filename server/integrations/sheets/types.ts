@@ -21,6 +21,8 @@ export interface SheetsMetricSet {
    * pronta da origem por entidade, para a janela coletada. N/D quando ausente.
    */
   frequency?: number | null;
+  /** Engajamento líquido no post (somável por dia). */
+  engagement?: number | null;
   landingPageViews: number | null;
   /** Ex.: "Checkouts Initiated". */
   conversions: number | null;

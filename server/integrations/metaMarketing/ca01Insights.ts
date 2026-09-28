@@ -209,6 +209,7 @@ function metricsOf(c: Cell): SheetsMetricSet {
     impressions: c.impressions,
     clicks: c.clicks,
     linkClicks: c.linkClicks,
+    engagement: c.engagement,
     landingPageViews: c.landingPageViews,
     // Vendas: N/D onde nenhum evento de conversão foi reportado (campanha de
     // captação), o número real onde houve (campanha de conversão).

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Ca01Report, Ca01ReportEntity } from '../types';
 import { api } from '../services/api';
+import { usePeriod } from '../context/PeriodContext';
 import { TableSkeleton } from '../components/common/Skeletons';
 import { ErrorState } from '../components/common/ErrorState';
 
@@ -74,6 +75,7 @@ const Kpi: React.FC<{ label: string; value: string; note?: string }> = ({ label,
 );
 
 export const Ca01Overview: React.FC = () => {
+  const { startDate, endDate } = usePeriod();
   const [report, setReport] = useState<Ca01Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +84,7 @@ export const Ca01Overview: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      setReport(await api.getCa01Report());
+      setReport(await api.getCa01Report(startDate, endDate));
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar o relatório da CA 01');
     } finally {
@@ -90,7 +92,7 @@ export const Ca01Overview: React.FC = () => {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [startDate, endDate]);
 
   if (loading && !report) return <TableSkeleton />;
   if (error) return <ErrorState message={error} onRetry={load} />;
@@ -230,8 +232,13 @@ export const Ca01Overview: React.FC = () => {
         </div>
       </div>
 
+      {report.windowRange && startDate < report.windowRange.since && (
+        <p style={{ fontSize: 12, color: 'var(--warn, #b45309)', textAlign: 'center', marginTop: 4 }}>
+          A coleta cobre {brDate(report.windowRange.since)} a {brDate(report.windowRange.until)}. O período do filtro foi recortado a essa janela.
+        </p>
+      )}
       <p style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center', marginTop: 8 }}>
-        Dados reais da Meta Marketing API · imposto Meta incluso · "engajamento" = curtidas líquidas no post (a Meta não reporta "seguidor" nesta conta).
+        Dados reais da Meta Marketing API · imposto Meta incluso · alcance/frequência só na visão da janela completa · "engajamento" = curtidas líquidas no post (a Meta não reporta "seguidor" nesta conta).
       </p>
     </div>
   );
