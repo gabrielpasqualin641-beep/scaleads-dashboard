@@ -106,6 +106,7 @@ const META_ACCOUNTS: Array<{
   excludedCampaigns?: string[];
   manualRevenue?: number;
   manualSales?: number;
+  noMql?: boolean;
   leadSheetUrl?: string;
   leadQualifier?: LeadQualifier;
   /**
@@ -154,17 +155,10 @@ const META_ACCOUNTS: Array<{
   // contagem de leads, e gasto/CPL/CPM ficam N/D até o Adveronix desta conta
   // entrar. O externalAccountId é sintético e estável — os dados vêm todos da
   // planilha, não do MCP; por isso a conta fica fora do MCP.
-  { id: 'acc_mg_ca01', clientId: 'client_marcio_giacobelli', externalAccountId: 'ca01_giacobelli', name: 'CA01 - Giacobelli', businessId: '837672811168332', businessName: 'Giacobelli', mcpEnabled: false, mcpQueryable: false, mcpUnavailableReason: 'Conta alimentada pela planilha de leads; sem coleta via MCP.',
-    leadSheetUrl: 'https://docs.google.com/spreadsheets/d/1a-bUrbN8fuJWPBSEIc24Kp-h--xHeQLTFOLljS50NkQ/edit?gid=0#gid=0',
-    // O MQL aqui não é faturamento: é a posição do lead sobre o investimento de
-    // R$17.500. MQL = quem respondeu que tem o valor e está pronto para
-    // investir; as outras duas opções são reconhecidas e ficam fora do MQL.
-    leadQualifier: {
-      kind: 'answer',
-      columnIncludes: 'investimento',
-      mqlIncludes: ['pronto para investir'],
-      naoMqlIncludes: ['nao tenho condicoes', 'preciso entender melhor']
-    } }
+  { id: 'acc_mg_ca01', clientId: 'client_marcio_giacobelli', externalAccountId: 'ca01_giacobelli', name: 'CA01 - Giacobelli', businessId: '837672811168332', businessName: 'Giacobelli', mcpEnabled: false, mcpQueryable: false, mcpUnavailableReason: 'Conta alimentada pela Meta Marketing API.',
+    // Conta puxada direto da Meta (mídia, leads e conversões). Sem MQL: não há
+    // lista de qualificação para ela, então MQL e CPMQL ficam N/D.
+    noMql: true }
 ];
 
 const SEED_ACCOUNTS: AdAccount[] = META_ACCOUNTS.map(a => {
@@ -187,6 +181,7 @@ const SEED_ACCOUNTS: AdAccount[] = META_ACCOUNTS.map(a => {
     excludedCampaigns: a.excludedCampaigns,
     manualRevenue: a.manualRevenue,
     manualSales: a.manualSales,
+    noMql: a.noMql,
     leadSheetUrl: a.leadSheetUrl,
     leadQualifier: a.leadQualifier
   };
@@ -275,6 +270,11 @@ class Database {
         if (account.manualSales !== undefined && existing.manualSales !== account.manualSales) {
           existing.manualSales = account.manualSales;
           console.log(`[DB] Vendas manuais do seed aplicadas a ${existing.name}: ${account.manualSales}.`);
+          changed = true;
+        }
+        if (account.noMql !== undefined && existing.noMql !== account.noMql) {
+          existing.noMql = account.noMql;
+          console.log(`[DB] Flag "sem MQL" do seed aplicada a ${existing.name}: ${account.noMql}.`);
           changed = true;
         }
       }

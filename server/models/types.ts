@@ -258,6 +258,11 @@ export interface AdAccount {
    * Entra como Vendas no total da conta e refaz CAC e ticket médio. Só total.
    */
   manualSales?: number;
+  /**
+   * Conta sem MQL: não há lista de qualificação, então MQL e CPMQL ficam N/D
+   * em todos os níveis, mesmo que exista planilha de leads apontada.
+   */
+  noMql?: boolean;
 }
 
 export interface NormalizedMetrics {

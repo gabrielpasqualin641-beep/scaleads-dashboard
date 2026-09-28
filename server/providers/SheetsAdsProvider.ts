@@ -98,11 +98,17 @@ export class SheetsAdsProvider implements AdvertisingProvider {
    * campanhas diferentes — formulário vs. LP —, então o mesmo lead nunca está
    * nas duas, e somar não duplica.
    */
+  /** Conta que não usa MQL: sem lista de qualificação, a métrica fica N/D. */
+  private mqlDisabled(externalAccountId: string): boolean {
+    return db.getAccountByExternalId(externalAccountId)?.noMql === true;
+  }
+
   private creativeMql(
     accountId: string,
     adKey: string,
     period: PeriodSelection
   ): { mqls: number; coverage: { since: string; until: string }; fromExport: boolean; fromKommo: boolean } | null {
+    if (this.mqlDisabled(accountId)) return null;
     const e = leadExportStore.forAd(accountId, adKey, period.startDate, period.endDate);
     const k = kommoCreativeStore.forAd(accountId, adKey, period.startDate, period.endDate);
     if (!e && !k) return null;
@@ -175,6 +181,7 @@ export class SheetsAdsProvider implements AdvertisingProvider {
    * nunca ser contado duas vezes.
    */
   private mqlForDate(accountId: string, date: string): number | null {
+    if (this.mqlDisabled(accountId)) return null;
     const exportado = leadExportStore.forAccountDate(accountId, date);
     if (exportado) return exportado.mqls;
     return kommoMqlStore.forDate(accountId, date)?.mqls ?? null;

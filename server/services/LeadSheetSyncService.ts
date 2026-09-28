@@ -29,7 +29,9 @@ import { qualifierFn, qualifierColumn } from '../integrations/kommo/qualificatio
  */
 export class LeadSheetSyncService {
   private static accounts() {
-    return db.getAllAccounts().filter(a => !!a.leadSheetUrl);
+    // Conta marcada sem MQL não puxa planilha de leads, mesmo que ainda tenha
+    // um link guardado do banco antigo.
+    return db.getAllAccounts().filter(a => !!a.leadSheetUrl && !a.noMql);
   }
 
   public static configured(): boolean {
