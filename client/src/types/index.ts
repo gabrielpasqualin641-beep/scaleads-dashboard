@@ -166,6 +166,8 @@ export interface AdAccount {
   lastSyncAt: string;
   createdAt: string;
   updatedAt: string;
+  /** ID da conta na Meta quando ela é puxada pela Meta Marketing API. */
+  metaAccountId?: string;
 }
 
 export interface NormalizedMetrics {
@@ -410,6 +412,7 @@ export interface Ca01ReportEntity {
 
 export interface Ca01Report {
   accountId: string;
+  accountName?: string;
   range: { since: string; until: string };
   /** Janela que o snapshot cobre; o período pedido é recortado a ela. */
   windowRange?: { since: string; until: string };

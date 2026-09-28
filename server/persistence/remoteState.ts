@@ -20,7 +20,7 @@ import { dataFile, ensureDataDir } from '../config/paths.js';
  * Sem as variáveis de ambiente (desenvolvimento local), tudo aqui é no-op.
  */
 
-const PERSISTED_FILES = ['store.json', 'briefs.json', 'research.json', 'meta-ca01-snapshot.json'] as const;
+const PERSISTED_FILES = ['store.json', 'briefs.json', 'research.json', 'meta-snapshots.json'] as const;
 export type PersistedFile = (typeof PERSISTED_FILES)[number];
 
 const URL_ = (process.env.UPSTASH_REDIS_REST_URL || '').trim().replace(/\/$/, '');

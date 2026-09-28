@@ -19,16 +19,17 @@ import { slugify } from '../sheets/fetchAndAggregate.js';
  * objetivo, e pegar o maior evita contar o mesmo lead a menos.
  */
 
-function config(): { token: string; version: string; accountId: string } | null {
+interface MetaCfg { token: string; version: string; accountId: string }
+
+/** Token único (compartilhado por todas as contas) + versão, do ambiente. */
+function envToken(): { token: string; version: string } | null {
   const token = process.env.META_ACCESS_TOKEN?.trim();
-  const accountId = process.env.META_CA01_ACCOUNT_ID?.trim();
-  const version = process.env.META_API_VERSION?.trim() || 'v23.0';
-  if (!token || !accountId) return null;
-  return { token, version, accountId };
+  if (!token) return null;
+  return { token, version: process.env.META_API_VERSION?.trim() || 'v23.0' };
 }
 
-export function isConfigured(): boolean {
-  return config() !== null;
+export function hasToken(): boolean {
+  return !!process.env.META_ACCESS_TOKEN?.trim();
 }
 
 const FIELDS = [
@@ -170,10 +171,7 @@ async function fetchWindow(cfg: { token: string; version: string; accountId: str
  * por dia, um pedido de 90 dias de uma vez é pesado demais e estoura o tempo
  * limite da Meta. Cada fatia é rápida, e as linhas se juntam no fim.
  */
-export async function fetchAdDaily(since: string, until: string): Promise<MetaRow[]> {
-  const cfg = config();
-  if (!cfg) throw new Error('Meta não configurada (META_ACCESS_TOKEN / META_CA01_ACCOUNT_ID).');
-
+export async function fetchAdDaily(cfg: MetaCfg, since: string, until: string): Promise<MetaRow[]> {
   const rows: MetaRow[] = [];
   const janelas = windows(since, until, 14);
   let falhas = 0;
@@ -387,13 +385,18 @@ async function fetchAccountReach(cfg: { token: string; version: string; accountI
   return { reach: row ? Number(row.reach || 0) : null, frequency: row ? Number(row.frequency || 0) : null };
 }
 
-/** Snapshot pronto do período. Uma chamada; usado pela rota e pela sincronização. */
-export async function buildSnapshot(accountId: string, since: string, until: string): Promise<SheetsAccountSnapshot> {
-  const cfg = config();
-  if (!cfg) throw new Error('Meta não configurada (META_ACCESS_TOKEN / META_CA01_ACCOUNT_ID).');
+/**
+ * Snapshot pronto do período para uma conta da Meta.
+ * `dashboardAccountId` é a chave da conta no painel; `metaAccountId` é o `act_`
+ * da Meta. O token é único, do ambiente.
+ */
+export async function buildSnapshot(dashboardAccountId: string, metaAccountId: string, since: string, until: string): Promise<SheetsAccountSnapshot> {
+  const t = envToken();
+  if (!t) throw new Error('META_ACCESS_TOKEN ausente.');
+  const cfg: MetaCfg = { token: t.token, version: t.version, accountId: metaAccountId };
 
-  const rows = await fetchAdDaily(since, until);
-  const snap = snapshotFromMeta(rows, accountId, 'meta-marketing-api');
+  const rows = await fetchAdDaily(cfg, since, until);
+  const snap = snapshotFromMeta(rows, dashboardAccountId, 'meta-marketing-api');
 
   // Alcance/frequência por entidade e da conta. Se a Meta recusar (limite),
   // seguem N/D — o resto do snapshot continua íntegro.

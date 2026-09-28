@@ -18,7 +18,7 @@ import { DATA_DIR, DATA_DIR_IS_EPHEMERAL, DATA_DIR_WARNING } from './config/path
 import { SheetsIngestionService } from './integrations/sheets/SheetsIngestionService.js';
 import { KommoSyncService } from './services/KommoSyncService.js';
 import { LeadSheetSyncService } from './services/LeadSheetSyncService.js';
-import { MetaCa01SyncService } from './services/MetaCa01SyncService.js';
+import { MetaApiSyncService } from './services/MetaApiSyncService.js';
 import { metaCa01Router } from './routes/metaCa01.routes.js';
 
 dotenv.config();
@@ -171,42 +171,27 @@ app.listen(Number(PORT), '0.0.0.0', () => {
     setInterval(() => void KommoSyncService.sync(), SHEETS_SYNC_INTERVAL_MS);
   }
 
-  // Planilha de backup de leads: alimenta o MQL por criativo de forma
-  // automática, no mesmo ritmo do Adveronix. Substitui o export manual.
-  //
-  // A CA 01 roda logo depois: a planilha grava o snapshot só com os leads, e a
-  // Meta regrava por cima com a mídia — ela precisa ser a última a escrever. Se
-  // a Meta não estiver configurada ou falhar, o snapshot da planilha permanece.
-  const ca01Status = MetaCa01SyncService.configStatus();
-  if (!ca01Status.configured) {
-    console.warn(`⚠️  [Meta CA01] Não vai sincronizar da Meta — faltando: ${ca01Status.missing.join(', ')}.`);
+  // Contas puxadas pela Meta Marketing API (qualquer conta com metaAccountId) +
+  // planilha de backup de leads. A Meta é a última a escrever o snapshot.
+  const metaStatus = MetaApiSyncService.configStatus();
+  if (!metaStatus.configured) {
+    console.warn(`⚠️  [Meta] Não vai sincronizar da Meta — faltando: ${metaStatus.missing.join(', ')}.`);
+  } else {
+    console.log(`🟦 [Meta] ${metaStatus.accounts} conta(s) pela Meta Marketing API.`);
   }
-  if (LeadSheetSyncService.configured() || MetaCa01SyncService.configured()) {
+  if (LeadSheetSyncService.configured() || MetaApiSyncService.configured()) {
     const syncLeadsThenMeta = async () => {
-      // Sobe a mídia guardada já de cara, para a CA 01 não ficar em N/D no
-      // instante em que a instância acorda no Render.
-      if (MetaCa01SyncService.configured()) MetaCa01SyncService.restoreCached();
+      // Sobe a mídia guardada já de cara, para as contas Meta não ficarem em N/D
+      // no instante em que a instância acorda no Render.
+      if (MetaApiSyncService.configured()) MetaApiSyncService.restoreCached();
       if (LeadSheetSyncService.configured()) await LeadSheetSyncService.syncAll();
-      if (!MetaCa01SyncService.configured()) return;
-      // A planilha de leads acabou de reescrever o snapshot da CA 01 só com os
-      // leads; recoloca a mídia guardada até a coleta nova chegar.
-      MetaCa01SyncService.restoreCached();
-      // A Meta pode recusar por limite transitório; tenta de novo antes de
-      // desistir, em vez de esperar o próximo ciclo de 2h. Erro real de token
-      // ou permissão continua saindo no log a cada tentativa.
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        const r = await MetaCa01SyncService.sync();
-        if (r.ok) break;
-        if (attempt < 3) {
-          console.warn(`[Meta CA01] tentativa ${attempt}/3 falhou (${r.message}); nova em 30s.`);
-          await new Promise(res => setTimeout(res, 30_000));
-        }
-      }
+      // Coleta fresca de cada conta Meta (com retentativa por conta lá dentro).
+      if (MetaApiSyncService.configured()) await MetaApiSyncService.syncAll();
     };
     void syncLeadsThenMeta();
     // 30 min quando há origem Meta (mais quente); 2h quando é só planilha de
     // leads, que não muda mais rápido que isso.
-    const interval = MetaCa01SyncService.configured() ? META_SYNC_INTERVAL_MS : SHEETS_SYNC_INTERVAL_MS;
+    const interval = MetaApiSyncService.configured() ? META_SYNC_INTERVAL_MS : SHEETS_SYNC_INTERVAL_MS;
     setInterval(() => void syncLeadsThenMeta(), interval);
   }
 });

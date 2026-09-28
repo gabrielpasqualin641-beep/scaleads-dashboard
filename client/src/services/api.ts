@@ -259,9 +259,9 @@ export const api = {
       'Erro ao carregar dashboard'
     ),
 
-  // Relatório da CA 01 direto da Meta (Visão Geral no padrão do painel).
-  getCa01Report: (since?: string, until?: string) =>
-    request<Ca01Report>(`/api/meta-ca01/report${buildQuery({ since, until })}`, {}, 'Erro ao carregar o relatório da CA 01'),
+  // Relatório de uma conta puxada da Meta (Visão Geral no padrão do relatório).
+  getMetaReport: (accountId: string, since?: string, until?: string) =>
+    request<Ca01Report>(`/api/meta-ca01/report${buildQuery({ accountId, since, until })}`, {}, 'Erro ao carregar o relatório da Meta'),
 
   getCampaigns: (clientId: string, accountId: string = 'all', period: PeriodParams = {}) =>
     request<CampaignData[]>(

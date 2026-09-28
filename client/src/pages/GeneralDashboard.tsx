@@ -25,7 +25,7 @@ import { ComboEvolutionChart } from '../components/charts/ComboEvolutionChart';
 import { DemographicsChart } from '../components/charts/DemographicsChart';
 import { KpiSkeletonGrid, ChartSkeleton, TableSkeleton } from '../components/common/Skeletons';
 import { ErrorState } from '../components/common/ErrorState';
-import { Ca01Overview } from './Ca01Overview';
+import { MetaOverview } from './MetaOverview';
 
 
 /** dd/mm/aaaa a partir de uma data ISO curta. */
@@ -97,10 +97,11 @@ export const GeneralDashboard: React.FC = () => {
     loadData();
   }, [selectedClient, selectedAccountId, preset, startDate, endDate, compare, includeMetaTax]);
 
-  // A CA 01 - Giacobelli tem uma Visão Geral própria, no padrão de relatório do
-  // cliente, alimentada direto pela Meta. Nenhuma outra conta muda.
-  const isCa01 = accounts.find(a => a.id === selectedAccountId)?.externalAccountId === 'ca01_giacobelli';
-  if (isCa01) return <Ca01Overview />;
+  // Conta puxada pela Meta Marketing API tem Visão Geral própria, no padrão de
+  // relatório do cliente. Vale para qualquer conta com metaAccountId (CA 01,
+  // Manhattan, ...). As demais seguem a Visão Geral padrão.
+  const metaAccount = accounts.find(a => a.id === selectedAccountId && a.metaAccountId);
+  if (metaAccount) return <MetaOverview accountId={metaAccount.externalAccountId} accountName={metaAccount.name} />;
 
   if (loading && !data) {
     return (

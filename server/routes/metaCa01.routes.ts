@@ -1,77 +1,35 @@
 import { Router } from 'express';
-import { buildSnapshot, isConfigured } from '../integrations/metaMarketing/ca01Insights.js';
-import { SheetsAccountSnapshot, SheetsEntityRow, SheetsDailyRow } from '../integrations/sheets/types.js';
+import { SheetsEntityRow, SheetsDailyRow } from '../integrations/sheets/types.js';
 import { sheetsSnapshotStore } from '../integrations/sheets/SheetsSnapshotStore.js';
 import { META_TAX_FACTOR } from '../services/NormalizerService.js';
 import { db } from '../db/database.js';
 
 /**
- * Rota da CA 01 pela Meta Marketing API.
+ * Relatório de uma conta puxada pela Meta Marketing API, no padrão da Visão
+ * Geral. Genérico: serve qualquer conta com `metaAccountId` (CA 01, Manhattan,
+ * Bruno, ...). Protegido pela sessão (montado atrás de `requireAuth`).
  *
- * `GET /api/meta-ca01?since=AAAA-MM-DD&until=AAAA-MM-DD&refresh=1`
+ * `GET /api/meta-ca01/report?accountId=<idDaConta>&since=AAAA-MM-DD&until=...`
  *
- * Protegida pela sessão (montada atrás de `requireAuth`, como as demais).
- * Cache de 15 min em memória por janela, com `refresh=1` para forçar. O erro
- * volta em JSON e nunca inclui o token (ele só existe em `process.env`).
+ * `accountId` é o id da conta no painel (externalAccountId ou o id interno). O
+ * período do filtro é recortado à janela que o snapshot cobre.
  */
 
 export const metaCa01Router = Router();
 
-interface Cached { at: number; data: SheetsAccountSnapshot }
-const cache = new Map<string, Cached>();
-const TTL_MS = 15 * 60 * 1000;
-
-function range(query: Record<string, unknown>): { since: string; until: string } {
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
-  const until = typeof query.until === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(query.until) ? query.until : iso(new Date());
-  const since = typeof query.since === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(query.since)
-    ? query.since
-    : iso(new Date(Date.now() - 30 * 86_400_000));
-  return { since, until };
-}
-
-metaCa01Router.get('/', async (req, res) => {
-  if (!isConfigured()) {
-    return res.status(503).json({ success: false, error: 'Meta não configurada no servidor (META_ACCESS_TOKEN / META_CA01_ACCOUNT_ID).' });
-  }
-
-  const { since, until } = range(req.query as Record<string, unknown>);
-  const key = `${since}:${until}`;
-  const refresh = req.query.refresh === '1';
-  const hit = cache.get(key);
-
-  if (!refresh && hit && Date.now() - hit.at < TTL_MS) {
-    res.set('Cache-Control', 's-maxage=900, stale-while-revalidate=3600');
-    return res.json({ success: true, cached: true, data: hit.data });
-  }
-
-  try {
-    const data = await buildSnapshot('ca01', since, until);
-    cache.set(key, { at: Date.now(), data });
-    res.set('Cache-Control', 's-maxage=900, stale-while-revalidate=3600');
-    return res.json({ success: true, cached: false, data });
-  } catch (err) {
-    // Mensagem da Meta, sem token (ele não aparece no corpo de erro da Meta).
-    return res.status(502).json({ success: false, error: err instanceof Error ? err.message : 'Falha ao consultar a Meta.' });
-  }
-});
-
-/* -------------------------------------------------------------------------- */
-/* Relatório da CA 01 (Visão Geral no padrão do painel)                       */
-/* -------------------------------------------------------------------------- */
-
-/** Conta do painel cujo nome é a CA 01 - Giacobelli. */
-function ca01AccountId(): string | null {
-  const acc = db.getAllAccounts().find(a => /ca\s*0?1\b/i.test(a.name) && /giacobelli/i.test(a.name));
-  return acc?.externalAccountId || null;
+/** Conta Meta do painel, por externalAccountId ou id interno. */
+function resolveMetaAccount(accountId: unknown) {
+  if (typeof accountId !== 'string' || !accountId) return null;
+  const acc = db.getAllAccounts().find(a => a.externalAccountId === accountId || a.id === accountId);
+  return acc?.metaAccountId ? acc : null;
 }
 
 const taxed = (spend: number) => Number((spend * META_TAX_FACTOR).toFixed(2));
 const div = (a: number, b: number | null): number | null => (b && b > 0 ? Number((a / b).toFixed(2)) : null);
 
-/** Soma dos dias de uma entidade dentro do período. Reach/frequência não somam. */
 interface DaySum { spend: number; impressions: number; clicks: number; linkClicks: number; landingPageViews: number; engagement: number; leads: number; conversions: number; measuresLeads: boolean; measuresConv: boolean }
 
+/** Soma dos dias de uma entidade dentro do período. Alcance/frequência não somam. */
 function sumDays(daily: SheetsDailyRow[] | undefined, since: string, until: string): DaySum {
   const s: DaySum = { spend: 0, impressions: 0, clicks: 0, linkClicks: 0, landingPageViews: 0, engagement: 0, leads: 0, conversions: 0, measuresLeads: false, measuresConv: false };
   for (const d of daily || []) {
@@ -84,7 +42,6 @@ function sumDays(daily: SheetsDailyRow[] | undefined, since: string, until: stri
   return s;
 }
 
-/** Entidade no formato do relatório, para o período pedido (imposto Meta incluso). */
 function reportEntity(e: SheetsEntityRow, daily: SheetsDailyRow[] | undefined, since: string, until: string, fullWindow: boolean) {
   const g = sumDays(daily, since, until);
   const spend = taxed(g.spend);
@@ -109,7 +66,6 @@ function reportEntity(e: SheetsEntityRow, daily: SheetsDailyRow[] | undefined, s
     cpv: div(spend, g.landingPageViews),
     engagement: g.engagement,
     cpe: div(spend, g.engagement),
-    // Alcance/frequência não somam por dia: só no período que cobre a janela toda.
     reach: fullWindow ? (e.reach ?? null) : null,
     frequency: fullWindow ? (e.frequency ?? null) : null,
     hasLeads: g.measuresLeads,
@@ -121,15 +77,14 @@ function reportEntity(e: SheetsEntityRow, daily: SheetsDailyRow[] | undefined, s
 }
 
 metaCa01Router.get('/report', (req, res) => {
-  const accountId = ca01AccountId();
-  if (!accountId) return res.status(404).json({ success: false, error: 'Conta CA 01 não encontrada.' });
+  const account = resolveMetaAccount(req.query.accountId);
+  if (!account) return res.status(404).json({ success: false, error: 'Conta Meta não encontrada.' });
 
-  const acc = sheetsSnapshotStore.getAccount(accountId);
+  const acc = sheetsSnapshotStore.getAccount(account.externalAccountId);
   if (!acc) {
-    return res.status(503).json({ success: false, error: 'Ainda não há coleta da Meta para a CA 01. Aguarde a sincronização.' });
+    return res.status(503).json({ success: false, error: 'Ainda não há coleta da Meta para esta conta. Aguarde a sincronização.' });
   }
 
-  // Período pedido pelo filtro; recortado à janela que o snapshot cobre.
   const q = req.query as Record<string, unknown>;
   const valid = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
   const since = valid(q.since) && (q.since as string) > acc.range.since ? (q.since as string) : acc.range.since;
@@ -156,7 +111,8 @@ metaCa01Router.get('/report', (req, res) => {
   return res.json({
     success: true,
     data: {
-      accountId,
+      accountId: account.externalAccountId,
+      accountName: account.name,
       range: { since, until },
       windowRange: acc.range,
       fetchedAt: acc.fetchedAt,

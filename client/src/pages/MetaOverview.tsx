@@ -74,7 +74,12 @@ const Kpi: React.FC<{ label: string; value: string; note?: string }> = ({ label,
   </div>
 );
 
-export const Ca01Overview: React.FC = () => {
+interface MetaOverviewProps {
+  accountId: string;
+  accountName: string;
+}
+
+export const MetaOverview: React.FC<MetaOverviewProps> = ({ accountId, accountName }) => {
   const { startDate, endDate } = usePeriod();
   const [report, setReport] = useState<Ca01Report | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,15 +89,15 @@ export const Ca01Overview: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      setReport(await api.getCa01Report(startDate, endDate));
+      setReport(await api.getMetaReport(accountId, startDate, endDate));
     } catch (err: any) {
-      setError(err.message || 'Erro ao carregar o relatório da CA 01');
+      setError(err.message || 'Erro ao carregar o relatório da Meta');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, [startDate, endDate]);
+  useEffect(() => { load(); }, [accountId, startDate, endDate]);
 
   if (loading && !report) return <TableSkeleton />;
   if (error) return <ErrorState message={error} onRetry={load} />;
@@ -111,7 +116,7 @@ export const Ca01Overview: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <div className="page-header" style={{ marginBottom: 12 }}>
         <div>
-          <h2 className="page-title">CA 01 - Giacobelli · Painel de Campanhas</h2>
+          <h2 className="page-title">{report.accountName || accountName} · Painel de Campanhas</h2>
           <p className="page-description">
             Meta Ads · {brDate(report.range.since)} a {brDate(report.range.until)} ({dias} dias) · imposto Meta incluso · coletado {new Date(report.fetchedAt).toLocaleString('pt-BR')}
           </p>

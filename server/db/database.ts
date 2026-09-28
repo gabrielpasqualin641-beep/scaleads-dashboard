@@ -107,6 +107,7 @@ const META_ACCOUNTS: Array<{
   manualRevenue?: number;
   manualSales?: number;
   noMql?: boolean;
+  metaAccountId?: string;
   leadSheetUrl?: string;
   leadQualifier?: LeadQualifier;
   /**
@@ -132,7 +133,7 @@ const META_ACCOUNTS: Array<{
   { id: 'acc_bc_lancamento', clientId: 'client_bruno_corano', externalAccountId: '1149174529505177', name: 'Bruno Corano - Lançamento', businessId: '214306439156169', businessName: 'Bruno Corano' },
 
   // --- Manhattan Connection ---
-  { id: 'acc_mc_main', clientId: 'client_manhattan', externalAccountId: '1905447260119652', name: 'CA - Manhattan Connection', businessId: '103683241464431', businessName: 'Manhattan Connection', mcpEnabled: false, mcpUnavailableReason: 'Ads MCP ainda não liberado para esta conta pela Meta.' },
+  { id: 'acc_mc_main', clientId: 'client_manhattan', externalAccountId: '1905447260119652', name: 'CA - Manhattan Connection', businessId: '103683241464431', businessName: 'Manhattan Connection', mcpEnabled: false, mcpQueryable: false, mcpUnavailableReason: 'Conta alimentada pela Meta Marketing API.', noMql: true, metaAccountId: 'act_1905447260119652' },
   { id: 'acc_mc_farnel', clientId: 'client_manhattan', externalAccountId: '860328721500659', name: 'FARNEL', businessId: '103683241464431', businessName: 'Manhattan Connection' },
   { id: 'acc_mc_readonly', clientId: 'client_manhattan', externalAccountId: '1721067538928881', name: 'Manhattan Connection (Read-Only)', currency: 'USD', businessId: '103683241464431', businessName: 'Manhattan Connection' },
 
@@ -158,7 +159,7 @@ const META_ACCOUNTS: Array<{
   { id: 'acc_mg_ca01', clientId: 'client_marcio_giacobelli', externalAccountId: 'ca01_giacobelli', name: 'CA01 - Giacobelli', businessId: '837672811168332', businessName: 'Giacobelli', mcpEnabled: false, mcpQueryable: false, mcpUnavailableReason: 'Conta alimentada pela Meta Marketing API.',
     // Conta puxada direto da Meta (mídia, leads e conversões). Sem MQL: não há
     // lista de qualificação para ela, então MQL e CPMQL ficam N/D.
-    noMql: true }
+    noMql: true, metaAccountId: 'act_874011009275887' }
 ];
 
 const SEED_ACCOUNTS: AdAccount[] = META_ACCOUNTS.map(a => {
@@ -182,6 +183,7 @@ const SEED_ACCOUNTS: AdAccount[] = META_ACCOUNTS.map(a => {
     manualRevenue: a.manualRevenue,
     manualSales: a.manualSales,
     noMql: a.noMql,
+    metaAccountId: a.metaAccountId,
     leadSheetUrl: a.leadSheetUrl,
     leadQualifier: a.leadQualifier
   };
@@ -275,6 +277,11 @@ class Database {
         if (account.noMql !== undefined && existing.noMql !== account.noMql) {
           existing.noMql = account.noMql;
           console.log(`[DB] Flag "sem MQL" do seed aplicada a ${existing.name}: ${account.noMql}.`);
+          changed = true;
+        }
+        if (account.metaAccountId && existing.metaAccountId !== account.metaAccountId) {
+          existing.metaAccountId = account.metaAccountId;
+          console.log(`[DB] ID da Meta do seed aplicado a ${existing.name}: ${account.metaAccountId}.`);
           changed = true;
         }
       }

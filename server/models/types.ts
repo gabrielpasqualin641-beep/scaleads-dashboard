@@ -263,6 +263,13 @@ export interface AdAccount {
    * em todos os níveis, mesmo que exista planilha de leads apontada.
    */
   noMql?: boolean;
+  /**
+   * ID da conta na Meta (`act_...`) quando ela é puxada pela Meta Marketing API.
+   * Presente = a conta sincroniza mídia/leads/conversões direto da Meta, com o
+   * token único em `META_ACCESS_TOKEN`, e ganha a Visão Geral no padrão do
+   * relatório. Fica no seed (não é segredo); o token, sim, mora só no ambiente.
+   */
+  metaAccountId?: string;
 }
 
 export interface NormalizedMetrics {
