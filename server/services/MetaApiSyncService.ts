@@ -4,8 +4,13 @@ import { dataFile } from '../config/paths.js';
 import { persist } from '../persistence/remoteState.js';
 import { sheetsSnapshotStore } from '../integrations/sheets/SheetsSnapshotStore.js';
 import { SheetsAccountSnapshot } from '../integrations/sheets/types.js';
-import { buildSnapshot, hasToken } from '../integrations/metaMarketing/ca01Insights.js';
+import { buildSnapshot, apiVersion } from '../integrations/metaMarketing/ca01Insights.js';
 import { AdAccount } from '../models/types.js';
+
+/** Token da conta: a variável que ela apontar, ou o compartilhado. */
+function tokenFor(account: AdAccount): string | null {
+  return process.env[account.metaTokenEnv || 'META_ACCESS_TOKEN']?.trim() || null;
+}
 
 /**
  * Alimenta pela Meta Marketing API toda conta que tem `metaAccountId`.
@@ -58,15 +63,16 @@ export class MetaApiSyncService {
   }
 
   public static configured(): boolean {
-    return hasToken() && this.accounts().length > 0;
+    return this.accounts().some(a => !!tokenFor(a));
   }
 
   public static configStatus(): { configured: boolean; missing: string[]; accounts: number } {
+    const contas = this.accounts();
+    const semToken = contas.filter(a => !tokenFor(a)).map(a => `${a.name} (${a.metaTokenEnv || 'META_ACCESS_TOKEN'})`);
     const missing: string[] = [];
-    if (!hasToken()) missing.push('META_ACCESS_TOKEN');
-    const n = this.accounts().length;
-    if (n === 0) missing.push('nenhuma conta com metaAccountId');
-    return { configured: missing.length === 0, missing, accounts: n };
+    if (contas.length === 0) missing.push('nenhuma conta com metaAccountId');
+    if (semToken.length > 0) missing.push(`sem token: ${semToken.join(', ')}`);
+    return { configured: contas.some(a => !!tokenFor(a)), missing, accounts: contas.length };
   }
 
   /** Sobe os snapshots guardados para o store, antes da coleta nova. */
@@ -81,8 +87,13 @@ export class MetaApiSyncService {
   }
 
   private static async syncOne(account: AdAccount, range: { since: string; until: string }, cache: Cache): Promise<boolean> {
+    const token = tokenFor(account);
+    if (!token) {
+      console.warn(`[Meta API] ${account.name}: sem token (${account.metaTokenEnv || 'META_ACCESS_TOKEN'}); pulada.`);
+      return false;
+    }
     try {
-      const snapshot = await buildSnapshot(account.externalAccountId, account.metaAccountId!, range.since, range.until);
+      const snapshot = await buildSnapshot(account.externalAccountId, account.metaAccountId!, token, apiVersion(), range.since, range.until);
       if (snapshot.campaigns.length === 0) {
         console.warn(`[Meta API] ${account.name}: a Meta não retornou linhas; snapshot anterior mantido.`);
         return false;
@@ -98,8 +109,7 @@ export class MetaApiSyncService {
   }
 
   public static async syncAll(range = defaultRange()): Promise<void> {
-    if (!hasToken()) return;
-    const contas = this.accounts();
+    const contas = this.accounts().filter(a => !!tokenFor(a));
     if (contas.length === 0) return;
 
     const cache = readCache();

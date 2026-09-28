@@ -21,15 +21,9 @@ import { slugify } from '../sheets/fetchAndAggregate.js';
 
 interface MetaCfg { token: string; version: string; accountId: string }
 
-/** Token único (compartilhado por todas as contas) + versão, do ambiente. */
-function envToken(): { token: string; version: string } | null {
-  const token = process.env.META_ACCESS_TOKEN?.trim();
-  if (!token) return null;
-  return { token, version: process.env.META_API_VERSION?.trim() || 'v23.0' };
-}
-
-export function hasToken(): boolean {
-  return !!process.env.META_ACCESS_TOKEN?.trim();
+/** Versão da Graph API, do ambiente. O token vem por conta (multi-token). */
+export function apiVersion(): string {
+  return process.env.META_API_VERSION?.trim() || 'v23.0';
 }
 
 const FIELDS = [
@@ -390,10 +384,9 @@ async function fetchAccountReach(cfg: { token: string; version: string; accountI
  * `dashboardAccountId` é a chave da conta no painel; `metaAccountId` é o `act_`
  * da Meta. O token é único, do ambiente.
  */
-export async function buildSnapshot(dashboardAccountId: string, metaAccountId: string, since: string, until: string): Promise<SheetsAccountSnapshot> {
-  const t = envToken();
-  if (!t) throw new Error('META_ACCESS_TOKEN ausente.');
-  const cfg: MetaCfg = { token: t.token, version: t.version, accountId: metaAccountId };
+export async function buildSnapshot(dashboardAccountId: string, metaAccountId: string, token: string, version: string, since: string, until: string): Promise<SheetsAccountSnapshot> {
+  if (!token) throw new Error('Token da Meta ausente.');
+  const cfg: MetaCfg = { token, version, accountId: metaAccountId };
 
   const rows = await fetchAdDaily(cfg, since, until);
   const snap = snapshotFromMeta(rows, dashboardAccountId, 'meta-marketing-api');

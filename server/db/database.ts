@@ -108,6 +108,7 @@ const META_ACCOUNTS: Array<{
   manualSales?: number;
   noMql?: boolean;
   metaAccountId?: string;
+  metaTokenEnv?: string;
   leadSheetUrl?: string;
   leadQualifier?: LeadQualifier;
   /**
@@ -184,6 +185,7 @@ const SEED_ACCOUNTS: AdAccount[] = META_ACCOUNTS.map(a => {
     manualSales: a.manualSales,
     noMql: a.noMql,
     metaAccountId: a.metaAccountId,
+    metaTokenEnv: a.metaTokenEnv,
     leadSheetUrl: a.leadSheetUrl,
     leadQualifier: a.leadQualifier
   };
@@ -282,6 +284,10 @@ class Database {
         if (account.metaAccountId && existing.metaAccountId !== account.metaAccountId) {
           existing.metaAccountId = account.metaAccountId;
           console.log(`[DB] ID da Meta do seed aplicado a ${existing.name}: ${account.metaAccountId}.`);
+          changed = true;
+        }
+        if (account.metaTokenEnv !== undefined && existing.metaTokenEnv !== account.metaTokenEnv) {
+          existing.metaTokenEnv = account.metaTokenEnv;
           changed = true;
         }
       }

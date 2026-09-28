@@ -270,6 +270,12 @@ export interface AdAccount {
    * relatório. Fica no seed (não é segredo); o token, sim, mora só no ambiente.
    */
   metaAccountId?: string;
+  /**
+   * Nome da variável de ambiente com o token desta conta na Meta. Ausente =
+   * usa o token compartilhado `META_ACCESS_TOKEN`. Serve para clientes cujo
+   * Business Manager exige um token próprio (ex.: `META_TOKEN_BRUNO`).
+   */
+  metaTokenEnv?: string;
 }
 
 export interface NormalizedMetrics {
