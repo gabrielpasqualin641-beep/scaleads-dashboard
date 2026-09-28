@@ -27,10 +27,10 @@ const CACHE_FILE = dataFile('meta-ca01-snapshot.json');
  * Sem `META_ACCESS_TOKEN`/`META_CA01_ACCOUNT_ID`, o serviço é inerte.
  */
 
-// 33 dias cobrem a visão padrão ("últimos 30 dias") e populam rápido (~40s),
-// o que importa no Render free, onde cada reinício ressincroniza. A comparação
-// com o período anterior e janelas maiores ficam sob demanda pela rota.
-const DEFAULT_WINDOW_DAYS = 33;
+// 30 dias: a visão padrão do painel. Popula rápido e é o que importa no Render
+// free, onde cada reinício ressincroniza. Janelas maiores ficam sob demanda
+// pela rota.
+const DEFAULT_WINDOW_DAYS = 30;
 
 function ca01AccountId(): string | null {
   // A conta do painel cujo nome é a CA 01. O id externo dela é sintético

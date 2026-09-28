@@ -166,10 +166,20 @@ export async function fetchAdDaily(since: string, until: string): Promise<MetaRo
 
   const rows: MetaRow[] = [];
   const janelas = windows(since, until, 14);
+  let falhas = 0;
   for (let i = 0; i < janelas.length; i++) {
     if (i > 0) await sleep(600); // respiro entre janelas
-    rows.push(...(await fetchWindow(cfg, janelas[i].since, janelas[i].until)));
+    try {
+      rows.push(...(await fetchWindow(cfg, janelas[i].since, janelas[i].until)));
+    } catch (err) {
+      // Uma janela que falha não derruba a coleta inteira — as outras entram, e
+      // a próxima sincronização preenche o buraco. Antes, uma falha congelava o
+      // painel no dado antigo.
+      falhas++;
+      console.error(`[Meta CA01] Janela ${janelas[i].since} a ${janelas[i].until} falhou: ${err instanceof Error ? err.message : err}`);
+    }
   }
+  if (falhas === janelas.length) throw new Error('Todas as janelas falharam na Meta.');
   return rows;
 }
 
