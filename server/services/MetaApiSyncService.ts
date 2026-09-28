@@ -86,25 +86,29 @@ export class MetaApiSyncService {
     return n;
   }
 
-  private static async syncOne(account: AdAccount, range: { since: string; until: string }, cache: Cache): Promise<boolean> {
+  private static async syncOne(account: AdAccount, range: { since: string; until: string }, cache: Cache): Promise<{ ok: boolean; retry: boolean }> {
     const token = tokenFor(account);
     if (!token) {
       console.warn(`[Meta API] ${account.name}: sem token (${account.metaTokenEnv || 'META_ACCESS_TOKEN'}); pulada.`);
-      return false;
+      return { ok: false, retry: false };
     }
     try {
       const snapshot = await buildSnapshot(account.externalAccountId, account.metaAccountId!, token, apiVersion(), range.since, range.until);
       if (snapshot.campaigns.length === 0) {
         console.warn(`[Meta API] ${account.name}: a Meta não retornou linhas; snapshot anterior mantido.`);
-        return false;
+        return { ok: false, retry: false };
       }
       sheetsSnapshotStore.upsertAccount(snapshot);
       cache[account.externalAccountId] = snapshot;
       console.log(`[Meta API] ${account.name}: ${snapshot.campaigns.length} campanhas, ${snapshot.ads.length} anúncios, ${snapshot.range.since} a ${snapshot.range.until}.`);
-      return true;
+      return { ok: true, retry: false };
     } catch (err) {
-      console.error(`[Meta API] Falha ao sincronizar ${account.name}:`, err instanceof Error ? err.message : err);
-      return false;
+      const msg = err instanceof Error ? err.message : String(err);
+      // Só limite transitório da Meta vale retentar. Token sem acesso à conta,
+      // conta inexistente, permissão — não retenta, para não travar as outras.
+      const retry = /temporarily unavailable|todas as janelas|timeout|aborted|\b429\b|HTTP 5\d\d|network|fetch failed/i.test(msg);
+      console.error(`[Meta API] Falha ao sincronizar ${account.name}: ${msg}${retry ? '' : ' (não retenta)'}`);
+      return { ok: false, retry };
     }
   }
 
@@ -114,10 +118,11 @@ export class MetaApiSyncService {
 
     const cache = readCache();
     for (const conta of contas) {
-      // Retenta a conta por limite transitório da Meta antes de desistir.
+      // Retenta só por limite transitório; erro de token/permissão falha na hora
+      // e não segura as outras contas.
       for (let attempt = 1; attempt <= 3; attempt++) {
-        const ok = await this.syncOne(conta, range, cache);
-        if (ok || attempt === 3) break;
+        const r = await this.syncOne(conta, range, cache);
+        if (r.ok || !r.retry || attempt === 3) break;
         await new Promise(res => setTimeout(res, 30_000));
       }
     }
