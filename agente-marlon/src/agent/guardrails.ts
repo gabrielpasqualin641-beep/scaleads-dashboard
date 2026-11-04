@@ -44,7 +44,7 @@ export function detectOptout(text: string, channel: Channel): OptoutChannel | nu
 
 export function detectCrisis(text: string): boolean {
   const t = norm(text);
-  return /\b(quero morrer|vou me matar|me matar|suicid\w*|tirar (a )?minha (propria )?vida|acabar com (a )?minha vida|acabar com tudo|nao (aguento|aguentar) mais (viver|essa vida|isso tudo)|nao quero mais viver|melhor (eu )?morrer|sem saida|me machucar|me cortar|nao vejo sentido (em|na) (viver|vida)|desisti de viver)\b/.test(
+  return /\b(quero morrer|vou me matar|me matar|suicid\w*|tirar (a )?minha (propria )?vida|acabar com (a )?minha vida|acabar com tudo|nao (aguento|aguentar) mais (viver|essa vida|isso tudo)|nao quero mais viver|melhor (eu )?morrer|sem saida|me machucar|me cortar|nao vejo sentido (em|na) (viver|vida)|desisti de viver|quero sumir|queria sumir|pensando em me matar|nao vale a pena viver|nao tenho motivo pra viver|ninguem vai sentir minha falta)\b/.test(
     t,
   );
 }

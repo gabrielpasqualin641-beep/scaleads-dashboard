@@ -22,8 +22,20 @@ export async function onPedidoLigacao(deps: Deps, lead: Lead, motivo = "lead ped
   await deps.scheduler.schedule({ type: "ligacao", leadId: lead.id, opportunity: "pedido_ligacao", payload: { motivo, purpose: "oferta" } }, inWindow(at(deps, min(10))));
 }
 
+/** Link enviado e sem compra: um lembrete leve 3h depois (ajustado à janela de contato). */
+export async function onLinkEnviado(deps: Deps, lead: Lead, product: ProductCode) {
+  await cancelLinkSemCompra(deps, lead.id);
+  await deps.scheduler.schedule({ type: "link_sem_compra", leadId: lead.id, opportunity: `link:${product}`, payload: { product } }, inWindow(at(deps, min(180))));
+}
+
+export async function cancelLinkSemCompra(deps: Deps, leadId: string) {
+  await deps.scheduler.cancelForLead(leadId, (j) => j.type === "link_sem_compra");
+}
+
 /** Carrinho abandonado / boleto ou Pix gerado e não pago. */
 export async function onCarrinho(deps: Deps, lead: Lead, transaction: string, product: ProductCode) {
+  // A retomada de carrinho assume o acompanhamento do link.
+  await cancelLinkSemCompra(deps, lead.id);
   const opportunity = `carrinho:${transaction}`;
   await deps.scheduler.schedule({ type: "retomada_carrinho", leadId: lead.id, opportunity, payload: { transaction, product } }, inWindow(at(deps, min(30))));
   // Voz em 24h, só com consentimento (verificado de novo na execução).

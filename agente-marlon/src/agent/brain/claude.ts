@@ -61,7 +61,7 @@ export class ClaudeBrain implements Brain {
         tools: TOOL_DEFS as unknown as Anthropic.Beta.BetaTool[],
         tool_choice: { type: "auto" },
         thinking: channel === "voz" ? { type: "between_tools" } : { type: "adaptive" },
-        output_config: { effort: config.ANTHROPIC_EFFORT },
+        output_config: { effort: channel === "voz" ? config.ANTHROPIC_EFFORT : config.ANTHROPIC_EFFORT_WHATSAPP },
         messages,
       });
 

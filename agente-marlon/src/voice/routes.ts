@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import twilio from "twilio";
 import WebSocket from "ws";
-import { config } from "../config.js";
+import { config, isProd } from "../config.js";
 import type { Engine } from "../agent/engine.js";
 import { normalizePhone } from "../integrations/hotmart.js";
 import { closeSession, openSession, sessions } from "./sessions.js";
@@ -18,12 +18,18 @@ async function sessionFor(engine: Engine, ids: { callId?: string; providerCallId
   return null;
 }
 
+/** Vapi: exige x-vapi-secret. Sem segredo configurado, só fora de produção. */
+function vapiAuthorized(req: FastifyRequest) {
+  if (!config.VAPI_WEBHOOK_SECRET) return !isProd();
+  return req.headers["x-vapi-secret"] === config.VAPI_WEBHOOK_SECRET;
+}
+
 export function registerVoiceRoutes(app: FastifyInstance, engine: Engine) {
   const { store } = engine.deps;
 
   // ------------------------------------------------------------------ Vapi (custom LLM, formato OpenAI)
   app.post("/voice/vapi/chat/completions", async (req, reply) => {
-    if (config.VAPI_WEBHOOK_SECRET && req.headers["x-vapi-secret"] !== config.VAPI_WEBHOOK_SECRET) return reply.code(401).send();
+    if (!vapiAuthorized(req)) return reply.code(401).send();
     const body = req.body as any;
     const callId = body?.call?.metadata?.callId ?? body?.metadata?.callId;
     const session = await sessionFor(engine, { callId, providerCallId: body?.call?.id });
@@ -39,7 +45,7 @@ export function registerVoiceRoutes(app: FastifyInstance, engine: Engine) {
   });
 
   app.post("/voice/vapi/events", async (req, reply) => {
-    if (config.VAPI_WEBHOOK_SECRET && req.headers["x-vapi-secret"] !== config.VAPI_WEBHOOK_SECRET) return reply.code(401).send();
+    if (!vapiAuthorized(req)) return reply.code(401).send();
     const msg = (req.body as any)?.message ?? {};
     const callId = msg?.call?.metadata?.callId;
     if (msg.type === "end-of-call-report" && callId) {
@@ -51,8 +57,14 @@ export function registerVoiceRoutes(app: FastifyInstance, engine: Engine) {
   });
 
   // ------------------------------------------------------------------ Retell (custom LLM via WebSocket)
-  app.get("/voice/retell/llm/:retellCallId", { websocket: true }, (socket: WebSocket, req: FastifyRequest) => {
-    const retellCallId = (req.params as any).retellCallId as string;
+  // URL configurada na Retell: wss://SEU_HOST/voice/retell/llm/<RETELL_LLM_SECRET> (a Retell acrescenta /<call_id>).
+  app.get("/voice/retell/llm/:secret/:retellCallId", { websocket: true }, (socket: WebSocket, req: FastifyRequest) => {
+    const { secret, retellCallId } = req.params as { secret: string; retellCallId: string };
+    const expected = config.RETELL_LLM_SECRET;
+    if ((!expected && isProd()) || (expected && secret !== expected)) {
+      socket.close(1008, "não autorizado");
+      return;
+    }
     let sessionPromise = sessionFor(engine, { providerCallId: retellCallId });
     socket.on("message", async (raw: WebSocket.RawData) => {
       const ev = JSON.parse(raw.toString());
@@ -73,7 +85,8 @@ export function registerVoiceRoutes(app: FastifyInstance, engine: Engine) {
   });
 
   app.post("/voice/retell/webhook", async (req, reply) => {
-    if (config.CRON_SECRET && (req.query as any).token !== config.CRON_SECRET) return reply.code(401).send();
+    const token = (req.query as any).token;
+    if (isProd() ? !config.CRON_SECRET || token !== config.CRON_SECRET : Boolean(config.CRON_SECRET) && token !== config.CRON_SECRET) return reply.code(401).send();
     const b = req.body as any;
     if (b?.event === "call_ended" || b?.event === "call_analyzed") {
       const callId = b.call?.metadata?.callId;

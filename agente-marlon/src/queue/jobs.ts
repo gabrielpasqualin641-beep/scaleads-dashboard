@@ -41,6 +41,10 @@ export async function runJob(deps: Deps, job: JobSpec): Promise<{ rescheduleAt?:
     if (purchases.some((p) => p.transaction === tx && p.status === "aprovada")) return;
   }
   if (job.type === "pos_venda" && job.step === "D+6" && lead.purchases.includes("controle_2")) return;
+  if (job.type === "link_sem_compra") {
+    const product = job.payload?.product as Lead["purchases"][number] | undefined;
+    if (lead.stage === "comprou" || (product && lead.purchases.includes(product))) return;
+  }
   let appt = null;
   if (job.type === "lembrete_consulta" || job.type === "confirmacao_por_voz") {
     appt = await deps.store.getAppointment(String(job.payload?.appointmentId));
@@ -99,6 +103,19 @@ export async function runJob(deps: Deps, job: JobSpec): Promise<{ rescheduleAt?:
       await deps.messenger.sendTemplate(fresh.phone, { name: "lembrete_horario", params: [nome, label], buttonPayloads: [`confirmo:${appt.id}`, `remarcar:${appt.id}`] });
       await deps.store.addMessage({ leadId: fresh.id, channel: "whatsapp", direction: "out", author: "ai", text: `Lembrete do horário: ${label} (${job.step}). [Confirmo] [Preciso remarcar]`, meta: { template: "lembrete_horario" } });
       emit(deps, { type: "message", leadId: fresh.id });
+      break;
+    }
+    case "link_sem_compra": {
+      const produto = String(job.payload?.product ?? "");
+      await sendWhatsAppSmart(deps, fresh, `Oi ${nome}, conseguiu abrir o link que te mandei? Se ficou alguma dúvida antes de começar, me fala aqui que eu te ajudo.`, {
+        name: "retorno_combinado",
+        params: [nome, agent()],
+      });
+      await note(
+        deps,
+        fresh,
+        `Lembrete de link enviado sem compra (${produto}). Se responder, descubra o que travou (preço, forma de pagamento, dúvida, confiança) e ajude. Se o preço travou no CONTROLE 2.0, ofereça o Controle Express como porta de entrada. Não insista se a pessoa disser que não quer.`,
+      );
       break;
     }
     case "retorno_combinado":

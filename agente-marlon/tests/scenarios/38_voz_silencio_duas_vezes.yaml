@@ -1,0 +1,14 @@
+nome: Silêncio duas vezes na ligação
+descricao: No primeiro silêncio a IA repete a pergunta. No segundo, encerra de forma neutra.
+lead: { consentimento_ligacao: true }
+passos:
+  - ligacao: { motivo: "retomar pedido pendente" }
+  - voz: "(silêncio)"
+    espera:
+      deve: ["falo com"]
+      neutra: true
+      encerra: false
+  - voz: "(silêncio)"
+    espera:
+      neutra: true
+      encerra: true

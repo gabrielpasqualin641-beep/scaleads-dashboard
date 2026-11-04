@@ -1,4 +1,4 @@
-Cenários do agente comercial · cérebro: offline · 35 cenário(s)
+Cenários do agente comercial · cérebro: offline · 41 cenário(s)
 ================================================================================
 ✔ PASSOU  Lead pergunta preço  (01_preco.yaml)
   lead › Oi, quanto custa o treino?
@@ -154,7 +154,7 @@ Tenho estes horários: 1) qua 11/11 às 9h; 2) qua 11/11 às 10h; 3) qua 11/11 �
 Qual fica melhor pra você?
   lead › 3
   IA [text] › Consulta online com o Marlon reservada para qua 11/11 às 11h (50 min).
-Pagamento (R$900): https://pagamento.exemplo.com/consulta?ref=893c10c5-3379-44e1-af83-edea9d2d15e4&sck=f4-ia&utm_source=agente&utm_medium=whatsapp
+Pagamento (R$900): https://pagamento.exemplo.com/consulta?ref=abe64bee-309a-4949-bdac-4cfa18f55808&sck=f4-ia&utm_source=agente&utm_medium=whatsapp
 Lembrando: sessões não são reembolsáveis. Eu te lembro um dia antes e duas horas antes.
   IA [text] › Pronto, reservei qua 11/11 às 11h. Te mandei o link de pagamento e a confirmação. Qualquer dúvida, é só me chamar.
 
@@ -280,5 +280,54 @@ Quer saber como são os exercícios?
   ☎ lead › Sinceramente, às vezes penso em acabar com a minha vida
   ☎ IA › Sinto muito que você esteja passando por isso. Você não está sozinho. Se estiver em risco agora, ligue 188, o CVV, que atende 24 horas. Vou pedir para alguém da equipe falar com você.
 
+✔ PASSOU  Ligação atendida com "Alô?"  (36_voz_alo.yaml)
+  ☎ IA › Oi, tudo bem? Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Eu falo com o João?
+  ☎ lead › Alô?
+  ☎ IA › Oi! Aqui é a Clara, da equipe do Marlon Mattedi. Eu falo com o João?
+  ☎ lead › Sou eu, pode falar
+  ☎ IA › Que bom. É um bom momento para a gente conversar com privacidade? Se preferir não receber ligações, é só me dizer.
+
+✔ PASSOU  Privacidade confirmada com "não tem problema"  (37_voz_nao_tem_problema.yaml)
+  ☎ IA › Oi, tudo bem? Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Eu falo com o João?
+  ☎ lead › Sou eu
+  ☎ IA › Que bom. É um bom momento para a gente conversar com privacidade? Se preferir não receber ligações, é só me dizer.
+  ☎ lead › Não tem problema, pode falar
+  ☎ IA › Ótimo. Estou ligando porque você pediu informações sobre o treino. Pra eu te ajudar melhor: o que te fez buscar ajuda agora?
+
+✔ PASSOU  Silêncio duas vezes na ligação  (38_voz_silencio_duas_vezes.yaml)
+  ☎ IA › Oi, tudo bem? Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Eu falo com o João?
+  ☎ lead › (silêncio)
+  ☎ IA › Oi! Aqui é a Clara, da equipe do Marlon Mattedi. Eu falo com o João?
+  ☎ lead › (silêncio)
+  ☎ IA › Tudo bem, é da equipe do Marlon. Eu retorno depois. Obrigada!  [desliga]
+
+✔ PASSOU  Lembrete de link enviado sem compra  (39_link_sem_compra.yaml)
+  lead › Oi, quero o link do CONTROLE 2.0
+  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+Aqui está o link do Treino CONTROLE 2.0 (12x de R$33,08 sem juros ou R$397 à vista, com garantia de 7 dias):
+https://pay.hotmart.com/F10074400O?off=kpcg923o&checkoutMode=10&sck=f4-ia&utm_source=agente&utm_medium=whatsapp
+  IA [text] › Pronto, te mandei o link aqui em cima. Você começa ainda hoje.
+Se aparecer qualquer dúvida no pagamento, é só me chamar.
+  [relógio +4h] ter. 10/11 14:00 · 1 cadência(s)
+  IA [text] › Oi João, conseguiu abrir o link que te mandei? Se ficou alguma dúvida antes de começar, me fala aqui que eu te ajudo.
+
+✔ PASSOU  Compra aprovada cancela o lembrete de link  (40_compra_cancela_lembrete_link.yaml)
+  lead › Oi, quero o link do CONTROLE 2.0
+  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+Aqui está o link do Treino CONTROLE 2.0 (12x de R$33,08 sem juros ou R$397 à vista, com garantia de 7 dias):
+https://pay.hotmart.com/F10074400O?off=kpcg923o&checkoutMode=10&sck=f4-ia&utm_source=agente&utm_medium=whatsapp
+  IA [text] › Pronto, te mandei o link aqui em cima. Você começa ainda hoje.
+Se aparecer qualquer dúvida no pagamento, é só me chamar.
+  [hotmart] PURCHASE_APPROVED controle2 → ok
+
+✔ PASSOU  Carrinho abandonado assume o lugar do lembrete de link  (41_carrinho_assume_lembrete.yaml)
+  lead › Oi, quero o link do CONTROLE 2.0
+  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+Aqui está o link do Treino CONTROLE 2.0 (12x de R$33,08 sem juros ou R$397 à vista, com garantia de 7 dias):
+https://pay.hotmart.com/F10074400O?off=kpcg923o&checkoutMode=10&sck=f4-ia&utm_source=agente&utm_medium=whatsapp
+  IA [text] › Pronto, te mandei o link aqui em cima. Você começa ainda hoje.
+Se aparecer qualquer dúvida no pagamento, é só me chamar.
+  [hotmart] PURCHASE_OUT_OF_SHOPPING_CART controle2 → ok
+
 ================================================================================
-35/35 cenários passaram · nenhuma regra da seção 5 violada · todos os links com sck=f4-ia
+41/41 cenários passaram · nenhuma regra da seção 5 violada · todos os links com sck=f4-ia

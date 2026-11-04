@@ -23,7 +23,8 @@ const schema = z.object({
   AGENT_NAME: z.string().default("Clara"),
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().default("claude-sonnet-5-5"),
-  ANTHROPIC_EFFORT: z.enum(["low", "medium", "high"]).default("low"),
+  ANTHROPIC_EFFORT: z.enum(["low", "medium", "high"]).default("low"), // esforço na voz (latência)
+  ANTHROPIC_EFFORT_WHATSAPP: z.enum(["low", "medium", "high"]).default("medium"),
   // Fallback do servidor em caso de recusa (padrão: ligado)
   ANTHROPIC_FALLBACKS: z.string().optional().transform((v) => (v === undefined ? true : v === "1" || v === "true")),
   BRAIN: z.enum(["claude", "offline"]).default("claude"),
@@ -60,6 +61,7 @@ const schema = z.object({
   VAPI_WEBHOOK_SECRET: z.string().default(""),
   RETELL_API_KEY: z.string().default(""),
   RETELL_AGENT_ID: z.string().default(""),
+  RETELL_LLM_SECRET: z.string().default(""), // segredo no caminho do WebSocket da Retell
   RETELL_FROM_NUMBER: z.string().default(""),
   RETELL_FROM_NUMBER_0303: z.string().default(""),
   ELEVENLABS_API_KEY: z.string().default(""),
@@ -95,6 +97,18 @@ export function isProd() {
   return config.NODE_ENV === "production";
 }
 
+/** Segredos obrigatórios em produção (webhooks e voz sem autenticação não sobem). */
+export function missingProdSecrets(c: Config = config): string[] {
+  const required: Array<keyof Config> = ["WA_APP_SECRET", "WA_VERIFY_TOKEN", "HOTMART_HOTTOK", "LEAD_WEBHOOK_SECRET"];
+  if (c.VOICE_PROVIDER === "vapi") required.push("VAPI_WEBHOOK_SECRET");
+  if (c.VOICE_PROVIDER === "retell") required.push("RETELL_LLM_SECRET", "CRON_SECRET");
+  return required.filter((k) => !c[k]);
+}
+
 if (isProd() && config.JWT_SECRET === "dev-only-change-me") {
   throw new Error("JWT_SECRET precisa ser definido em produção.");
+}
+if (isProd() && config.STORE === "prisma") {
+  const missing = missingProdSecrets();
+  if (missing.length) throw new Error(`Segredos obrigatórios ausentes em produção: ${missing.join(", ")}`);
 }

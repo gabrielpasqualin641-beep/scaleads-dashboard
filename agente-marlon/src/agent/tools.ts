@@ -6,10 +6,11 @@ import type { Channel, FunnelStage, Lead } from "../domain/types.js";
 import { FUNNEL_STAGES } from "../domain/types.js";
 import { emit, type Deps } from "../deps.js";
 import { slotLabel, type Slot } from "../integrations/calendar.js";
-import { onConsultaAgendada, onRetornoCombinado } from "../queue/cadences.js";
+import { onConsultaAgendada, onLinkEnviado, onRetornoCombinado } from "../queue/cadences.js";
 import { buildCheckoutUrl, withTracking } from "./links.js";
 import { loadProducts } from "./knowledge.js";
-import { contactLabel, notifyTeam, sendWhatsAppSmart } from "./outbound.js";
+import { mentionsVirtualAssistant } from "./guardrails.js";
+import { agentIntro, contactLabel, notifyTeam, sendWhatsAppSmart } from "./outbound.js";
 
 export interface TurnState {
   sentLinks: string[];
@@ -178,15 +179,27 @@ export async function runTool(name: string, input: Input, ctx: ToolContext): Pro
         result = { ok: false, erro: "a pessoa pediu para não receber WhatsApp; não envie o link" };
         break;
       }
+      // Evita mandar o mesmo link duas vezes em poucos minutos.
+      const since = new Date(deps.now().getTime() - 15 * 60_000).toISOString();
+      const recent = await deps.store.listEvents({ leadId: l.id, type: "link_enviado", since });
+      if (recent.some((e) => e.data.produto === produto)) {
+        result = { ok: true, ja_enviado: true, observacao: "este link já foi enviado há poucos minutos; avise que está logo acima na conversa e pergunte se ficou alguma dúvida" };
+        break;
+      }
       const url = buildCheckoutUrl(produto, ctx.channel);
       const info = loadProducts()[produto];
-      const text =
+      const history = await deps.store.listMessages(l.id, 200);
+      const introduced = history.some((m) => m.direction === "out" && m.author !== "system" && mentionsVirtualAssistant(m.text));
+      const linkText =
         produto === "controle_2"
           ? `Aqui está o link do Treino CONTROLE 2.0 (12x de R$33,08 sem juros ou R$397 à vista, com garantia de 7 dias):\n${url}`
           : `Aqui está o link do Controle Express (R$47, acesso imediato, garantia de 7 dias):\n${url}`;
+      // Identificação obrigatória: quem chega pedindo o link não pode receber o link como primeira mensagem sem apresentação.
+      const text = introduced ? linkText : `${agentIntro(l)}\n${linkText}`;
       await sendWhatsAppSmart(deps, l, text, { name: "link_solicitado", params: [l.name?.split(" ")[0] ?? "tudo bem", url] });
       await deps.store.addEvent({ leadId: l.id, type: "link_enviado", channel: ctx.channel, data: { produto, url } });
       await deps.store.updateLead(l.id, { stage: "link_enviado" });
+      await onLinkEnviado(deps, l, produto);
       ctx.state.sentLinks.push(url);
       await refresh();
       result = { ok: true, enviado_por: "whatsapp", produto: info.name, link: url };

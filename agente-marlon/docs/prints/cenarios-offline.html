@@ -1,4 +1,4 @@
-<!doctype html><meta charset="utf-8"><title>Cenários do agente</title><style>body{background:#0f1115;color:#d6d8dd;font:13px/1.5 ui-monospace,Menlo,monospace;padding:24px;margin:0}pre{white-space:pre-wrap;margin:0}.ok{color:#4ade80}.no{color:#f87171}.dim{color:#8b8f98}</style><pre>Cenários do agente comercial · cérebro: offline · 35 cenário(s)
+<!doctype html><meta charset="utf-8"><title>Cenários do agente</title><style>body{background:#0f1115;color:#d6d8dd;font:13px/1.5 ui-monospace,Menlo,monospace;padding:24px;margin:0}pre{white-space:pre-wrap;margin:0}.ok{color:#4ade80}.no{color:#f87171}.dim{color:#8b8f98}</style><pre>Cenários do agente comercial · cérebro: offline · 41 cenário(s)
 ================================================================================
 <span class="ok">✔ PASSOU  Lead pergunta preço  (01_preco.yaml)</span>
 <span class="dim">  lead › Oi, quanto custa o treino?</span>
@@ -154,7 +154,7 @@ Tenho estes horários: 1) qua 11/11 às 9h; 2) qua 11/11 às 10h; 3) qua 11/11 �
 Qual fica melhor pra você?</span>
 <span class="dim">  lead › 3</span>
 <span class="dim">  IA [text] › Consulta online com o Marlon reservada para qua 11/11 às 11h (50 min).
-Pagamento (R$900): https://pagamento.exemplo.com/consulta?ref=893c10c5-3379-44e1-af83-edea9d2d15e4&amp;sck=f4-ia&amp;utm_source=agente&amp;utm_medium=whatsapp
+Pagamento (R$900): https://pagamento.exemplo.com/consulta?ref=abe64bee-309a-4949-bdac-4cfa18f55808&amp;sck=f4-ia&amp;utm_source=agente&amp;utm_medium=whatsapp
 Lembrando: sessões não são reembolsáveis. Eu te lembro um dia antes e duas horas antes.</span>
 <span class="dim">  IA [text] › Pronto, reservei qua 11/11 às 11h. Te mandei o link de pagamento e a confirmação. Qualquer dúvida, é só me chamar.</span>
 
@@ -280,5 +280,54 @@ Quer saber como são os exercícios?</span>
 <span class="dim">  ☎ lead › Sinceramente, às vezes penso em acabar com a minha vida</span>
 <span class="dim">  ☎ IA › Sinto muito que você esteja passando por isso. Você não está sozinho. Se estiver em risco agora, ligue 188, o CVV, que atende 24 horas. Vou pedir para alguém da equipe falar com você.</span>
 
+<span class="ok">✔ PASSOU  Ligação atendida com "Alô?"  (36_voz_alo.yaml)</span>
+<span class="dim">  ☎ IA › Oi, tudo bem? Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Eu falo com o João?</span>
+<span class="dim">  ☎ lead › Alô?</span>
+<span class="dim">  ☎ IA › Oi! Aqui é a Clara, da equipe do Marlon Mattedi. Eu falo com o João?</span>
+<span class="dim">  ☎ lead › Sou eu, pode falar</span>
+<span class="dim">  ☎ IA › Que bom. É um bom momento para a gente conversar com privacidade? Se preferir não receber ligações, é só me dizer.</span>
+
+<span class="ok">✔ PASSOU  Privacidade confirmada com "não tem problema"  (37_voz_nao_tem_problema.yaml)</span>
+<span class="dim">  ☎ IA › Oi, tudo bem? Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Eu falo com o João?</span>
+<span class="dim">  ☎ lead › Sou eu</span>
+<span class="dim">  ☎ IA › Que bom. É um bom momento para a gente conversar com privacidade? Se preferir não receber ligações, é só me dizer.</span>
+<span class="dim">  ☎ lead › Não tem problema, pode falar</span>
+<span class="dim">  ☎ IA › Ótimo. Estou ligando porque você pediu informações sobre o treino. Pra eu te ajudar melhor: o que te fez buscar ajuda agora?</span>
+
+<span class="ok">✔ PASSOU  Silêncio duas vezes na ligação  (38_voz_silencio_duas_vezes.yaml)</span>
+<span class="dim">  ☎ IA › Oi, tudo bem? Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Eu falo com o João?</span>
+<span class="dim">  ☎ lead › (silêncio)</span>
+<span class="dim">  ☎ IA › Oi! Aqui é a Clara, da equipe do Marlon Mattedi. Eu falo com o João?</span>
+<span class="dim">  ☎ lead › (silêncio)</span>
+<span class="dim">  ☎ IA › Tudo bem, é da equipe do Marlon. Eu retorno depois. Obrigada!  [desliga]</span>
+
+<span class="ok">✔ PASSOU  Lembrete de link enviado sem compra  (39_link_sem_compra.yaml)</span>
+<span class="dim">  lead › Oi, quero o link do CONTROLE 2.0</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+Aqui está o link do Treino CONTROLE 2.0 (12x de R$33,08 sem juros ou R$397 à vista, com garantia de 7 dias):
+https://pay.hotmart.com/F10074400O?off=kpcg923o&amp;checkoutMode=10&amp;sck=f4-ia&amp;utm_source=agente&amp;utm_medium=whatsapp</span>
+<span class="dim">  IA [text] › Pronto, te mandei o link aqui em cima. Você começa ainda hoje.
+Se aparecer qualquer dúvida no pagamento, é só me chamar.</span>
+<span class="dim">  [relógio +4h] ter. 10/11 14:00 · 1 cadência(s)</span>
+<span class="dim">  IA [text] › Oi João, conseguiu abrir o link que te mandei? Se ficou alguma dúvida antes de começar, me fala aqui que eu te ajudo.</span>
+
+<span class="ok">✔ PASSOU  Compra aprovada cancela o lembrete de link  (40_compra_cancela_lembrete_link.yaml)</span>
+<span class="dim">  lead › Oi, quero o link do CONTROLE 2.0</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+Aqui está o link do Treino CONTROLE 2.0 (12x de R$33,08 sem juros ou R$397 à vista, com garantia de 7 dias):
+https://pay.hotmart.com/F10074400O?off=kpcg923o&amp;checkoutMode=10&amp;sck=f4-ia&amp;utm_source=agente&amp;utm_medium=whatsapp</span>
+<span class="dim">  IA [text] › Pronto, te mandei o link aqui em cima. Você começa ainda hoje.
+Se aparecer qualquer dúvida no pagamento, é só me chamar.</span>
+<span class="dim">  [hotmart] PURCHASE_APPROVED controle2 → ok</span>
+
+<span class="ok">✔ PASSOU  Carrinho abandonado assume o lugar do lembrete de link  (41_carrinho_assume_lembrete.yaml)</span>
+<span class="dim">  lead › Oi, quero o link do CONTROLE 2.0</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+Aqui está o link do Treino CONTROLE 2.0 (12x de R$33,08 sem juros ou R$397 à vista, com garantia de 7 dias):
+https://pay.hotmart.com/F10074400O?off=kpcg923o&amp;checkoutMode=10&amp;sck=f4-ia&amp;utm_source=agente&amp;utm_medium=whatsapp</span>
+<span class="dim">  IA [text] › Pronto, te mandei o link aqui em cima. Você começa ainda hoje.
+Se aparecer qualquer dúvida no pagamento, é só me chamar.</span>
+<span class="dim">  [hotmart] PURCHASE_OUT_OF_SHOPPING_CART controle2 → ok</span>
+
 ================================================================================
-35/35 cenários passaram · nenhuma regra da seção 5 violada · todos os links com sck=f4-ia</pre>
+41/41 cenários passaram · nenhuma regra da seção 5 violada · todos os links com sck=f4-ia</pre>

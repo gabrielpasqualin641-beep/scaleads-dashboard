@@ -46,7 +46,7 @@ export class Engine {
   // ---------------------------------------------------------------- WhatsApp
 
   /** Entrada de uma mensagem do lead no WhatsApp (texto já transcrito, se era áudio). */
-  async handleWhatsApp(input: { from: string; name?: string | null; text: string; replyId?: string; source?: string; transcribed?: boolean }): Promise<TurnResult> {
+  async handleWhatsApp(input: { from: string; name?: string | null; text: string; replyId?: string; source?: string; transcribed?: boolean; adHeadline?: string }): Promise<TurnResult> {
     const { store } = this.deps;
     let lead = await store.getLeadByPhone(input.from);
     if (!lead) {
@@ -58,6 +58,15 @@ export class Engine {
     const firstInbound = !(await store.listMessages(lead.id, 200)).some((m) => m.author === "lead");
     lead = await store.updateLead(lead.id, { lastInboundAt: this.deps.now().toISOString() });
 
+    if (firstInbound && input.adHeadline) {
+      await store.addMessage({
+        leadId: lead.id,
+        channel: "whatsapp",
+        direction: "out",
+        author: "system",
+        text: `A pessoa chegou por um anúncio com o título: "${input.adHeadline.slice(0, 120)}". Comece a partir do que o anúncio falou.`,
+      });
+    }
     const text = this.replyToText(input.replyId, input.text);
     await store.addMessage({
       leadId: lead.id,
@@ -333,13 +342,23 @@ export class Engine {
         await store.updateLead(lead.id, { identityConfirmed: true });
         return say("Que bom. É um bom momento para a gente conversar com privacidade? Se preferir não receber ligações, é só me dizer.");
       }
-      // Outra pessoa atendeu: nunca citar o assunto.
-      if (session.callId) await store.updateCall(session.callId, { status: "outra_pessoa" });
+      // "Alô?", "Oi", "hã?", silêncio: pergunta de novo uma vez, sem citar o assunto.
+      if (!isNo && (session.identityTries ?? 0) < 1) {
+        session.identityTries = (session.identityTries ?? 0) + 1;
+        const quem = lead.name ? `${artigo(lead)} ${firstName(lead)}` : "o titular deste número";
+        return say(`Oi! Aqui é a ${config.AGENT_NAME}, da equipe do Marlon Mattedi. Eu falo com ${quem}?`);
+      }
+      // Outra pessoa atendeu (ou não deu para confirmar): nunca citar o assunto.
+      if (isNo && session.callId) await store.updateCall(session.callId, { status: "outra_pessoa" });
       return say("Tudo bem, é da equipe do Marlon. Eu retorno depois. Obrigada!", true);
     }
 
     if (session.phase === "privacidade") {
-      const isNo = /\b(nao|agora nao|ocupado|dirigindo|trabalhando|depois|mais tarde|nao posso)\b/.test(t);
+      const clearNo =
+        /\b(agora nao|nao posso|nao da|nao e um bom|ocupado|ocupada|dirigindo|trabalhando|no trabalho|em reuniao|acompanhado|acompanhada|nao estou sozinho|depois|mais tarde|outra hora|me liga depois)\b/.test(t);
+      const clearYes =
+        /\b(pode( falar)?|sim|claro|tranquilo|tudo bem|nao tem problema|sem problema|estou sozinho|to sozinho|sozinho|manda|fala|pode ser|e sim|posso falar|posso sim)\b/.test(t);
+      const isNo = clearNo || (!clearYes && /\bnao\b/.test(t));
       if (isNo) {
         session.phase = "aberta";
         return say("Sem problema. Posso te mandar a informação pelo WhatsApp, ou te ligar em outro horário. O que prefere?");
@@ -386,6 +405,7 @@ export interface VoiceSession {
   reason: string;
   recorded: boolean;
   phase: "identidade" | "privacidade" | "aberta" | "encerrada";
+  identityTries?: number;
   transcript: string[]; // só em memória, durante a ligação
   extraNotes: string[];
 }

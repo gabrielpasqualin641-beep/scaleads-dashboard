@@ -1,0 +1,14 @@
+nome: Ligação atendida com "Alô?"
+descricao: Resposta ambígua não desliga. A IA repete a pergunta de identidade, sem citar o assunto.
+lead: { consentimento_ligacao: true }
+passos:
+  - ligacao: { motivo: "lead pediu informações sobre o treino" }
+  - voz: "Alô?"
+    espera:
+      deve: ["falo com"]
+      neutra: true
+      encerra: false
+  - voz: "Sou eu, pode falar"
+    espera:
+      deve: ["privacidade"]
+      neutra: true

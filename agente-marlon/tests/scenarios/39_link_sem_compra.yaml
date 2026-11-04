@@ -1,0 +1,12 @@
+nome: Lembrete de link enviado sem compra
+descricao: 3h depois do link, sem compra, sai um lembrete leve (uma vez só).
+passos:
+  - lead: "Oi, quero o link do CONTROLE 2.0"
+    espera:
+      tools: [enviar_link_checkout]
+      deve: ["assistente virtual", "sck=f4-ia"]
+      jobs: [link_sem_compra]
+  - tempo: "+4h"
+    espera:
+      envios: { minimo: 1 }
+      sem_jobs: [link_sem_compra]

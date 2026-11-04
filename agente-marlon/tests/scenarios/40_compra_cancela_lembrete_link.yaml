@@ -1,0 +1,8 @@
+nome: Compra aprovada cancela o lembrete de link
+passos:
+  - lead: "Oi, quero o link do CONTROLE 2.0"
+    espera:
+      jobs: [link_sem_compra]
+  - hotmart: { evento: PURCHASE_APPROVED, produto: controle2, transacao: HP1001 }
+    espera:
+      sem_jobs: [link_sem_compra]

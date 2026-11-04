@@ -29,7 +29,7 @@ Quiz / LPs ─────────┘      │    Claude + tools)└─ Bull
 | `src/integrations/` | Hotmart, captura de leads, Google Calendar, Mercado Pago e STT. |
 | `src/http/` | Webhooks e API do painel (login, conversas, assumir, métricas, CSV, SSE). |
 | `panel/` | Painel interno em Next.js. |
-| `tests/scenarios/*.yaml` | 35 cenários de conversa e cadência. |
+| `tests/scenarios/*.yaml` | 41 cenários de conversa e cadência. |
 
 ## Rodando localmente
 
@@ -67,7 +67,7 @@ npm run test:scenarios
 npm run test:scenarios:live
 ```
 
-`npm test` roda os testes unitários e HTTP (webhooks, assinatura, painel). `test:scenarios` roda os 35 cenários com o cérebro offline (determinístico). `test:scenarios:live` roda os mesmos cenários com o Claude e exige `ANTHROPIC_API_KEY`.
+`npm test` roda os testes unitários e HTTP (webhooks, assinatura, painel). `test:scenarios` roda os 41 cenários com o cérebro offline (determinístico). `test:scenarios:live` roda os mesmos cenários com o Claude e exige `ANTHROPIC_API_KEY`.
 
 A suíte reprova o cenário se **qualquer** regra da seção 5 for quebrada:
 
@@ -115,7 +115,7 @@ Depois de copiar o `.env.example`, preencha pelo menos `DATABASE_URL`, `REDIS_UR
 
 Em [`docs/prints/`](docs/prints):
 
-- `cenarios-offline.txt` e `.html`, com os prints `cenarios-offline-inicio.png` e `-fim.png`: **35/35 cenários passando**, cada um com a transcrição completa.
+- `cenarios-offline.txt` e `.html`, com os prints `cenarios-offline-inicio.png` e `-fim.png`: **35/41 cenários passando**, cada um com a transcrição completa.
 - `simulador-offline.txt`: sessão do simulador nos dois canais (WhatsApp e voz simulada).
 - `painel-conversas.png`, `painel-transferencia.png`, `painel-funil.png` e `painel-ligacoes.png`.
 
@@ -149,15 +149,34 @@ Use o [`render.yaml`](render.yaml) (Blueprint): ele cria o backend, o painel e o
 |---|---|
 | **Meta / WhatsApp** | Webhook `https://BACKEND/webhooks/whatsapp`, *verify token* = `WA_VERIFY_TOKEN`, assinatura no campo `messages`. Rode `npm run templates:sync` e aguarde a aprovação. |
 | **Hotmart** | Webhook (Postback 2.0) `https://BACKEND/webhooks/hotmart` com os eventos de compra, abandono, boleto/Pix, reembolso, chargeback, cancelamento e protesto. O `hottok` vai em `HOTMART_HOTTOK`, e os IDs dos produtos em `HOTMART_PRODUCT_ID_*`. |
-| **Quiz / LPs** | `POST https://BACKEND/webhooks/lead` com o header `x-webhook-secret`. Corpo: `{nome, telefone, email, origem, maior_de_18, aceita_ligacao, texto_consentimento_ligacao, quer_ligacao_agora}`. |
-| **Vapi** | Importe da Twilio o número normal e o 0303. O agente é criado por chamada (custom LLM → `https://BACKEND/voice/vapi/chat/completions`) e os eventos vão para `/voice/vapi/events`. |
-| **Retell** | Agente com *Custom LLM* em `wss://BACKEND/voice/retell/llm` e webhook em `https://BACKEND/voice/retell/webhook?token=CRON_SECRET`. |
+| **Quiz / LPs** | `POST https://BACKEND/webhooks/lead` com o header `x-webhook-secret`. Corpo: veja a tabela "Campos do `/webhooks/lead`" abaixo. |
+| **Vapi** | Importe da Twilio o número normal e o 0303. O agente é criado por chamada (custom LLM → `https://BACKEND/voice/vapi/chat/completions`) e os eventos vão para `/voice/vapi/events`. Os dois endpoints exigem o header `x-vapi-secret` = `VAPI_WEBHOOK_SECRET`. |
+| **Retell** | Agente com *Custom LLM* em `wss://SEU_HOST/voice/retell/llm/<RETELL_LLM_SECRET>` (a Retell acrescenta `/<call_id>`; segredo errado fecha o socket com 1008) e webhook em `https://BACKEND/voice/retell/webhook?token=CRON_SECRET`. |
 | **Twilio Streams** | No número receptivo: *A call comes in* → `POST https://BACKEND/voice/twilio/inbound`. |
 | **Google Calendar** | Compartilhe a agenda do Marlon com o e-mail da conta de serviço (permissão "fazer alterações"). |
 
+### Campos do `/webhooks/lead`
+
+| Campo | Tipo | Obrigatório | Uso |
+|---|---|---|---|
+| `nome` | texto | sim | Nome do lead. |
+| `telefone` | texto | sim | Qualquer formato brasileiro; vira E.164. |
+| `email` | texto | não | Vincula a compra da Hotmart. |
+| `origem` | texto | não (padrão `lp`) | `quiz`, `lp-controle2` etc. |
+| `maior_de_18` | booleano | não (padrão `true`) | Se `false`, o lead não é cadastrado. |
+| `aceita_ligacao` | booleano | não | Checkbox de ligação. |
+| `texto_consentimento_ligacao` | texto | com `aceita_ligacao` | Texto exato exibido no checkbox (fica no registro de consentimento). |
+| `aceita_whatsapp` | booleano | não (padrão `true`) | Dispara as boas-vindas. |
+| `quer_ligacao_agora` | booleano | não | Agenda ligação em até 15 min (com consentimento). |
+| `produto_interesse` | `controle_express` \| `controle_2` \| `consulta` | não | Personaliza a conversa. |
+| `perfil_quiz` | texto (até 80) | não | Resultado/perfil do quiz. |
+| `criativo` | texto (até 80) | não | Anúncio ou criativo de origem. |
+
+Os três últimos campos viram uma nota interna para a IA personalizar a abertura (nunca são enviados ao lead). No clique em anúncio para WhatsApp, o título do anúncio (`referral.headline`) entra da mesma forma.
+
 ## Notas técnicas
 
-- **Modelo:** o padrão é `claude-sonnet-5-5`, com `effort: low`. No WhatsApp o raciocínio é adaptativo. Na voz usamos `thinking: between_tools` para reduzir a latência. O prompt e as tools ficam em cache, e o contexto do lead entra como mensagem de sistema no fim da conversa, sem quebrar o cache. O fallback do servidor (`fallbacks: "default"`) fica ligado por padrão. Uma recusa do modelo vira transferência para humano.
+- **Modelo:** o padrão é `claude-sonnet-5-5`, com esforço `medium` no WhatsApp (`ANTHROPIC_EFFORT_WHATSAPP`) e `low` na voz (`ANTHROPIC_EFFORT`). No WhatsApp o raciocínio é adaptativo. Na voz usamos `thinking: between_tools` para reduzir a latência. O prompt e as tools ficam em cache, e o contexto do lead entra como mensagem de sistema no fim da conversa, sem quebrar o cache. O fallback do servidor (`fallbacks: "default"`) fica ligado por padrão. Uma recusa do modelo vira transferência para humano.
 - **Latência de voz:** a meta é < 1,2 s, com endpointing de 250 ms, STT e TTS em streaming (Deepgram nova-3 e ElevenLabs Flash) e resposta curta do modelo. Meça em homologação: a latência depende da região do servidor. Hospede perto de São Paulo.
 - **Mesmo cérebro em todos os canais:** com Vapi e Retell, o provedor faz só telefonia, STT e TTS. Quem decide o que falar é o nosso backend (custom LLM), então o prompt, as tools e os guardrails são exatamente os mesmos.
 - **Tempo real no painel:** o painel recebe eventos por SSE, com polling de reserva a cada 8 s. Para tempo real completo, rode com `WORKER_INLINE=true` e 1 instância.

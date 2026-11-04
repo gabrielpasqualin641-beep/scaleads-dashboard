@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { config } from "../config.js";
 import type { Lead, ProductCode, Purchase } from "../domain/types.js";
 import { emit, type Deps } from "../deps.js";
-import { cancelCarrinho, onCarrinho, onCompra } from "../queue/cadences.js";
+import { cancelCarrinho, cancelLinkSemCompra, onCarrinho, onCompra } from "../queue/cadences.js";
 import { notifyTeam } from "../agent/outbound.js";
 
 export function verifyHottok(received: string | undefined): boolean {
@@ -78,6 +78,7 @@ export async function handleHotmart(deps: Deps, body: any): Promise<HotmartResul
       const existing = (await deps.store.listPurchases({ leadId: lead.id })).find((p) => p.transaction === transaction && p.status === "aprovada");
       await save("aprovada");
       await cancelCarrinho(deps, lead.id);
+      await cancelLinkSemCompra(deps, lead.id);
       if (!existing) {
         const purchases = Array.from(new Set([...lead.purchases, product]));
         lead = await deps.store.updateLead(lead.id, { purchases, stage: "comprou" });

@@ -1,0 +1,9 @@
+nome: Privacidade confirmada com "não tem problema"
+descricao: Um "não" dentro de "não tem problema" não pode ser lido como recusa.
+lead: { consentimento_ligacao: true }
+passos:
+  - ligacao: { motivo: "lead pediu informações sobre o treino" }
+  - voz: "Sou eu"
+  - voz: "Não tem problema, pode falar"
+    espera:
+      nao_deve: ["outro horario", "https?://"]

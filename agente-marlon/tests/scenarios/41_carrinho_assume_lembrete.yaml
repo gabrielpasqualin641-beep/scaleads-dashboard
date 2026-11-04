@@ -1,0 +1,9 @@
+nome: Carrinho abandonado assume o lugar do lembrete de link
+passos:
+  - lead: "Oi, quero o link do CONTROLE 2.0"
+    espera:
+      jobs: [link_sem_compra]
+  - hotmart: { evento: PURCHASE_OUT_OF_SHOPPING_CART, produto: controle2, transacao: HP1002 }
+    espera:
+      jobs: [retomada_carrinho]
+      sem_jobs: [link_sem_compra]

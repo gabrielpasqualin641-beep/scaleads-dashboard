@@ -9,6 +9,7 @@ export type JobType =
   | "lembrete_consulta"
   | "confirmacao_por_voz"
   | "retorno_combinado"
+  | "link_sem_compra"
   | "resumo_diario"
   | "export_csv"
   | "retencao_lgpd";

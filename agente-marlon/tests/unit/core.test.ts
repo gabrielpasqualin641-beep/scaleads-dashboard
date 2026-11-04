@@ -109,3 +109,18 @@ test("telefone normalizado para E.164 brasileiro", () => {
   assert.equal(normalizePhone("+55 11 99999-0001"), "5511999990001");
   assert.equal(normalizePhone("123"), null);
 });
+
+test("v1.1: frases de risco novas", () => {
+  for (const f of ["quero sumir", "queria sumir de tudo", "tô pensando em me matar", "não vale a pena viver", "não tenho motivo pra viver", "ninguém vai sentir minha falta"]) {
+    assert.ok(detectCrisis(f), f);
+  }
+});
+
+test("v1.1: segredos obrigatórios em produção", async () => {
+  const { missingProdSecrets, config } = await import("../../src/config.js");
+  const base = { ...config, WA_APP_SECRET: "a", WA_VERIFY_TOKEN: "b", HOTMART_HOTTOK: "c", LEAD_WEBHOOK_SECRET: "d" };
+  assert.deepEqual(missingProdSecrets({ ...base, VOICE_PROVIDER: "none" }), []);
+  assert.deepEqual(missingProdSecrets({ ...base, VOICE_PROVIDER: "vapi", VAPI_WEBHOOK_SECRET: "" }), ["VAPI_WEBHOOK_SECRET"]);
+  assert.deepEqual(missingProdSecrets({ ...base, VOICE_PROVIDER: "retell", RETELL_LLM_SECRET: "", CRON_SECRET: "" }), ["RETELL_LLM_SECRET", "CRON_SECRET"]);
+  assert.ok(missingProdSecrets({ ...base, HOTMART_HOTTOK: "" }).includes("HOTMART_HOTTOK"));
+});

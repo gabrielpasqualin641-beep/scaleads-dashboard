@@ -18,6 +18,19 @@
 - Controle Express: R$47 à vista.
 - Consulta: link de pagamento enviado no agendamento.
 
+## Confiabilidade
+- A compra do Controle Express e do CONTROLE 2.0 é feita pela Hotmart, com garantia de 7 dias.
+- O Marlon Mattedi é psicólogo, CRP 12/03841. O registro pode ser consultado no Conselho de Psicologia.
+
+## Escopo dos produtos
+- O Controle Express e o Treino CONTROLE 2.0 são voltados para ejaculação precoce.
+- Não tratam disfunção erétil. Para isso, indicar um médico ou a consulta com o Marlon.
+- Os exercícios são feitos sozinho; a parceira não precisa participar.
+
+## Prazo de resultado
+- Não existe prazo garantido. Os resultados variam de pessoa para pessoa.
+- A regularidade nos exercícios depende da própria pessoa.
+
 ## Público
 - Somente maiores de 18 anos.
 
