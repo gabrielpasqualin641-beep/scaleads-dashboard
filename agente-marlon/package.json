@@ -25,7 +25,8 @@
     "panel:build": "npm --prefix panel run build",
     "demo": "tsx src/scripts/demo.ts",
     "test:all": "npm test && npm run test:scenarios",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "local": "node scripts/local.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.4.0",
