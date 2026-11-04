@@ -9,11 +9,10 @@ import { handleHotmart } from "../integrations/hotmart.js";
 import { createHarness } from "../sim/harness.js";
 import { buildServer } from "../server.js";
 
-const h = createHarness({ start: new Date().toISOString() });
-// Relógio real no demo; o horário de contato continua valendo para as cadências.
+const h = createHarness({ start: new Date().toISOString(), live: Boolean(config.ANTHROPIC_API_KEY) });
+// O relógio do demo anda junto com o real, e o simulador pode adiantá-lo (/api/sim/tempo) para ver as cadências.
 h.clock.now = new Date();
-setInterval(() => (h.clock.now = new Date()), 1000).unref();
-h.app.deps.now = () => new Date();
+setInterval(() => (h.clock.now = new Date(h.clock.now.getTime() + 1000)), 1000).unref();
 
 await h.store.createUser({ email: "demo@equipe.local", name: "Equipe (demo)", passwordHash: await bcrypt.hash("demo-senha-123", 10) });
 const e = h.app.engine;
@@ -38,6 +37,7 @@ const { session } = await h.startCall((await h.store.getLead(lead.id))!, "lead p
 for (const t of ["Sou eu", "Pode falar", "Quanto custa?"]) await e.handleVoiceTurn(session, t);
 await h.endCall(session);
 
-const server = await buildServer(h.app);
+const server = await buildServer(h.app, { sim: h });
 await server.listen({ port: config.PORT, host: "0.0.0.0" });
-console.log(`Demo no ar: http://localhost:${config.PORT} · login demo@equipe.local / demo-senha-123`);
+console.log(`Demo no ar: http://localhost:${config.PORT} · cérebro: ${h.app.engine.brain.name} · login demo@equipe.local / demo-senha-123`);
+console.log("Converse com o agente no painel: http://localhost:3000/simulador");

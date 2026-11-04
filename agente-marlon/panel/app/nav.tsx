@@ -14,6 +14,7 @@ export function Nav() {
   return (
     <nav className="nav">
       <b>Agente comercial</b>
+      {link("/simulador", "Falar com o agente")}
       {link("/", "Conversas")}
       {link("/ligacoes", "Ligações")}
       {link("/funil", "Funil e métricas")}

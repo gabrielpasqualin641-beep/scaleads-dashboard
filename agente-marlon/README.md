@@ -91,6 +91,8 @@ npm run panel:dev
 
 O demo sobe o backend em memória em http://localhost:3333 com conversas de exemplo. O painel abre em http://localhost:3000, com login `demo@equipe.local` / `demo-senha-123`.
 
+No menu **Falar com o agente** (http://localhost:3000/simulador) você conversa com o agente como se fosse o lead, no WhatsApp ou numa ligação simulada. Ao lado aparecem a regra fixa ativada, as ferramentas usadas, o estado do lead e os próximos contatos automáticos. Também dá para adiantar o relógio e simular eventos da Hotmart. Sem `ANTHROPIC_API_KEY`, quem responde é o roteiro offline; com a chave no `.env`, é o Claude.
+
 ### 4) Modo completo (Postgres + Redis)
 
 ```bash

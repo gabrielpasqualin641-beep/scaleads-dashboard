@@ -7,12 +7,14 @@ import Fastify from "fastify";
 import { config } from "./config.js";
 import { buildApp, type App } from "./app.js";
 import { registerPanelApi } from "./http/panelApi.js";
+import { registerSimApi } from "./http/simApi.js";
 import { registerWebhooks } from "./http/webhooks.js";
+import type { Harness } from "./sim/harness.js";
 import { runJob } from "./queue/jobs.js";
 import { BullScheduler } from "./queue/scheduler.js";
 import { registerVoiceRoutes } from "./voice/routes.js";
 
-export async function buildServer(app: App = buildApp()) {
+export async function buildServer(app: App = buildApp(), opts: { sim?: Harness } = {}) {
   const server = Fastify({ logger: { level: config.NODE_ENV === "test" ? "silent" : "info" }, trustProxy: true, bodyLimit: 2 * 1024 * 1024 });
 
   // Guarda o corpo cru para validar a assinatura da Meta.
@@ -35,6 +37,7 @@ export async function buildServer(app: App = buildApp()) {
   server.get("/health", async () => ({ ok: true, brain: app.engine.brain.name, voz: app.deps.dialer?.name ?? "desligada" }));
   registerWebhooks(server, app);
   registerPanelApi(server, app);
+  if (opts.sim) registerSimApi(server, opts.sim); // só no modo demo
   registerVoiceRoutes(server, app.engine);
   return server;
 }
