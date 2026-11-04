@@ -1,0 +1,12 @@
+nome: Botão "Falar com a equipe"
+descricao: O pedido do lead vira consentimento registrado (data, origem, texto) e ligação em até 15 min.
+passos:
+  - lead: "Oi"
+  - botao: falar_equipe
+    espera:
+      consentimento_ligacao: true
+      jobs: [ligacao]
+      deve: ["liga"]
+  - tempo: "+15m"
+    espera:
+      discou: 1

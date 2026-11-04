@@ -1,0 +1,7 @@
+nome: Pedido para falar com o Marlon
+passos:
+  - lead: "Oi"
+  - lead: "Quero falar com o Marlon"
+    espera:
+      tools: [transferir_humano]
+      lead: { aiPaused: true }

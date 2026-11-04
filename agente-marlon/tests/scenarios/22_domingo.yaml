@@ -1,0 +1,11 @@
+nome: Carrinho abandonado no domingo
+descricao: Nada aos domingos; a retomada sai na segunda às 9h.
+relogio: "2026-11-08T11:00:00-03:00"
+passos:
+  - hotmart: { evento: PURCHASE_OUT_OF_SHOPPING_CART, produto: express, transacao: HP400 }
+  - tempo: "+12h"
+    espera:
+      envios: { nenhum: true }
+  - tempo: "+12h"
+    espera:
+      envios: { templates: [retomada_pedido] }

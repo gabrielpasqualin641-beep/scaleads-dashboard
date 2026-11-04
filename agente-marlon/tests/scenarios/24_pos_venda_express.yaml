@@ -1,0 +1,14 @@
+nome: Pós-venda do Controle Express (D+1, D+3, D+6)
+passos:
+  - hotmart: { evento: PURCHASE_APPROVED, produto: express, transacao: HP500 }
+    espera:
+      lead: { purchases: [controle_express] }
+  - tempo: "+25h"
+    espera:
+      envios: { templates: [acompanhamento] }
+  - tempo: "+48h"
+    espera:
+      envios: { templates: [acompanhamento] }
+  - tempo: "+72h"
+    espera:
+      envios: { templates: [acompanhamento] }

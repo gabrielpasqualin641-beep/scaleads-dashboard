@@ -1,0 +1,10 @@
+nome: Compra aprovada cancela a retomada de carrinho
+lead: { consentimento_ligacao: true }
+passos:
+  - hotmart: { evento: PURCHASE_OUT_OF_SHOPPING_CART, produto: controle2, transacao: HP600 }
+  - hotmart: { evento: PURCHASE_APPROVED, produto: controle2, transacao: HP600 }
+    espera:
+      sem_jobs: [retomada_carrinho, ligacao]
+  - tempo: "+1d"
+    espera:
+      discou: 0

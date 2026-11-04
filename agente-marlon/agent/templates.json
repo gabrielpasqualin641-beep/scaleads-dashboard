@@ -1,0 +1,58 @@
+{
+  "_comentario": "Templates para fora da janela de 24h. Textos NEUTROS: não citam a condição nem o produto (pré-visualização de notificação). Sincronize com `npm run templates:sync`.",
+  "templates": [
+    {
+      "name": "boas_vindas",
+      "category": "UTILITY",
+      "body": "Oi {{1}}, aqui é a {{2}}, assistente virtual da equipe do Marlon Mattedi. Posso te mandar a informação que você pediu?",
+      "example": ["João", "Clara"],
+      "buttons": ["Pode mandar", "Agora não"]
+    },
+    {
+      "name": "retomada_pedido",
+      "category": "UTILITY",
+      "body": "Oi {{1}}, aqui é a {{2}}, assistente virtual da equipe do Marlon Mattedi. Vi que ficou uma etapa pendente no seu pedido. Posso te ajudar com alguma dúvida?",
+      "example": ["João", "Clara"],
+      "buttons": ["Quero ajuda", "Agora não"]
+    },
+    {
+      "name": "lembrete_horario",
+      "category": "UTILITY",
+      "body": "Oi {{1}}, aqui é da equipe do Marlon Mattedi. Lembrete do seu horário: {{2}}. Você confirma?",
+      "example": ["João", "terça, 14/11 às 15h"],
+      "buttons": ["Confirmo", "Preciso remarcar"]
+    },
+    {
+      "name": "acompanhamento",
+      "category": "UTILITY",
+      "body": "Oi {{1}}, aqui é a {{2}}, assistente virtual da equipe do Marlon Mattedi. Passando para saber como você está com o seu acesso. Posso te ajudar em algo?",
+      "example": ["João", "Clara"],
+      "buttons": ["Tenho uma dúvida", "Tudo certo"]
+    },
+    {
+      "name": "retorno_combinado",
+      "category": "UTILITY",
+      "body": "Oi {{1}}, aqui é a {{2}}, assistente virtual da equipe do Marlon Mattedi, como combinamos. Podemos continuar de onde paramos?",
+      "example": ["João", "Clara"],
+      "buttons": ["Sim", "Agora não"]
+    },
+    {
+      "name": "link_solicitado",
+      "category": "UTILITY",
+      "body": "Oi {{1}}, aqui é da equipe do Marlon Mattedi. Segue o link que você pediu: {{2}}",
+      "example": ["João", "https://pay.hotmart.com/..."]
+    },
+    {
+      "name": "alerta_equipe",
+      "category": "UTILITY",
+      "body": "Atendimento para a equipe. Contato: {{1}}. Motivo: {{2}}. Urgência: {{3}}. Abra o painel.",
+      "example": ["João (final 1234)", "reembolso", "media"]
+    },
+    {
+      "name": "resumo_diario",
+      "category": "UTILITY",
+      "body": "Resumo do agente ({{1}}): {{2}} conversas, {{3}} links enviados, {{4}} vendas, receita atribuída R$ {{5}}, {{6}} consultas agendadas, {{7}} transferências, {{8}} opt-outs.",
+      "example": ["03/11", "42", "18", "6", "1.382,00", "2", "3", "1"]
+    }
+  ]
+}

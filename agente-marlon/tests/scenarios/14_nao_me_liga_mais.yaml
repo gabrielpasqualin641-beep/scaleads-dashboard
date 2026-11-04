@@ -1,0 +1,17 @@
+nome: "Não me liga mais"
+descricao: Opt-out de voz na hora, encerra a ligação e cancela as ligações agendadas.
+lead: { consentimento_ligacao: true }
+passos:
+  - hotmart: { evento: PURCHASE_OUT_OF_SHOPPING_CART, produto: controle2, transacao: HP777 }
+    espera:
+      jobs: [retomada_carrinho, ligacao]
+  - ligacao: { motivo: "lead pediu ligação" }
+  - voz: "Não me liga mais, por favor"
+    espera:
+      guard: optout
+      encerra: true
+      lead: { optOutVoz: true }
+      sem_jobs: [ligacao]
+  - tempo: "+2d"
+    espera:
+      discou: 0

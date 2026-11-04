@@ -1,0 +1,8 @@
+nome: Ligação de oferta sem número 0303 é bloqueada
+sem_0303: true
+lead: { consentimento_ligacao: true }
+passos:
+  - hotmart: { evento: PURCHASE_BILLET_PRINTED, produto: controle2, transacao: HP900 }
+  - tempo: "+1d"
+    espera:
+      discou: 0

@@ -1,0 +1,10 @@
+nome: Pedido de reembolso pela Hotmart (PURCHASE_PROTEST)
+lead: { compras: [controle_2] }
+passos:
+  - hotmart: { evento: PURCHASE_PROTEST, produto: controle2, transacao: HP700 }
+    espera:
+      tarefa: { motivo: "reembolso" }
+      lead: { aiPaused: true }
+  - lead: "Oi, e o meu reembolso?"
+    espera:
+      sem_resposta: true

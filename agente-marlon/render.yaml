@@ -1,0 +1,43 @@
+# Blueprint do Render: backend + painel + Redis. Postgres no Supabase (DATABASE_URL).
+services:
+  - type: web
+    name: agente-marlon-backend
+    runtime: node
+    rootDir: agente-marlon
+    plan: starter
+    buildCommand: npm ci && npx prisma generate && npx prisma db push
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: WORKER_INLINE
+        value: "true"
+      - key: REDIS_URL
+        fromService: { type: redis, name: agente-marlon-redis, property: connectionString }
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: PANEL_ORIGIN
+        sync: false
+      # Demais variáveis do .env.example: cadastre no painel do Render.
+  - type: web
+    name: agente-marlon-painel
+    runtime: node
+    rootDir: agente-marlon/panel
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: BACKEND_URL
+        sync: false
+  - type: redis
+    name: agente-marlon-redis
+    plan: starter
+    ipAllowList: []
+    maxmemoryPolicy: noeviction

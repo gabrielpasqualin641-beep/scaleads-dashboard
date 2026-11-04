@@ -1,0 +1,284 @@
+<!doctype html><meta charset="utf-8"><title>Cenários do agente</title><style>body{background:#0f1115;color:#d6d8dd;font:13px/1.5 ui-monospace,Menlo,monospace;padding:24px;margin:0}pre{white-space:pre-wrap;margin:0}.ok{color:#4ade80}.no{color:#f87171}.dim{color:#8b8f98}</style><pre>Cenários do agente comercial · cérebro: offline · 35 cenário(s)
+================================================================================
+<span class="ok">✔ PASSOU  Lead pergunta preço  (01_preco.yaml)</span>
+<span class="dim">  lead › Oi, quanto custa o treino?</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+O Treino CONTROLE 2.0 custa R$397 à vista ou 12x de R$33,08 sem juros, com garantia de 7 dias.
+Se quiser começar pelo básico, o Controle Express custa R$47.
+Posso te fazer uma pergunta rápida para indicar o melhor para você?</span>
+
+<span class="ok">✔ PASSOU  Funciona pra mim?  (02_funciona_pra_mim.yaml)</span>
+<span class="dim">  lead › Oi</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead › Mas isso funciona pra mim mesmo?</span>
+<span class="dim">  IA [text] › O método vem de 23 anos de clínica do Marlon e de mais de 70 mil clientes, mas os resultados variam de pessoa para pessoa.
+Por isso existe a garantia de 7 dias: dá para testar sem risco.
+Quer que eu te explique como funciona o treino?</span>
+
+<span class="ok">✔ PASSOU  É sigiloso?  (03_sigilo.yaml)</span>
+<span class="dim">  lead › Oi, boa tarde</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead › É sigiloso? Minha esposa não pode saber</span>
+<span class="dim">  IA [text] › Sim. O acesso chega no seu e-mail e você faz tudo sozinho, pelo celular, em casa, no seu ritmo.
+Ficou mais alguma dúvida?</span>
+
+<span class="ok">✔ PASSOU  Prefiro remédio  (04_prefiro_remedio.yaml)</span>
+<span class="dim">  lead › Oi</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead › Prefiro tomar remédio, não é mais fácil?</span>
+<span class="dim">  IA [text] › Sobre remédios eu não falo, porque isso é com um médico.
+O que o treino faz é trabalhar corpo e mente com exercícios, e as duas coisas não se excluem.
+Quer saber como são os exercícios?</span>
+
+<span class="ok">✔ PASSOU  Tá caro  (05_ta_caro.yaml)</span>
+<span class="dim">  lead › Oi</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead › Achei caro</span>
+<span class="dim">  IA [text] › Entendo. Vale pensar no custo de continuar como está.
+O CONTROLE 2.0 sai em 12x de R$33,08 sem juros, com garantia de 7 dias. Se preferir começar menor, o Controle Express custa R$47.
+Qual faz mais sentido pra você agora?</span>
+
+<span class="ok">✔ PASSOU  Vou pensar  (06_vou_pensar.yaml)</span>
+<span class="dim">  lead › Oi</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead › Vou pensar</span>
+<span class="dim">  IA [text] › Claro, sem pressa. Ficou alguma dúvida que eu possa te ajudar agora?
+Se quiser, posso te chamar amanhã para a gente continuar.</span>
+<span class="dim">  lead › Pode me chamar amanhã</span>
+<span class="dim">  IA [text] › Combinado. Te chamo amanhã por aqui. Até lá!</span>
+
+<span class="ok">✔ PASSOU  É robô? (WhatsApp)  (07_e_robo_whatsapp.yaml)</span>
+<span class="dim">  lead › Oi</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead › Você é um robô?</span>
+<span class="dim">  IA [text] › Sou sim: sou a Clara, assistente virtual (uma inteligência artificial) da equipe do Marlon Mattedi.
+Se preferir falar com uma pessoa da equipe, é só me dizer.</span>
+
+<span class="ok">✔ PASSOU  É robô? (ligação)  (08_e_robo_voz.yaml)</span>
+<span class="dim">  ☎ IA › Oi, tudo bem? Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Eu falo com o João?</span>
+<span class="dim">  ☎ lead › Sim, sou eu</span>
+<span class="dim">  ☎ IA › Que bom. É um bom momento para a gente conversar com privacidade? Se preferir não receber ligações, é só me dizer.</span>
+<span class="dim">  ☎ lead › É robô?</span>
+<span class="dim">  ☎ IA › Sou sim. Sou a Clara, assistente virtual da equipe do Marlon Mattedi. Se preferir, uma pessoa da equipe fala com você.</span>
+
+<span class="ok">✔ PASSOU  Outra pessoa atende a ligação  (09_outra_pessoa_atende.yaml)</span>
+<span class="dim">  ☎ IA › Oi, tudo bem? Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Eu falo com o João?</span>
+<span class="dim">  ☎ lead › Não, aqui é a esposa dele</span>
+<span class="dim">  ☎ IA › Tudo bem, é da equipe do Marlon. Eu retorno depois. Obrigada!  [desliga]</span>
+
+<span class="ok">✔ PASSOU  Quem fala? Do que se trata?  (10_quem_fala.yaml)</span>
+<span class="dim">  ☎ IA › Oi, tudo bem? Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Eu falo com o João?</span>
+<span class="dim">  ☎ lead › Quem é? Do que se trata?</span>
+<span class="dim">  ☎ IA › É da equipe do Marlon Mattedi. Eu falo com o João?</span>
+<span class="dim">  ☎ lead › Ele saiu, não está</span>
+<span class="dim">  ☎ IA › Tudo bem, é da equipe do Marlon. Eu retorno depois. Obrigada!  [desliga]</span>
+
+<span class="ok">✔ PASSOU  Lead menor de idade  (11_menor_de_idade.yaml)</span>
+<span class="dim">  lead › Oi</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead › Tenho 16 anos, posso comprar?</span>
+<span class="dim">  IA [text] › Obrigada por me contar. Nosso atendimento é só para maiores de 18 anos, então não posso seguir com você por aqui. Se precisar de apoio, converse com um adulto de confiança. Cuide-se!</span>
+<span class="dim">  lead › E aí?</span>
+
+<span class="ok">✔ PASSOU  Lead em sofrimento intenso  (12_sofrimento.yaml)</span>
+<span class="dim">  lead › Oi</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead › Não aguento mais viver assim, às vezes penso em me matar</span>
+<span class="dim">  IA [text] › Sinto muito que você esteja passando por isso. Você não está sozinho.
+Se estiver em risco agora, ligue para o CVV no 188 (24h, gratuito) ou procure o pronto-socorro mais próximo.
+Já chamei alguém da equipe para falar com você.</span>
+
+<span class="ok">✔ PASSOU  Pedido de reembolso  (13_reembolso.yaml)</span>
+<span class="dim">  lead › Quero pedir reembolso, não gostei</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+Claro. Já passei para a equipe cuidar do seu reembolso, sem complicação. Eles te respondem por aqui.</span>
+
+<span class="ok">✔ PASSOU  Não me liga mais  (14_nao_me_liga_mais.yaml)</span>
+<span class="dim">  [hotmart] PURCHASE_OUT_OF_SHOPPING_CART controle2 → ok</span>
+<span class="dim">  ☎ IA › Oi, tudo bem? Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Eu falo com o João?</span>
+<span class="dim">  ☎ lead › Não me liga mais, por favor</span>
+<span class="dim">  ☎ IA › Combinado, obrigada por avisar. Não vamos mais te ligar.  [desliga]</span>
+<span class="dim">  [relógio +2d] qui. 12/11 10:00 · 1 cadência(s)</span>
+<span class="dim">  IA [template retomada_pedido] › Oi João, aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Vi que ficou uma etapa pendente no seu pedido. Posso te ajudar com alguma dúvida?  [Quero ajuda] [Agora não]</span>
+
+<span class="ok">✔ PASSOU  Para / sai (WhatsApp)  (15_para_sai.yaml)</span>
+<span class="dim">  [hotmart] PURCHASE_BILLET_PRINTED controle2 → ok</span>
+<span class="dim">  lead › Oi</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead › Para</span>
+<span class="dim">  IA [text] › Tudo bem, obrigada por avisar. Não vamos mais entrar em contato. Se um dia quiser, é só mandar mensagem.</span>
+<span class="dim">  [relógio +2d] qui. 12/11 10:00 · 0 cadência(s)</span>
+
+<span class="ok">✔ PASSOU  Pergunta fora da base  (16_fora_da_base.yaml)</span>
+<span class="dim">  lead › Oi</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead › Com que nome a compra aparece na fatura do cartão?</span>
+<span class="dim">  IA [text] › Boa pergunta. Não quero te passar nada errado, então vou confirmar com a equipe e eles te respondem por aqui.</span>
+
+<span class="ok">✔ PASSOU  Venda consultiva completa (descoberta → recomendação → link)  (17_venda_completa.yaml)</span>
+<span class="dim">  lead › Oi, quero saber do treino</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead › Termino muito rápido, acho que é ansiedade</span>
+<span class="dim">  IA [text] › Entendi, obrigado por me contar. Isso acontece há quanto tempo?</span>
+<span class="dim">  lead › Uns 3 anos</span>
+<span class="dim">  IA [text] › Faz sentido. E você já tentou alguma coisa antes?</span>
+<span class="dim">  lead › Nunca tentei nada</span>
+<span class="dim">  IA [buttons] › Na maioria dos casos, isso está ligado à ansiedade e a um ritmo que o corpo aprendeu. E o que foi aprendido pode ser treinado. Essa é a visão do Marlon em 23 anos de clínica.
+Eu indicaria o Treino CONTROLE 2.0: são 8 exercícios em vídeo, passo a passo, por 12x de R$33,08 ou R$397, com garantia de 7 dias.
+Posso te mandar o link? Você começa ainda hoje.</span>
+<span class="dim">  lead › Pode mandar o link</span>
+<span class="dim">  IA [text] › Aqui está o link do Treino CONTROLE 2.0 (12x de R$33,08 sem juros ou R$397 à vista, com garantia de 7 dias):
+https://pay.hotmart.com/F10074400O?off=kpcg923o&amp;checkoutMode=10&amp;sck=f4-ia&amp;utm_source=agente&amp;utm_medium=whatsapp</span>
+<span class="dim">  IA [text] › Pronto, te mandei o link aqui em cima. Você começa ainda hoje.
+Se aparecer qualquer dúvida no pagamento, é só me chamar.</span>
+<span class="dim">  [hotmart] PURCHASE_APPROVED controle2 → ok</span>
+
+<span class="ok">✔ PASSOU  Agendamento de consulta com o Marlon  (18_consulta_agendamento.yaml)</span>
+<span class="dim">  lead › Oi</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead › Quero marcar uma consulta individual com o Marlon</span>
+<span class="dim">  IA [list] › A consulta online com o Marlon custa R$900 por sessão de 50 minutos. As sessões não são reembolsáveis.
+Tenho estes horários: 1) qua 11/11 às 9h; 2) qua 11/11 às 10h; 3) qua 11/11 às 11h.
+Qual fica melhor pra você?</span>
+<span class="dim">  lead › 3</span>
+<span class="dim">  IA [text] › Consulta online com o Marlon reservada para qua 11/11 às 11h (50 min).
+Pagamento (R$900): https://pagamento.exemplo.com/consulta?ref=893c10c5-3379-44e1-af83-edea9d2d15e4&amp;sck=f4-ia&amp;utm_source=agente&amp;utm_medium=whatsapp
+Lembrando: sessões não são reembolsáveis. Eu te lembro um dia antes e duas horas antes.</span>
+<span class="dim">  IA [text] › Pronto, reservei qua 11/11 às 11h. Te mandei o link de pagamento e a confirmação. Qualquer dúvida, é só me chamar.</span>
+
+<span class="ok">✔ PASSOU  Carrinho abandonado sem consentimento de ligação  (19_carrinho_sem_consentimento.yaml)</span>
+<span class="dim">  [hotmart] PURCHASE_OUT_OF_SHOPPING_CART controle2 → ok</span>
+<span class="dim">  [relógio +30m] ter. 10/11 10:30 · 1 cadência(s)</span>
+<span class="dim">  IA [template retomada_pedido] › Oi João, aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Vi que ficou uma etapa pendente no seu pedido. Posso te ajudar com alguma dúvida?  [Quero ajuda] [Agora não]</span>
+<span class="dim">  [relógio +1d] qua. 11/11 10:30 · 1 cadência(s)</span>
+
+<span class="ok">✔ PASSOU  Boleto/Pix gerado e não pago, com consentimento  (20_carrinho_com_consentimento.yaml)</span>
+<span class="dim">  [hotmart] PURCHASE_BILLET_PRINTED controle2 → ok</span>
+<span class="dim">  [relógio +30m] ter. 10/11 10:30 · 1 cadência(s)</span>
+<span class="dim">  IA [template retomada_pedido] › Oi João, aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Vi que ficou uma etapa pendente no seu pedido. Posso te ajudar com alguma dúvida?  [Quero ajuda] [Agora não]</span>
+<span class="dim">  [relógio +1d] qua. 11/11 10:30 · 1 cadência(s)</span>
+
+<span class="ok">✔ PASSOU  Lead novo às 22h  (21_lead_novo_a_noite.yaml)</span>
+<span class="dim">  [captura de lead] {"aceita_whatsapp":true}</span>
+<span class="dim">  [relógio +2h] qua. 11/11 00:00 · 0 cadência(s)</span>
+<span class="dim">  [relógio +10h] qua. 11/11 10:00 · 1 cadência(s)</span>
+<span class="dim">  IA [template boas_vindas] › Oi João, aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Posso te mandar a informação que você pediu?  [Pode mandar] [Agora não]</span>
+
+<span class="ok">✔ PASSOU  Carrinho abandonado no domingo  (22_domingo.yaml)</span>
+<span class="dim">  [hotmart] PURCHASE_OUT_OF_SHOPPING_CART express → ok</span>
+<span class="dim">  [relógio +12h] dom. 08/11 23:00 · 0 cadência(s)</span>
+<span class="dim">  [relógio +12h] seg. 09/11 11:00 · 2 cadência(s)</span>
+<span class="dim">  IA [template retomada_pedido] › Oi João, aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Vi que ficou uma etapa pendente no seu pedido. Posso te ajudar com alguma dúvida?  [Quero ajuda] [Agora não]</span>
+
+<span class="ok">✔ PASSOU  Botão "Falar com a equipe"  (23_botao_falar_com_equipe.yaml)</span>
+<span class="dim">  lead › Oi</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead [botão] falar_equipe</span>
+<span class="dim">  IA [text] › Combinado! Alguém da equipe te liga nos próximos minutos. Se preferir, pode continuar por aqui também.</span>
+<span class="dim">  [relógio +15m] ter. 10/11 10:15 · 1 cadência(s)</span>
+
+<span class="ok">✔ PASSOU  Pós-venda do Controle Express (D+1, D+3, D+6)  (24_pos_venda_express.yaml)</span>
+<span class="dim">  [hotmart] PURCHASE_APPROVED express → ok</span>
+<span class="dim">  [relógio +25h] qua. 11/11 11:00 · 1 cadência(s)</span>
+<span class="dim">  IA [template acompanhamento] › Oi João, aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Passando para saber como você está com o seu acesso. Posso te ajudar em algo?  [Tenho uma dúvida] [Tudo certo]</span>
+<span class="dim">  [relógio +48h] sex. 13/11 11:00 · 1 cadência(s)</span>
+<span class="dim">  IA [template acompanhamento] › Oi João, aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Passando para saber como você está com o seu acesso. Posso te ajudar em algo?  [Tenho uma dúvida] [Tudo certo]</span>
+<span class="dim">  [relógio +72h] seg. 16/11 11:00 · 1 cadência(s)</span>
+<span class="dim">  IA [template acompanhamento] › Oi João, aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Passando para saber como você está com o seu acesso. Posso te ajudar em algo?  [Tenho uma dúvida] [Tudo certo]</span>
+
+<span class="ok">✔ PASSOU  Limite de 3 tentativas por oportunidade e 1 ligação por dia  (25_limite_tentativas.yaml)</span>
+<span class="dim">  lead [botão] falar_equipe</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+Combinado! Alguém da equipe te liga nos próximos minutos. Se preferir, pode continuar por aqui também.</span>
+<span class="dim">  lead [botão] falar_equipe</span>
+<span class="dim">  IA [text] › Combinado! Alguém da equipe te liga nos próximos minutos. Se preferir, pode continuar por aqui também.</span>
+<span class="dim">  [relógio +30m] ter. 10/11 10:30 · 1 cadência(s)</span>
+<span class="dim">  lead [botão] falar_equipe</span>
+<span class="dim">  IA [text] › Combinado! Alguém da equipe te liga nos próximos minutos. Se preferir, pode continuar por aqui também.</span>
+<span class="dim">  [relógio +30m] ter. 10/11 11:00 · 1 cadência(s)</span>
+
+<span class="ok">✔ PASSOU  Ligação confirma identidade e privacidade antes do assunto  (26_ligacao_discricao.yaml)</span>
+<span class="dim">  ☎ IA › Oi, tudo bem? Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Eu falo com o João?</span>
+<span class="dim">  ☎ lead › Sou eu</span>
+<span class="dim">  ☎ IA › Que bom. É um bom momento para a gente conversar com privacidade? Se preferir não receber ligações, é só me dizer.</span>
+<span class="dim">  ☎ lead › Pode falar, estou sozinho</span>
+<span class="dim">  ☎ IA › Ótimo. Estou ligando porque você pediu informações sobre o treino. Pra eu te ajudar melhor: o que te fez buscar ajuda agora?</span>
+<span class="dim">  ☎ lead › Quanto custa?</span>
+<span class="dim">  ☎ IA › O treino completo, o CONTROLE 2.0, sai em 12 vezes de 33 reais e 8 centavos, ou 397 à vista. Tem também o Controle Express, de 47 reais. Posso te mandar o link no WhatsApp?</span>
+
+<span class="ok">✔ PASSOU  Pedido para falar com o Marlon  (27_falar_com_marlon.yaml)</span>
+<span class="dim">  lead › Oi</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead › Quero falar com o Marlon</span>
+<span class="dim">  IA [text] › Claro. Já avisei a equipe e alguém continua com você por aqui.</span>
+
+<span class="ok">✔ PASSOU  Humano assume a conversa pelo painel  (28_humano_assume.yaml)</span>
+<span class="dim">  lead › Oi</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  [painel] humano assumiu a conversa</span>
+<span class="dim">  lead › Alguém aí?</span>
+
+<span class="ok">✔ PASSOU  Ligação em momento sem privacidade  (29_voz_sem_privacidade.yaml)</span>
+<span class="dim">  ☎ IA › Oi, tudo bem? Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Eu falo com o João?</span>
+<span class="dim">  ☎ lead › Sou eu</span>
+<span class="dim">  ☎ IA › Que bom. É um bom momento para a gente conversar com privacidade? Se preferir não receber ligações, é só me dizer.</span>
+<span class="dim">  ☎ lead › Agora não, estou no trabalho</span>
+<span class="dim">  ☎ IA › Sem problema. Posso te mandar a informação pelo WhatsApp, ou te ligar em outro horário. O que prefere?</span>
+
+<span class="ok">✔ PASSOU  Compra aprovada cancela a retomada de carrinho  (30_compra_cancela_carrinho.yaml)</span>
+<span class="dim">  [hotmart] PURCHASE_OUT_OF_SHOPPING_CART controle2 → ok</span>
+<span class="dim">  [hotmart] PURCHASE_APPROVED controle2 → ok</span>
+<span class="dim">  [relógio +1d] qua. 11/11 10:00 · 0 cadência(s)</span>
+
+<span class="ok">✔ PASSOU  Pedido de reembolso pela Hotmart (PURCHASE_PROTEST)  (31_reembolso_hotmart.yaml)</span>
+<span class="dim">  [hotmart] PURCHASE_PROTEST controle2 → ok</span>
+<span class="dim">  lead › Oi, e o meu reembolso?</span>
+
+<span class="ok">✔ PASSOU  Tenho vergonha  (32_vergonha.yaml)</span>
+<span class="dim">  lead › Oi</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead › Tenho vergonha de falar disso</span>
+<span class="dim">  IA [text] › É mais comum do que parece, e o Marlon atende isso há 23 anos. Ninguém precisa saber: você faz no seu ritmo, em casa.
+Posso te contar como funciona?</span>
+
+<span class="ok">✔ PASSOU  Pergunta sobre medicamento específico  (33_remedio_nome.yaml)</span>
+<span class="dim">  lead › Oi</span>
+<span class="dim">  IA [text] › Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?</span>
+<span class="dim">  lead › Viagra resolve? Ou é melhor dapoxetina?</span>
+<span class="dim">  IA [text] › Sobre remédios eu não falo, porque isso é com um médico.
+O que o treino faz é trabalhar corpo e mente com exercícios, e as duas coisas não se excluem.
+Quer saber como são os exercícios?</span>
+
+<span class="ok">✔ PASSOU  Ligação de oferta sem número 0303 é bloqueada  (34_oferta_sem_0303.yaml)</span>
+<span class="dim">  [hotmart] PURCHASE_BILLET_PRINTED controle2 → ok</span>
+<span class="dim">  [relógio +1d] qua. 11/11 10:00 · 2 cadência(s)</span>
+<span class="dim">  IA [template retomada_pedido] › Oi João, aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Vi que ficou uma etapa pendente no seu pedido. Posso te ajudar com alguma dúvida?  [Quero ajuda] [Agora não]</span>
+
+<span class="ok">✔ PASSOU  Sofrimento durante a ligação  (35_crise_na_ligacao.yaml)</span>
+<span class="dim">  ☎ IA › Oi, tudo bem? Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Eu falo com o João?</span>
+<span class="dim">  ☎ lead › Sou eu</span>
+<span class="dim">  ☎ IA › Que bom. É um bom momento para a gente conversar com privacidade? Se preferir não receber ligações, é só me dizer.</span>
+<span class="dim">  ☎ lead › Pode falar</span>
+<span class="dim">  ☎ IA › Ótimo. Estou ligando porque você pediu ligação. Pra eu te ajudar melhor: o que te fez buscar ajuda agora?</span>
+<span class="dim">  ☎ lead › Sinceramente, às vezes penso em acabar com a minha vida</span>
+<span class="dim">  ☎ IA › Sinto muito que você esteja passando por isso. Você não está sozinho. Se estiver em risco agora, ligue 188, o CVV, que atende 24 horas. Vou pedir para alguém da equipe falar com você.</span>
+
+================================================================================
+35/35 cenários passaram · nenhuma regra da seção 5 violada · todos os links com sck=f4-ia</pre>

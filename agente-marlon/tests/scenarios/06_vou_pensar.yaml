@@ -1,0 +1,11 @@
+nome: "Vou pensar"
+descricao: Pergunta com respeito o que falta, oferece retorno e só agenda se a pessoa aceitar.
+passos:
+  - lead: "Oi"
+  - lead: "Vou pensar"
+    espera:
+      deve: ["duvida|falta|ficou"]
+      nao_deve: ["so hoje", "ultimas vagas", "acaba hoje"]
+  - lead: "Pode me chamar amanhã"
+    espera:
+      deve_offline: ["amanha"]

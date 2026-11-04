@@ -1,0 +1,18 @@
+nome: Ligação confirma identidade e privacidade antes do assunto
+lead: { consentimento_ligacao: true }
+passos:
+  - ligacao: { motivo: "lead pediu informações sobre o treino" }
+    espera:
+      deve: ["assistente virtual", "falo com"]
+      neutra: true
+  - voz: "Sou eu"
+    espera:
+      deve: ["privacidade"]
+      neutra: true
+  - voz: "Pode falar, estou sozinho"
+    espera:
+      nao_deve: ["https?://"]
+  - voz: "Quanto custa?"
+    espera:
+      deve: ["397|33"]
+      nao_deve: ["https?://"]

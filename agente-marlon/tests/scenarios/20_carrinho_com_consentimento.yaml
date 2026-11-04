@@ -1,0 +1,11 @@
+nome: Boleto/Pix gerado e não pago, com consentimento
+descricao: WhatsApp em 30 min e ligação em 24h, saindo pelo 0303.
+lead: { consentimento_ligacao: true }
+passos:
+  - hotmart: { evento: PURCHASE_BILLET_PRINTED, produto: controle2, transacao: HP300 }
+  - tempo: "+30m"
+    espera:
+      envios: { templates: [retomada_pedido] }
+  - tempo: "+1d"
+    espera:
+      discou: 1

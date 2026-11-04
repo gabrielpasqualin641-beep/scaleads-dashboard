@@ -1,0 +1,8 @@
+nome: "Funciona pra mim?"
+descricao: Usa autoridade com verdade, diz que resultados variam e cita a garantia. Nunca promete.
+passos:
+  - lead: "Oi"
+  - lead: "Mas isso funciona pra mim mesmo?"
+    espera:
+      deve: ["variam", "7 dias"]
+      nao_deve: ["garanto", "com certeza", "\\bcura"]

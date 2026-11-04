@@ -1,0 +1,8 @@
+nome: Humano assume a conversa pelo painel
+descricao: Com a conversa assumida, a IA não responde nem faz cadência.
+passos:
+  - lead: "Oi"
+  - assumir: true
+  - lead: "Alguém aí?"
+    espera:
+      sem_resposta: true

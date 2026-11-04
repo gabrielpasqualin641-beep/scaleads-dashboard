@@ -1,0 +1,20 @@
+nome: Venda consultiva completa (descoberta → recomendação → link)
+passos:
+  - lead: "Oi, quero saber do treino"
+    espera:
+      deve: ["assistente virtual", "\\?"]
+  - lead: "Termino muito rápido, acho que é ansiedade"
+  - lead: "Uns 3 anos"
+  - lead: "Nunca tentei nada"
+    espera:
+      deve: ["ansiedade", "treinado", "resultado|garantia"]
+      deve_offline: ["controle 2.0", "posso te mandar o link"]
+  - lead: "Pode mandar o link"
+    espera:
+      tools: [enviar_link_checkout]
+      deve: ["sck=f4-ia"]
+      lead: { stage: link_enviado }
+  - hotmart: { evento: PURCHASE_APPROVED, produto: controle2, transacao: HP100 }
+    espera:
+      lead: { stage: comprou }
+      jobs: [pos_venda]

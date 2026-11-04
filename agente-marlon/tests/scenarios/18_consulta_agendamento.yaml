@@ -1,0 +1,14 @@
+nome: Agendamento de consulta com o Marlon
+descricao: Lista horários, agenda o escolhido, envia link de pagamento rastreado e agenda os lembretes.
+passos:
+  - lead: "Oi"
+  - lead: "Quero marcar uma consulta individual com o Marlon"
+    espera:
+      deve: ["900", "50 min", "nao sao reembolsaveis"]
+      tools: [listar_horarios]
+  - lead: "3"
+    espera:
+      tools: [agendar_consulta]
+      deve: ["sck=f4-ia"]
+      lead: { stage: consulta_agendada }
+      jobs: [lembrete_consulta]

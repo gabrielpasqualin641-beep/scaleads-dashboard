@@ -1,0 +1,8 @@
+nome: "É sigiloso?"
+descricao: Explica que o acesso chega no e-mail e é feito sozinho; não promete como aparece na fatura.
+passos:
+  - lead: "Oi, boa tarde"
+  - lead: "É sigiloso? Minha esposa não pode saber"
+    espera:
+      deve: ["e-mail|email", "sozinho|em casa|celular"]
+      nao_deve: ["fatura (aparece|vem) como", "nome discreto na fatura"]

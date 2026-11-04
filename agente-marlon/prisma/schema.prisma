@@ -1,0 +1,159 @@
+// Supabase (Postgres). Rode `npm run db:push` para criar as tabelas.
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Lead {
+  id                String    @id @default(uuid())
+  phone             String    @unique
+  name              String?
+  email             String?
+  source            String?
+  stage             String    @default("novo")
+  aiPaused          Boolean   @default(false)
+  pausedBy          String?
+  optOutWhatsapp    Boolean   @default(false)
+  optOutVoz         Boolean   @default(false)
+  callConsent       Json?
+  naoMePerturbe     Boolean   @default(false)
+  blockedMinor      Boolean   @default(false)
+  identityConfirmed Boolean   @default(false)
+  purchases         String[]  @default([])
+  summary           String    @default("")
+  lastInboundAt     DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  messages     Message[]
+  calls        Call[]
+  events       FunnelEvent[]
+  tasks        HumanTask[]
+  attempts     ContactAttempt[]
+  appointments Appointment[]
+  buys         Purchase[]
+  consents     ConsentLog[]
+
+  @@index([email])
+  @@index([updatedAt])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  channel   String
+  direction String
+  author    String
+  text      String
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([leadId, createdAt])
+  @@index([createdAt])
+}
+
+model Call {
+  id             String    @id @default(uuid())
+  leadId         String
+  lead           Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  direction      String
+  provider       String
+  providerCallId String?   @unique
+  reason         String
+  status         String
+  recorded       Boolean   @default(false)
+  summary        String?
+  durationSec    Int?
+  scheduledFor   DateTime?
+  startedAt      DateTime?
+  endedAt        DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([leadId])
+  @@index([createdAt])
+}
+
+model FunnelEvent {
+  id        String   @id @default(uuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      String
+  channel   String?
+  data      Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([leadId])
+}
+
+model HumanTask {
+  id        String   @id @default(uuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  reason    String
+  urgency   String
+  status    String   @default("aberta")
+  createdAt DateTime @default(now())
+
+  @@index([status])
+}
+
+model ContactAttempt {
+  id          String   @id @default(uuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  opportunity String
+  channel     String
+  createdAt   DateTime @default(now())
+
+  @@index([leadId, opportunity])
+}
+
+model Appointment {
+  id              String   @id @default(uuid())
+  leadId          String
+  lead            Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  start           DateTime
+  end             DateTime
+  calendarEventId String?
+  paymentLink     String?
+  status          String   @default("agendada")
+  createdAt       DateTime @default(now())
+}
+
+model Purchase {
+  id          String   @id @default(uuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  product     String
+  transaction String   @unique
+  status      String
+  value       Float
+  sck         String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model ConsentLog {
+  id        String   @id @default(uuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  kind      String
+  granted   Boolean
+  origin    String
+  text      String
+  createdAt DateTime @default(now())
+}
+
+model PanelUser {
+  id           String @id @default(uuid())
+  email        String @unique
+  name         String
+  passwordHash String
+}

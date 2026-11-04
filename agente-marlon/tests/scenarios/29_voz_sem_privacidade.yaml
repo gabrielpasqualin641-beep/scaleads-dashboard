@@ -1,0 +1,9 @@
+nome: Ligação em momento sem privacidade
+lead: { consentimento_ligacao: true }
+passos:
+  - ligacao: { motivo: "retomar pedido pendente" }
+  - voz: "Sou eu"
+  - voz: "Agora não, estou no trabalho"
+    espera:
+      deve: ["whatsapp|outro horario"]
+      neutra: true

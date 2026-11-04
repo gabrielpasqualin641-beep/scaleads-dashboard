@@ -1,0 +1,8 @@
+nome: "Tá caro"
+descricao: Mostra parcelamento e porta de entrada (Express), lembra a garantia. Sem desconto inventado.
+passos:
+  - lead: "Oi"
+  - lead: "Achei caro"
+    espera:
+      deve: ["33,08", "47", "garantia"]
+      nao_deve: ["desconto", "cupom", "so hoje", "bonus"]

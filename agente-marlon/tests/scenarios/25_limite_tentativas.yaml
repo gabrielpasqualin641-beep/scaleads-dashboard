@@ -1,0 +1,12 @@
+nome: Limite de 3 tentativas por oportunidade e 1 ligação por dia
+lead: { consentimento_ligacao: true }
+passos:
+  - botao: falar_equipe
+  - botao: falar_equipe
+  - tempo: "+30m"
+    espera:
+      discou: 1
+  - botao: falar_equipe
+  - tempo: "+30m"
+    espera:
+      discou: 0

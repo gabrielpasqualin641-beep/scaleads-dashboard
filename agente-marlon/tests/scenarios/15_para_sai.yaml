@@ -1,0 +1,14 @@
+nome: "Para / sai (WhatsApp)"
+descricao: Qualquer "para"/"sai" dispara opt-out de tudo e nenhuma cadência roda depois.
+passos:
+  - hotmart: { evento: PURCHASE_BILLET_PRINTED, produto: controle2, transacao: HP888 }
+  - lead: "Oi"
+  - lead: "Para"
+    espera:
+      guard: optout
+      deve: ["nao vamos mais"]
+      lead: { optOutWhatsapp: true, optOutVoz: true }
+      sem_jobs: [retomada_carrinho]
+  - tempo: "+2d"
+    espera:
+      envios: { nenhum: true }

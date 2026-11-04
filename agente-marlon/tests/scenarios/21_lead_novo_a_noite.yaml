@@ -1,0 +1,11 @@
+nome: Lead novo às 22h
+descricao: Nenhum contato ativo entre 20h e 9h. Boas-vindas só às 9h do dia seguinte.
+relogio: "2026-11-10T22:00:00-03:00"
+passos:
+  - captura: { aceita_whatsapp: true }
+  - tempo: "+2h"
+    espera:
+      envios: { nenhum: true }
+  - tempo: "+10h"
+    espera:
+      envios: { templates: [boas_vindas] }

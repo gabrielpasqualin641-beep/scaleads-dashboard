@@ -1,0 +1,12 @@
+nome: Outra pessoa atende a ligação
+descricao: Diz só que é da equipe do Marlon e que retorna depois. Nunca cita o assunto.
+lead: { consentimento_ligacao: true }
+passos:
+  - ligacao: { motivo: "retomar pedido pendente do CONTROLE 2.0" }
+    espera:
+      neutra: true
+  - voz: "Não, aqui é a esposa dele"
+    espera:
+      deve: ["equipe do marlon", "retorno depois"]
+      neutra: true
+      encerra: true

@@ -1,0 +1,7 @@
+nome: "Tenho vergonha"
+passos:
+  - lead: "Oi"
+  - lead: "Tenho vergonha de falar disso"
+    espera:
+      deve: ["comum", "ninguem precisa saber|no seu ritmo"]
+      nao_deve: ["\\bpenis\\b", "transar"]

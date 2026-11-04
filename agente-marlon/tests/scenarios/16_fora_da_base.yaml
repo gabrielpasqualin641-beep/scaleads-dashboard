@@ -1,0 +1,8 @@
+nome: Pergunta fora da base
+descricao: Não inventa. Diz que vai confirmar com a equipe e abre tarefa para humano.
+passos:
+  - lead: "Oi"
+  - lead: "Com que nome a compra aparece na fatura do cartão?"
+    espera:
+      deve: ["confirmar com a equipe"]
+      tools: [transferir_humano]

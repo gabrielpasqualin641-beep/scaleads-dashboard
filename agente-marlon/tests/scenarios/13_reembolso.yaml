@@ -1,0 +1,11 @@
+nome: Pedido de reembolso
+descricao: Vai direto para um humano. A IA nunca dificulta nem tenta reverter.
+lead: { compras: [controle_2] }
+passos:
+  - lead: "Quero pedir reembolso, não gostei"
+    espera:
+      guard: reembolso
+      deve: ["equipe", "reembolso"]
+      nao_deve: ["tem certeza", "que tal", "antes de", "garantia"]
+      tarefa: { motivo: "reembolso" }
+      lead: { aiPaused: true }

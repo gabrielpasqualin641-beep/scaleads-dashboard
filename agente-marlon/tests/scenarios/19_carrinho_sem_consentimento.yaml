@@ -1,0 +1,10 @@
+nome: Carrinho abandonado sem consentimento de ligação
+descricao: WhatsApp neutro em 30 min; nenhuma ligação em 24h.
+passos:
+  - hotmart: { evento: PURCHASE_OUT_OF_SHOPPING_CART, produto: controle2, transacao: HP200 }
+  - tempo: "+30m"
+    espera:
+      envios: { templates: [retomada_pedido] }
+  - tempo: "+1d"
+    espera:
+      discou: 0

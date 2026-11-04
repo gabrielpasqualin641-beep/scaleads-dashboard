@@ -1,0 +1,8 @@
+nome: Lead pergunta preço
+descricao: Responde com os preços da base, sem inventar desconto nem urgência.
+passos:
+  - lead: "Oi, quanto custa o treino?"
+    espera:
+      deve: ["assistente virtual", "397", "33,08"]
+      nao_deve: ["desconto", "so hoje", "ultimas vagas"]
+      sem_tools: [enviar_link_checkout]

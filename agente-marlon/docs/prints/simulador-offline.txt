@@ -1,0 +1,53 @@
+Simulador do agente comercial · equipe Marlon Mattedi  (cérebro: offline)
+Relógio simulado: terça-feira 10/11 10:00. Digite /ajuda.
+você (whatsapp)> Oi, quero saber do treino
+[WhatsApp → lead] Oi, João! Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi.
+João, pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?
+você (whatsapp)> Acho que é ansiedade, termino rápido demais
+[WhatsApp → lead] Entendi, obrigado por me contar. Isso acontece há quanto tempo?
+você (whatsapp)> Uns 3 anos
+[WhatsApp → lead] Faz sentido. E você já tentou alguma coisa antes?
+você (whatsapp)> Não, nunca tentei nada
+[WhatsApp → lead] Na maioria dos casos, isso está ligado à ansiedade e a um ritmo que o corpo aprendeu. E o que foi aprendido pode ser treinado. Essa é a visão do Marlon em 23 anos de clínica.
+Eu indicaria o Treino CONTROLE 2.0: são 8 exercícios em vídeo, passo a passo, por 12x de R$33,08 ou R$397, com garantia de 7 dias.
+Posso te mandar o link? Você começa ainda hoje.
+   botões: [Quero o link](quero_link) [Tenho uma dúvida](duvida) [Falar com a equipe](falar_equipe)
+você (whatsapp)> Tá caro
+[WhatsApp → lead] Entendo. Vale pensar no custo de continuar como está.
+O CONTROLE 2.0 sai em 12x de R$33,08 sem juros, com garantia de 7 dias. Se preferir começar menor, o Controle Express custa R$47.
+Qual faz mais sentido pra você agora?
+você (whatsapp)> quero o link do controle
+[WhatsApp → lead] Aqui está o link do Treino CONTROLE 2.0 (12x de R$33,08 sem juros ou R$397 à vista, com garantia de 7 dias):
+https://pay.hotmart.com/F10074400O?off=kpcg923o&checkoutMode=10&sck=f4-ia&utm_source=agente&utm_medium=whatsapp
+[WhatsApp → lead] Pronto, te mandei o link aqui em cima. Você começa ainda hoje.
+Se aparecer qualquer dúvida no pagamento, é só me chamar.
+você (whatsapp)> /hotmart PURCHASE_APPROVED controle2
+hotmart: {"handled":true,"event":"PURCHASE_APPROVED","leadId":"3f19b915-b9aa-4dfd-9169-8d55e4ada044"}
+você (whatsapp)> /tempo +2d
+relógio: quinta-feira 12/11 10:00 · 0 cadência(s) executada(s)
+você (whatsapp)> /tempo +2h
+[cadência] pos_venda D+2 → lead 3f19b915-b9aa-4dfd-9169-8d55e4ada044 (12/11 10:30)
+relógio: quinta-feira 12/11 12:00 · 1 cadência(s) executada(s)
+[WhatsApp → lead · template acompanhamento] Oi João, aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Passando para saber como você está com o seu acesso. Posso te ajudar em algo?  [Tenho uma dúvida] [Tudo certo]
+você (whatsapp)> é robô?
+(regra ativada: robo)
+[WhatsApp → lead] Sou sim: sou a Clara, assistente virtual (uma inteligência artificial) da equipe do Marlon Mattedi.
+Se preferir falar com uma pessoa da equipe, é só me dizer.
+você (whatsapp)> /consentimento
+consentimento de ligação registrado.
+você (whatsapp)> /voz lead pediu informações sobre o treino
+[ligação · IA] Oi, tudo bem? Aqui é a Clara, assistente virtual da equipe do Marlon Mattedi. Eu falo com o João?
+você (voz)> Sim, sou eu
+[ligação · IA] Que bom. É um bom momento para a gente conversar com privacidade? Se preferir não receber ligações, é só me dizer.
+você (voz)> Pode falar, estou sozinho
+[ligação · IA] Ótimo. Estou ligando porque você pediu informações sobre o treino. Pra eu te ajudar melhor: o que te fez buscar ajuda agora?
+você (voz)> Quanto custa?
+[ligação · IA] O treino completo, o CONTROLE 2.0, sai em 12 vezes de 33 reais e 8 centavos, ou 397 à vista. Tem também o Controle Express, de 47 reais. Posso te mandar o link no WhatsApp?
+você (voz)> Não me liga mais
+[ligação · IA] Combinado, obrigada por avisar. Não vamos mais te ligar.
+(a IA encerrou a ligação)
+você (whatsapp)> quero meu dinheiro de volta, reembolso
+(regra ativada: reembolso)
+[equipe] transferência: pedido de reembolso (urgência media) · IA pausada neste contato
+[WhatsApp → lead] Claro. Já passei para a equipe cuidar do seu reembolso, sem complicação. Eles te respondem por aqui.
+você (whatsapp)> /sair

@@ -1,0 +1,74 @@
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --text: #16181d;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --accent: #1f6f5c;
+  --accent-soft: #e6f2ee;
+  --warn: #b45309;
+  --warn-soft: #fef3c7;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+  --ai: #eef2ff;
+  --human: #fff7ed;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --text: #e6e7ea;
+    --muted: #9aa0aa;
+    --line: #272b34;
+    --accent: #4fb59a;
+    --accent-soft: #15302a;
+    --warn: #f59e0b;
+    --warn-soft: #3a2a0a;
+    --danger: #f87171;
+    --danger-soft: #3b1717;
+    --ai: #1c2235;
+    --human: #33240f;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 6px 12px; }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+button.danger { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+button:disabled { opacity: .5; cursor: default; }
+input, textarea { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; }
+.nav { display: flex; gap: 18px; align-items: center; padding: 12px 20px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.nav b { margin-right: 12px; }
+.nav a { color: var(--muted); }
+.nav a.active { color: var(--text); font-weight: 600; }
+.wrap { padding: 16px 20px; }
+.split { display: grid; grid-template-columns: 340px 1fr; gap: 16px; height: calc(100vh - 52px); padding: 16px 20px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.list { overflow: auto; }
+.item { padding: 10px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.item:hover, .item.sel { background: var(--accent-soft); }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.badge { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--line); color: var(--muted); margin-left: 6px; }
+.badge.warn { background: var(--warn-soft); color: var(--warn); }
+.badge.danger { background: var(--danger-soft); color: var(--danger); }
+.badge.ok { background: var(--accent-soft); color: var(--accent); }
+.chat { display: flex; flex-direction: column; height: 100%; }
+.chat-head { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.msgs { flex: 1; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.msg { max-width: 72%; padding: 8px 12px; border-radius: 12px; white-space: pre-wrap; word-break: break-word; }
+.msg.lead { align-self: flex-start; background: var(--bg); border: 1px solid var(--line); }
+.msg.ai { align-self: flex-end; background: var(--ai); }
+.msg.human { align-self: flex-end; background: var(--human); }
+.msg.system { align-self: center; background: transparent; color: var(--muted); font-size: 12px; font-style: italic; }
+.composer { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; font-size: 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.kpi { padding: 14px; }
+.kpi .v { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.bar { height: 10px; background: var(--accent); border-radius: 4px; }
+.login { max-width: 360px; margin: 12vh auto; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+@media (max-width: 800px) { .split { grid-template-columns: 1fr; height: auto; } .msg { max-width: 90%; } }

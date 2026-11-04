@@ -1,0 +1,14 @@
+nome: "Quem fala? Do que se trata?"
+descricao: Pergunta do assunto antes de confirmar identidade não revela o tema.
+lead: { consentimento_ligacao: true }
+passos:
+  - ligacao: { motivo: "lead pediu ligação" }
+  - voz: "Quem é? Do que se trata?"
+    espera:
+      deve: ["equipe do marlon"]
+      neutra: true
+      encerra: false
+  - voz: "Ele saiu, não está"
+    espera:
+      neutra: true
+      encerra: true
