@@ -17,7 +17,7 @@ npm install
 npm run local
 ```
 
-Esse comando sobe o backend e o painel juntos. Na primeira vez, ele também instala o painel. Espere aparecer a mensagem `Abra: http://localhost:3000/simulador`.
+Esse comando sobe o backend e o painel juntos. Na primeira vez, ele também instala o painel. Toda vez, ele prepara o painel antes de abrir, o que leva cerca de 1 minuto. Espere aparecer a mensagem `Abra: http://localhost:3000/simulador`.
 
 - **Endereço:** http://localhost:3000/simulador
 - **Login:** `demo@equipe.local`
@@ -55,6 +55,8 @@ npm run test:scenarios
 Com a chave configurada, `npm run test:scenarios:live` roda os mesmos cenários com o Claude.
 
 ## Problemas comuns
+- **Pasta no OneDrive:** funciona, mas a instalação fica mais lenta, porque o OneDrive sincroniza milhares de arquivos do `node_modules`. Se possível, deixe o projeto fora dele (ex.: `C:\projetos\agente-marlon`).
+- **"Turbopack has seen frequent file updates":** acontece com `npm run panel:dev` dentro do OneDrive. Use `npm run local`, que não vigia arquivos.
 - **"npm não é reconhecido":** o Node.js não foi instalado, ou o Antigravity foi aberto antes da instalação. Feche e abra o Antigravity de novo.
 - **"porta 3000 (ou 3333) em uso":** já existe outro `npm run local` rodando. Feche o outro terminal ou pare com `Ctrl+C`.
 - **A tela pede login de novo:** a sessão do demo some quando você para o servidor. É só entrar de novo.
