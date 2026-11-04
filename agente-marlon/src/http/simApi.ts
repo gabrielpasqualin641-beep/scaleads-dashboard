@@ -2,7 +2,10 @@
  * API do simulador (só no modo demo): permite conversar com o agente pelo painel,
  * fingindo ser o lead no WhatsApp ou numa ligação. Nunca é registrada em produção.
  */
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import type { FastifyInstance } from "fastify";
 import { DateTime } from "luxon";
 import { config } from "../config.js";
 import type { SentRecord } from "../channels/messenger.js";
@@ -22,13 +25,10 @@ function view(s: SentRecord) {
 export function registerSimApi(server: FastifyInstance, h: Harness) {
   const e = h.app.engine;
 
-  async function auth(req: FastifyRequest, reply: FastifyReply) {
-    try {
-      server.jwt.verify(req.cookies["painel_token"] ?? "");
-    } catch {
-      return reply.code(401).send({ error: "não autenticado" });
-    }
-  }
+  // Página do simulador servida pelo próprio backend: abre em http://localhost:3333 sem painel, build nem login.
+  const html = readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../sim/simulador.html"), "utf8");
+  server.get("/", async (_req, reply) => reply.type("text/html; charset=utf-8").send(html));
+  server.get("/simulador", async (_req, reply) => reply.type("text/html; charset=utf-8").send(html));
 
   const relogio = () => DateTime.fromJSDate(h.clock.now).setZone(config.TZ_OPERACAO).toFormat("cccc dd/MM HH:mm", { locale: "pt-BR" });
 
@@ -54,8 +54,8 @@ export function registerSimApi(server: FastifyInstance, h: Harness) {
 
   const sentSince = (phone: string, idx: number) => h.messenger.sent.slice(idx).filter((s) => s.to === phone).map(view);
 
+  // Sem login: estas rotas só existem no modo demo (memória, sem WhatsApp real).
   server.register(async (r) => {
-    r.addHook("preHandler", auth);
 
     r.get("/api/sim/info", async () => ({ cerebro: e.brain.name, modelo: e.brain.name === "claude" ? config.ANTHROPIC_MODEL : null, agente: config.AGENT_NAME, relogio: relogio() }));
 

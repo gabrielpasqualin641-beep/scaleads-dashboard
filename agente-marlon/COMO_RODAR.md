@@ -6,30 +6,32 @@
 - No Antigravity: **File → Open Folder** e escolha a pasta `agente-marlon`.
 
 ## 2. Instalar
-Abra o terminal do Antigravity (**Terminal → New Terminal**) e rode:
+Abra o terminal do Antigravity (**Terminal → New Terminal**). Confira se o caminho termina na pasta que tem o `package.json`. Depois rode:
 
-```bash
+```powershell
 npm install
 ```
 
-## 3. Rodar
-```bash
-npm run local
+## 3. Rodar e falar com o agente
+```powershell
+npm run demo
 ```
 
-Esse comando sobe o backend e o painel juntos. Na primeira vez, ele também instala o painel. Toda vez, ele prepara o painel antes de abrir, o que leva cerca de 1 minuto. Espere aparecer a mensagem `Abra: http://localhost:3000/simulador`.
+Quando aparecer `SIMULADOR: abra http://localhost:3333`, abra **http://localhost:3333** no navegador. Não precisa de login.
 
-- **Endereço:** http://localhost:3000/simulador
-- **Login:** `demo@equipe.local`
-- **Senha:** `demo-senha-123`
-- **Para parar:** `Ctrl+C` no terminal.
+- Escreva como se você fosse o lead, ou clique nos atalhos.
+- Troque para **Ligação** para testar a conversa por telefone.
+- No lado direito aparece o que o agente fez por dentro: a regra fixa ativada, as ferramentas usadas e o estado do lead.
+- Para parar, use `Ctrl+C` no terminal.
+
+> Painel completo da equipe (conversas, funil, ligações), opcional: `npm run local` e depois http://localhost:3000, com login `demo@equipe.local` / `demo-senha-123`. Ele demora mais para abrir (prepara o painel em cerca de 1 minuto). Para só conversar com o agente, use o `npm run demo`.
 
 ## 4. Usar o Claude de verdade (opcional)
 Sem chave, quem responde é o roteiro offline: ele tem frases fixas e só entende o que foi previsto. Para conversar com a IA de verdade:
 
 1. Copie o arquivo `.env.demo.example` para `.env`, na mesma pasta.
 2. Preencha `ANTHROPIC_API_KEY=` com a sua chave da Anthropic (console.anthropic.com).
-3. Pare com `Ctrl+C` e rode `npm run local` de novo. O topo da tela do simulador passa a mostrar "Claude".
+3. Pare com `Ctrl+C` e rode `npm run demo` de novo. O topo da tela do simulador passa a mostrar "Claude".
 
 > Não copie o `.env.example` para testar: ele é a configuração de produção e exige todas as chaves (WhatsApp, Hotmart etc.).
 
@@ -42,7 +44,7 @@ Sem chave, quem responde é o roteiro offline: ele tem frases fixas e só entend
 | Respostas do roteiro offline | `src/agent/brain/offline.ts` |
 | Casos de teste | `tests/scenarios/*.yaml` |
 
-Depois de cada mudança, pare (`Ctrl+C`), rode `npm run local` de novo e confira com os testes:
+Depois de cada mudança, pare (`Ctrl+C`), rode `npm run demo` de novo e confira com os testes:
 
 ```bash
 npm test
@@ -58,6 +60,6 @@ Com a chave configurada, `npm run test:scenarios:live` roda os mesmos cenários 
 - **Pasta no OneDrive:** funciona, mas a instalação fica mais lenta, porque o OneDrive sincroniza milhares de arquivos do `node_modules`. Se possível, deixe o projeto fora dele (ex.: `C:\projetos\agente-marlon`).
 - **"Turbopack has seen frequent file updates":** acontece com `npm run panel:dev` dentro do OneDrive. Use `npm run local`, que não vigia arquivos.
 - **"npm não é reconhecido":** o Node.js não foi instalado, ou o Antigravity foi aberto antes da instalação. Feche e abra o Antigravity de novo.
-- **"porta 3000 (ou 3333) em uso":** já existe outro `npm run local` rodando. Feche o outro terminal ou pare com `Ctrl+C`.
+- **"porta 3000 (ou 3333) em uso":** já existe outro `npm run demo` (ou `npm run local`) rodando. Feche o outro terminal ou pare com `Ctrl+C`.
 - **A tela pede login de novo:** a sessão do demo some quando você para o servidor. É só entrar de novo.
-- **As conversas sumiram:** é esperado. No modo demo tudo fica em memória e recomeça a cada `npm run local`.
+- **As conversas sumiram:** é esperado. No modo demo tudo fica em memória e recomeça a cada `npm run demo`.

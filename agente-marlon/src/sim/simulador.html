@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador do agente</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--text:#16181d;--muted:#6b7280;--line:#e5e7eb;--accent:#1f6f5c;--soft:#e6f2ee;--warn:#b45309;--warnsoft:#fef3c7;--danger:#b91c1c;--dangersoft:#fee2e2;--me:#dcf2e9}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--panel:#171a21;--text:#e6e7ea;--muted:#9aa0aa;--line:#272b34;--accent:#4fb59a;--soft:#15302a;--warn:#f59e0b;--warnsoft:#3a2a0a;--danger:#f87171;--dangersoft:#3b1717;--me:#1d3a31}}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text);padding:6px 12px}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}button:disabled{opacity:.5;cursor:default}
+input{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;padding:14px;height:100vh}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:0}
+.head{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.msgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.msg{max-width:75%;padding:8px 12px;border-radius:12px;white-space:pre-wrap;word-break:break-word;background:var(--panel);border:1px solid var(--line);align-self:flex-start}
+.msg.me{align-self:flex-end;background:var(--me);border-color:transparent}
+.msg.sys{align-self:center;background:transparent;border:0;color:var(--muted);font-size:12px;font-style:italic;text-align:center}
+.who{font-size:12px;color:var(--muted)}.msg a{color:var(--accent);word-break:break-all}
+.btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.sug{padding:8px 12px 0;display:flex;gap:6px;flex-wrap:wrap}.sug button{font-size:12px}
+.composer{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+.side{overflow:auto;padding:14px;gap:14px}.small{font-size:12px}.muted{color:var(--muted)}
+.badge{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;background:var(--line);color:var(--muted)}
+.badge.warn{background:var(--warnsoft);color:var(--warn)}.badge.danger{background:var(--dangersoft);color:var(--danger)}
+pre{white-space:pre-wrap;font-size:11px;color:var(--muted);margin:4px 0}
+@media (max-width:860px){.app{grid-template-columns:1fr;height:auto}.msgs{min-height:60vh}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card">
+    <div class="head">
+      <div style="flex:1;min-width:220px"><b>Fale com o agente como se fosse o lead</b><div class="small muted" id="info">carregando…</div></div>
+      <button id="tab-wa" class="primary">WhatsApp</button>
+      <button id="tab-voz">Ligação</button>
+      <button id="novo">Novo contato</button>
+    </div>
+    <div class="msgs" id="msgs"><div class="msg sys" id="vazio">Escreva como se você fosse um lead chegando no WhatsApp. Ex.: “Oi, quero saber do treino”.</div></div>
+    <div class="sug" id="sug"></div>
+    <form class="composer" id="form">
+      <button type="button" class="primary" id="ligar" style="display:none">Iniciar ligação</button>
+      <input id="texto" placeholder="Mensagem do lead…" autocomplete="off" autofocus>
+      <button class="primary" id="enviar">Enviar</button>
+      <button type="button" id="desligar" style="display:none">Desligar</button>
+    </form>
+  </div>
+  <div class="card side">
+    <div><b>Nome do lead</b><input id="nome" value="João Teste" style="margin-top:6px"><div class="small muted" id="tel" style="margin-top:4px"></div></div>
+    <div><b>Por dentro do agente</b>
+      <div class="small" style="margin-top:6px">Regra fixa ativada: <span id="regra" class="muted">nenhuma</span></div>
+      <div class="small" style="margin-top:6px">Ferramentas usadas na última resposta:</div><div id="tools" class="small muted">nenhuma</div>
+    </div>
+    <div id="estado" class="small"></div>
+    <div><b>Testar o tempo e eventos</b>
+      <div class="small muted" style="margin:4px 0 6px">Adianta o relógio para ver lembretes, retomadas e pós-venda saindo.</div>
+      <div class="btns" id="tempo"></div>
+      <div class="btns">
+        <button class="small" data-acao="consentimento">Dar consentimento de ligação</button>
+        <button class="small" data-hotmart="PURCHASE_OUT_OF_SHOPPING_CART:controle2">Abandonou carrinho</button>
+        <button class="small" data-hotmart="PURCHASE_APPROVED:controle2">Comprou CONTROLE 2.0</button>
+        <button class="small" data-hotmart="PURCHASE_APPROVED:express">Comprou Express</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const SUG = {
+  whatsapp: ["Oi, quero saber do treino","Quanto custa?","Funciona pra mim?","É sigiloso?","Tá caro","Vou pensar","Você é um robô?","Quero marcar uma consulta","Quero o link do CONTROLE 2.0","Para"],
+  voz: ["Alô?","Sou eu","Não, aqui é a esposa dele","Pode falar, estou sozinho","Agora não, estou no trabalho","Quanto custa?","É robô?","Não me liga mais"],
+};
+let canal = "whatsapp", ligacao = null, ocupado = false;
+let telefone = novoTel();
+function novoTel(){ return "55119" + Math.floor(10000000 + Math.random()*89999999); }
+$("tel").textContent = "Telefone simulado: +" + telefone;
+
+async function api(path, body){
+  const r = await fetch(path, { method: body ? "POST" : "GET", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ("erro " + r.status));
+  return j;
+}
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+function linkify(s){ return esc(s).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noreferrer">$1</a>'); }
+function bolha(de, texto, extra, nota){
+  $("vazio")?.remove();
+  const d = document.createElement("div");
+  d.className = "msg " + (de === "lead" ? "me" : de === "sys" ? "sys" : "");
+  if (de === "sys") d.textContent = texto;
+  else {
+    d.innerHTML = '<div class="who">' + (de === "lead" ? "Você (lead)" : canal === "voz" ? "IA (falando)" : "IA") + (nota ? " · " + esc(nota) : "") + "</div>" + linkify(texto);
+    const opts = extra && (extra.botoes || extra.opcoes);
+    if (opts) {
+      const b = document.createElement("div"); b.className = "btns";
+      for (const o of opts) { const x = document.createElement("button"); x.textContent = o.title; x.onclick = () => enviarWhatsApp(o.title, o); b.appendChild(x); }
+      d.appendChild(b);
+    }
+  }
+  $("msgs").appendChild(d); $("msgs").scrollTop = 1e9;
+}
+function saidas(rs){ for (const s of rs) bolha("ia", s.texto, s, s.tipo === "template" ? "template " + s.nome + " (fora da janela de 24h)" : ""); }
+function setOcupado(v){ ocupado = v; document.querySelectorAll("button").forEach(b => { if (b.id !== "tab-wa" && b.id !== "tab-voz") b.disabled = v; }); }
+async function run(fn){ setOcupado(true); try { return await fn(); } catch(e){ bolha("sys", "Erro: " + e.message); } finally { setOcupado(false); $("texto").focus(); } }
+
+function mostra(r){
+  if (r.regra !== undefined) $("regra").innerHTML = r.regra ? '<span class="badge warn">' + esc(r.regra) + "</span>" : '<span class="muted">nenhuma</span>';
+  if (r.tools) $("tools").innerHTML = r.tools.length ? r.tools.map(t => "<details><summary><code>" + esc(t.nome) + "</code></summary><pre>" + esc(JSON.stringify({ entrada: t.entrada, resultado: t.resultado }, null, 2)) + "</pre></details>").join("") : "nenhuma";
+  const e = r.estado; if (!e) return;
+  let h = '<b style="font-size:14px">Estado do lead</b><div>Etapa do funil: <span class="badge">' + esc(e.etapa) + "</span></div>";
+  h += "<div>Compras: " + (e.compras.join(", ") || "nenhuma") + "</div><div>Consentimento de ligação: " + (e.consentimentoLigacao ? "sim" : "não") + "</div>";
+  if (e.iaPausada) h += '<div><span class="badge warn">IA pausada (com a equipe)</span></div>';
+  if (e.optOutWhatsapp) h += '<div><span class="badge danger">opt-out WhatsApp</span></div>';
+  if (e.optOutVoz) h += '<div><span class="badge danger">opt-out ligação</span></div>';
+  if (e.bloqueadoMenor) h += '<div><span class="badge danger">bloqueado (menor de idade)</span></div>';
+  for (const t of e.transferencias) h += '<div><span class="badge ' + (t.urgencia === "alta" ? "danger" : "warn") + '">transferência ' + esc(t.urgencia) + "</span> " + esc(t.motivo) + "</div>";
+  h += '<div style="margin-top:4px">Próximos contatos automáticos:</div>' + (e.proximosContatos.length ? e.proximosContatos.map(j => '<div class="muted">· ' + esc(j.tipo) + (j.etapa ? " " + esc(j.etapa) : "") + " em " + esc(j.quando) + "</div>").join("") : '<div class="muted">nenhum</div>');
+  $("estado").innerHTML = h;
+}
+
+async function enviarWhatsApp(msg, botao){
+  bolha("lead", botao ? "[" + botao.title + "]" : msg);
+  const r = await run(() => api("/api/sim/whatsapp", { telefone, nome: $("nome").value, texto: msg, botao: botao && botao.id, tituloBotao: botao && botao.title }));
+  if (!r) return;
+  if (r.respostas.length) saidas(r.respostas);
+  else bolha("sys", r.estado && r.estado.iaPausada ? "A IA está pausada neste contato (transferido para a equipe). Ninguém responde automaticamente." : "Sem resposta.");
+  if (r.bloqueios.length) bolha("sys", "Resposta do modelo bloqueada pelo filtro: " + r.bloqueios.join(", "));
+  mostra(r); atualizaInfo(r.relogio);
+}
+async function iniciarLigacao(){
+  const r = await run(() => api("/api/sim/ligacao", { telefone, nome: $("nome").value }));
+  if (!r) return;
+  ligacao = r.ligacaoId; bolha("sys", "Ligação iniciada (simulada). A IA fala primeiro."); bolha("ia", r.fala); mostra(r); layout();
+}
+async function falar(msg){
+  if (!ligacao) return;
+  bolha("lead", msg);
+  const r = await run(() => api("/api/sim/ligacao/" + ligacao, { texto: msg, telefone }));
+  if (!r) return;
+  bolha("ia", r.fala);
+  if (r.desligou) { bolha("sys", "A IA encerrou a ligação. Fica salvo só um resumo (a transcrição é descartada)."); ligacao = null; layout(); }
+  mostra(r);
+}
+function layout(){
+  const voz = canal === "voz";
+  $("tab-wa").className = voz ? "" : "primary"; $("tab-voz").className = voz ? "primary" : "";
+  $("ligar").style.display = voz && !ligacao ? "" : "none";
+  $("texto").style.display = $("enviar").style.display = voz && !ligacao ? "none" : "";
+  $("desligar").style.display = voz && ligacao ? "" : "none";
+  $("texto").placeholder = voz ? "O que você responde na ligação…" : "Mensagem do lead…";
+  $("sug").innerHTML = "";
+  for (const s of SUG[canal]) { const b = document.createElement("button"); b.textContent = s; b.onclick = () => voz ? (ligacao ? falar(s) : null) : enviarWhatsApp(s); $("sug").appendChild(b); }
+}
+async function atualizaInfo(relogio){
+  try {
+    const i = await api("/api/sim/info");
+    $("info").textContent = "Cérebro: " + (i.cerebro === "claude" ? "Claude (" + i.modelo + ")" : "offline (roteiro, sem IA). Coloque ANTHROPIC_API_KEY no .env para usar o Claude") + " · relógio simulado: " + (relogio || i.relogio);
+  } catch(e){ $("info").textContent = "Não consegui falar com o backend: " + e.message; }
+}
+
+$("form").onsubmit = (e) => { e.preventDefault(); const t = $("texto").value.trim(); if (!t || ocupado) return; $("texto").value = ""; canal === "voz" ? falar(t) : enviarWhatsApp(t); };
+$("tab-wa").onclick = () => { canal = "whatsapp"; layout(); };
+$("tab-voz").onclick = () => { canal = "voz"; layout(); };
+$("ligar").onclick = iniciarLigacao;
+$("desligar").onclick = async () => { await api("/api/sim/ligacao/" + ligacao + "/encerrar", {}).catch(() => {}); ligacao = null; bolha("sys", "Você desligou."); layout(); };
+$("novo").onclick = async () => {
+  if (ligacao) await api("/api/sim/ligacao/" + ligacao + "/encerrar", {}).catch(() => {});
+  await api("/api/sim/reset", { telefone }).catch(() => {});
+  telefone = novoTel(); ligacao = null; $("tel").textContent = "Telefone simulado: +" + telefone;
+  $("msgs").innerHTML = ""; $("estado").innerHTML = ""; $("tools").textContent = "nenhuma"; $("regra").innerHTML = '<span class="muted">nenhuma</span>'; layout();
+};
+for (const t of ["+30m","+3h","+1d","+3d"]) {
+  const b = document.createElement("button"); b.className = "small"; b.textContent = "Avançar " + t;
+  b.onclick = async () => {
+    const r = await run(() => api("/api/sim/tempo", { avancar: t, telefone }));
+    if (!r) return;
+    bolha("sys", "Relógio avançado " + t + " → " + r.relogio + ". " + r.executadas + " cadência(s) executada(s)" + (r.ligacoesNovas ? ", " + r.ligacoesNovas + " ligação(ões) discada(s)" : "") + ".");
+    saidas(r.respostas); mostra(r); atualizaInfo(r.relogio);
+  };
+  $("tempo").appendChild(b);
+}
+document.querySelector('[data-acao="consentimento"]').onclick = async () => {
+  const r = await run(() => api("/api/sim/consentimento", { telefone, nome: $("nome").value }));
+  if (r) { bolha("sys", "Consentimento de ligação registrado (como o checkbox do quiz)."); mostra(r); }
+};
+document.querySelectorAll("[data-hotmart]").forEach(b => b.onclick = async () => {
+  const [evento, produto] = b.dataset.hotmart.split(":");
+  const r = await run(() => api("/api/sim/hotmart", { telefone, nome: $("nome").value, evento, produto }));
+  if (r) { bolha("sys", "Hotmart: " + evento + " (" + (produto === "express" ? "Controle Express" : "CONTROLE 2.0") + ") " + (r.resultado.handled ? "registrado" : "ignorado") + "."); mostra(r); }
+});
+layout(); atualizaInfo();
+</script>
+</body>
+</html>

@@ -3,7 +3,8 @@
 Este projeto é o agente comercial de IA (WhatsApp + voz) da equipe do psicólogo Marlon Mattedi. Leia o `README.md` para entender a arquitetura, o `COMPLIANCE.md` para as regras legais e o `COMO_RODAR.md` para os comandos.
 
 ## Comandos
-- `npm run local`: sobe o demo (backend em memória na porta 3333 + painel na 3000). O simulador fica em http://localhost:3000/simulador (login `demo@equipe.local` / `demo-senha-123`).
+- `npm run demo`: sobe o backend em memória na porta 3333. O simulador de conversa fica em http://localhost:3333 (sem login; página em `src/sim/simulador.html`).
+- `npm run local`: demo + painel Next.js completo na porta 3000 (login `demo@equipe.local` / `demo-senha-123`).
 - `npm run typecheck`, `npm test` e `npm run test:scenarios`: **rode os três depois de qualquer mudança**. Todos precisam passar.
 - `npm run test:scenarios:live`: os mesmos cenários com o Claude real (exige `ANTHROPIC_API_KEY` no `.env`).
 
@@ -18,5 +19,5 @@ Este projeto é o agente comercial de IA (WhatsApp + voz) da equipe do psicólog
 - `agent/`: prompt de sistema, base de conhecimento e templates do WhatsApp.
 - `src/agent/`: o motor da conversa (`engine.ts`), as regras fixas (`guardrails.ts`), as tools (`tools.ts`) e os cérebros (`brain/claude.ts`, `brain/offline.ts`).
 - `src/queue/`: as cadências (lembretes, retomadas, pós-venda).
-- `src/http/simApi.ts`: a API do simulador (só no modo demo).
+- `src/http/simApi.ts` e `src/sim/simulador.html`: a API e a página do simulador (só no modo demo).
 - `panel/`: o painel em Next.js (`app/simulador/page.tsx` é a tela de conversa).

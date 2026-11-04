@@ -33,7 +33,7 @@ Quiz / LPs ─────────┘      │    Claude + tools)└─ Bull
 
 ## Rodando localmente
 
-> Jeito mais rápido: `npm install` e depois `npm run local` (backend + painel juntos). Passo a passo para o Antigravity em [COMO_RODAR.md](COMO_RODAR.md).
+> Jeito mais rápido para conversar com o agente: `npm install`, depois `npm run demo`, e abra http://localhost:3333. O painel completo sobe com `npm run local`. Passo a passo para o Antigravity em [COMO_RODAR.md](COMO_RODAR.md).
 
 **Requisitos:** Node 20 ou superior. Postgres e Redis só são necessários para o modo completo.
 
