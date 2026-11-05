@@ -48,6 +48,7 @@ export function buildApp(overrides: Partial<Deps> & { brain?: Brain } = {}): App
     dialer: null,
     bus: overrides.bus ?? new EventEmitter().setMaxListeners(200),
     now: overrides.now ?? (() => new Date()),
+    humanDelay: overrides.humanDelay ?? config.HUMAN_DELAY,
   };
   const engine = new Engine(deps, overrides.brain ?? makeBrain());
   deps.dialer = overrides.dialer !== undefined ? overrides.dialer : makeDialer(engine);

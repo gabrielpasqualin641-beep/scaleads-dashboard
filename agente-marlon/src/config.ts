@@ -28,6 +28,8 @@ const schema = z.object({
   // Fallback do servidor em caso de recusa (padrão: ligado)
   ANTHROPIC_FALLBACKS: z.string().optional().transform((v) => (v === undefined ? true : v === "1" || v === "true")),
   BRAIN: z.enum(["claude", "offline"]).default("claude"),
+  // Envio humanizado: "digitando" e espera entre as mensagens (false nos testes)
+  HUMAN_DELAY: z.string().optional().transform((v) => v !== "false"),
 
   // WhatsApp Cloud API
   WA_PHONE_NUMBER_ID: z.string().default(""),

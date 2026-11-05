@@ -18,7 +18,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DateTime } from "luxon";
 import YAML from "yaml";
-import { checkOutput, isNeutral, mentionsVirtualAssistant, norm } from "../src/agent/guardrails.js";
+import { checkOutput, isNeutral, mentionsVirtualAssistant, norm, roboticPhrases } from "../src/agent/guardrails.js";
 import { extractUrls, hasRequiredTracking, isCheckoutUrl } from "../src/agent/links.js";
 import { hasCallConsent, isWithinContactWindow } from "../src/compliance/rules.js";
 import type { SentRecord } from "../src/channels/messenger.js";
@@ -58,6 +58,8 @@ interface Expect {
   jobs?: string[];
   sem_jobs?: string[];
   consentimento_ligacao?: boolean;
+  sem_frases_proibidas?: boolean; // nenhuma frase de robô ("Entendi, obrigado por me contar"...)
+  retoma_detalhe?: boolean; // a resposta reaproveita alguma palavra que o lead disse antes
 }
 
 interface Step {
@@ -79,6 +81,7 @@ interface Scenario {
   descricao?: string;
   relogio?: string; // ISO, para cenários de horário
   sem_0303?: boolean;
+  somente_live?: boolean; // roda só com --live (depende do Claude de verdade)
   lead?: { nome?: string; consentimento_ligacao?: boolean; compras?: string[]; ja_conversou?: boolean };
   passos: Step[];
 }
@@ -213,6 +216,16 @@ async function runScenario(file: string, sc: Scenario) {
     const jobs = await h.scheduler.list(lead.id);
     for (const j of e.jobs ?? []) if (!jobs.some((x) => x.type === j)) fail(`job ${j} deveria estar agendado`);
     for (const j of e.sem_jobs ?? []) if (jobs.some((x) => x.type === j)) fail(`job ${j} não deveria estar agendado`);
+    if (e.sem_frases_proibidas) for (const f of roboticPhrases(reply)) fail(`frase de robô na resposta: /${f}/ → "${reply.slice(0, 120)}"`);
+    if (e.retoma_detalhe) {
+      // Heurística: a resposta reaproveita algo que o lead disse (radical de 4 letras de uma palavra, ou um número).
+      const STOP = new Set(["para", "mais", "isso", "esse", "essa", "como", "quan", "muit", "pouc", "esto", "tenh", "acho", "voce", "sobr", "gost", "sabe", "quer", "agor", "faz", "pode", "parc", "vist", "bom", "boa", "tard"]);
+      const prevWords = sc.passos.slice(0, i).flatMap((p) => (p.lead ? norm(p.lead).split(/[^a-z0-9]+/) : []));
+      const stems = new Set(prevWords.filter((w) => /^\d+$/.test(w) || w.length >= 4).map((w) => (/^\d+$/.test(w) ? w : w.slice(0, 4))).filter((w) => !STOP.has(w)));
+      const replyWords = norm(reply).split(/[^a-z0-9]+/);
+      const hit = [...stems].some((st) => replyWords.some((w) => (/^\d+$/.test(st) ? w === st : w.startsWith(st))));
+      if (stems.size && !hit) fail(`resposta não retoma nenhum detalhe dito antes (${[...stems].slice(0, 8).join(", ")})`);
+    }
     if (e.consentimento_ligacao !== undefined && hasCallConsent(lead) !== e.consentimento_ligacao) fail(`consentimento de ligação = ${hasCallConsent(lead)}`);
   }
 
@@ -253,8 +266,15 @@ const files = readdirSync(dir).filter((f) => f.endsWith(".yaml") && (!only || f.
 log(`Cenários do agente comercial · cérebro: ${live ? `Claude (${config.ANTHROPIC_MODEL})` : "offline"} · ${files.length} cenário(s)`);
 log("=".repeat(80));
 let passed = 0;
+let skipped = 0;
 for (const f of files) {
   const sc = YAML.parse(readFileSync(path.join(dir, f), "utf8")) as Scenario;
+  if (sc.somente_live && !live) {
+    skipped++;
+    log(`${color(33, "○ PULADO")}  ${sc.nome}  ${color(2, `(${f}: só roda com --live)`)}`);
+    log();
+    continue;
+  }
   try {
     if (await runScenario(f, sc)) passed++;
   } catch (e) {
@@ -262,7 +282,25 @@ for (const f of files) {
   }
 }
 log("=".repeat(80));
-log(`${passed}/${files.length} cenários passaram${passed === files.length ? " · nenhuma regra da seção 5 violada · todos os links com sck=f4-ia" : ""}`);
+const total = files.length - skipped;
+log(`${passed}/${total} cenários passaram${skipped ? ` (${skipped} só no modo --live)` : ""}${passed === total ? " · nenhuma regra da seção 5 violada · todos os links com sck=f4-ia" : ""}`);
+
+// No modo live, grava as transcrições em docs/conversas-live.md
+if (live) {
+  const md = [
+    "# Conversas com o Claude (modo live)",
+    "",
+    `Gerado por \`npm run test:scenarios:live\` em ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · modelo \`${config.ANTHROPIC_MODEL}\` · ${passed}/${total} cenários passaram.`,
+    "",
+    "```text",
+    ...lines.map((l) => l.replace(/\x1b\[[0-9;]*m/g, "")),
+    "```",
+    "",
+  ].join("\n");
+  mkdirSync(path.join(here, "..", "docs"), { recursive: true });
+  writeFileSync(path.join(here, "..", "docs", "conversas-live.md"), md);
+  console.log("Transcrições salvas em docs/conversas-live.md");
+}
 
 if (reportDir) {
   mkdirSync(reportDir, { recursive: true });
@@ -280,4 +318,4 @@ if (reportDir) {
     .join("\n")}</pre>`;
   writeFileSync(path.join(reportDir, `cenarios-${stamp}.html`), html);
 }
-process.exit(passed === files.length ? 0 : 1);
+process.exit(passed === total ? 0 : 1);

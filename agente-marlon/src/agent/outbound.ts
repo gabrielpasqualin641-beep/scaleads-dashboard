@@ -26,6 +26,38 @@ export async function sendWhatsAppText(
   emit(deps, { type: "message", leadId: lead.id });
 }
 
+/** Divide a resposta do modelo em até 3 mensagens curtas (separador |||). */
+export function splitParts(text: string, max = 3): string[] {
+  const parts = text
+    .split(/\s*\|\|\|\s*/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length <= max) return parts;
+  return [...parts.slice(0, max - 1), parts.slice(max - 1).join(" ")];
+}
+
+/** Espera de "digitação": chars/25 s, entre 1,2 s e 4 s. */
+export function typingDelayMs(text: string) {
+  return Math.round(Math.min(4, Math.max(1.2, text.length / 25)) * 1000);
+}
+
+/** Envia as partes em sequência, com "digitando" e espera proporcional ao tamanho (como uma pessoa). */
+export async function sendWhatsAppParts(
+  deps: Deps,
+  lead: Lead,
+  parts: string[],
+  opts: { inboundMessageId?: string; list?: { label: string; rows: ListRow[] } } = {},
+) {
+  for (const [i, part] of parts.entries()) {
+    if (deps.humanDelay) {
+      await deps.messenger.typing?.(lead.phone, opts.inboundMessageId);
+      await new Promise((r) => setTimeout(r, typingDelayMs(part)));
+    }
+    const last = i === parts.length - 1;
+    await sendWhatsAppText(deps, lead, part, last && opts.list ? { list: opts.list } : {});
+  }
+}
+
 export async function sendWhatsAppTemplate(deps: Deps, lead: Lead, name: string, params: string[], buttonPayloads?: string[]) {
   const tpl = { name, params, buttonPayloads };
   await deps.messenger.sendTemplate(lead.phone, tpl);

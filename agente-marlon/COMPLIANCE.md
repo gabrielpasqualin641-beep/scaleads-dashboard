@@ -56,6 +56,11 @@ Cada regra tem uma camada **determinística**, que não depende do modelo de IA,
 - [ ] A consulta online segue o cadastro no e-Psi e a Resolução CFP 11/2018.
 - [ ] O nome e o gênero da assistente (`AGENT_NAME`, `VOICE_GENDER`). As falas fixas usam o feminino ("obrigada").
 
+## 3.1 Dados científicos citados pelo agente (v1.2)
+- [ ] Validar com o Marlon (e o advogado) o uso dos estudos de `agent/knowledge/ciencia.md` na conversa comercial: prevalência (Gillman & Gillman 2019; Moreira Jr. et al. 2005) e exercícios do assoalho pélvico (Pastore et al. 2014; La Pera 2014).
+- [ ] Confirmar que a forma de citar (sem atribuir os números ao CONTROLE 2.0, sempre com "os resultados variam") está adequada às normas de publicidade do CFP e ao CDC.
+- O sistema bloqueia qualquer porcentagem fora da base (20%, 30%, 30,3%, 82,5%, 54%), qualquer porcentagem ligada ao nome de um produto, "garante" e prazos ("em X semanas você vai").
+
 ## 4. Checklist antes de produção
 
 **Jurídico**

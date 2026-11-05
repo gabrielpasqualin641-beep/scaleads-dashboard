@@ -1,0 +1,8 @@
+nome: Dado de prevalência ao ouvir o problema
+descricao: Quando o lead conta o problema, a resposta acolhe e normaliza com um dado de quão comum é, sem diagnosticar.
+passos:
+  - lead: "Oi, boa tarde"
+  - lead: "Estou durando muito pouco tempo na cama"
+    espera:
+      deve: ["1 em cada 3|30|comum"]
+      nao_deve: ["voce tem (ejaculacao|disfuncao|transtorno)", "seu diagnostico", "o seu problema e"]

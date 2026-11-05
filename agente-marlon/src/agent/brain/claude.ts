@@ -8,7 +8,7 @@ import type { Brain, BrainInput, BrainOutput } from "./types.js";
 type BParam = Anthropic.Beta.BetaMessageParam;
 
 const CHANNEL_ADDENDUM = {
-  whatsapp: "\n\n# Canal desta conversa\nWhatsApp. Responda em 2 a 4 linhas, uma pergunta por mensagem.",
+  whatsapp: "\n\n# Canal desta conversa\nWhatsApp. Responda com 1 a 3 mensagens curtas separadas por ||| (no máximo 2 frases cada) e uma pergunta por resposta.",
   voz: "\n\n# Canal desta conversa\nLigação telefônica. Frases de até 20 palavras, uma ideia por vez, sem listas e sem links falados. Para mandar link, use a ferramenta e diga que mandou no WhatsApp. Responda só com o que será falado.",
 };
 

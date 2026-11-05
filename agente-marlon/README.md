@@ -16,7 +16,7 @@ Quiz / LPs ─────────┘      │    Claude + tools)└─ Bull
 | Caminho | O que é |
 |---|---|
 | `agent/system_prompt.md` | Prompt de sistema (Parte B). `{{AGENT_NAME}}` vem do `.env`. |
-| `agent/knowledge/*.md` | Base de conhecimento. `produtos.md` é a **fonte única** de preços e checkouts: o código lê os links dele. |
+| `agent/knowledge/*.md` | Base de conhecimento. `produtos.md` é a **fonte única** de preços e checkouts: o código lê os links dele. `ciencia.md` traz os dados científicos que o agente pode citar, e `exemplos.md`, conversas de referência do estilo. |
 | `agent/templates.json` | Templates neutros da Meta, usados fora da janela de 24h. |
 | `src/agent/engine.ts` | Motor da conversa: guardrails de entrada, modelo, filtro de saída, portão de discrição na voz. |
 | `src/agent/guardrails.ts` | Detecção de opt-out, risco, menor de idade, reembolso e "é robô?", mais o filtro de promessas, remédios, urgência e links. |

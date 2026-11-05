@@ -1,0 +1,36 @@
+nome: Conversa desenvolvida completa (exemplo a, só live)
+descricao: A conversa (a) inteira com o Claude. Nenhuma frase de robô, as respostas retomam o que o lead disse e o fechamento pergunta a forma de pagamento.
+somente_live: true
+passos:
+  - lead: "Boa tarde, gostaria de saber mais sobre o Controle 2.0"
+    espera:
+      deve: ["assistente virtual"]
+      sem_frases_proibidas: true
+  - lead: "Estou durando muito pouco tempo na cama"
+    espera:
+      deve: ["1 em cada 3|30|comum"]
+      sem_frases_proibidas: true
+  - lead: "Faz uns 3 anos"
+    espera:
+      sem_frases_proibidas: true
+      retoma_detalhe: true
+  - lead: "Acho que foi quando mudei de emprego, fiquei bem ansioso"
+    espera:
+      deve: ["ansi"]
+      sem_frases_proibidas: true
+      retoma_detalhe: true
+  - lead: "Nunca"
+    espera:
+      deve: ["controle 2.0|treino"]
+      nao_deve: ["garanto", "controle[^.!?]{0,60}%"]
+      sem_frases_proibidas: true
+      retoma_detalhe: true
+  - lead: "Faz"
+    espera:
+      deve: ["parcelad|a vista|12x"]
+      sem_frases_proibidas: true
+  - lead: "Parcelado"
+    espera:
+      tools: [enviar_link_checkout]
+      deve: ["sck=f4-ia", "7 dias"]
+      sem_frases_proibidas: true

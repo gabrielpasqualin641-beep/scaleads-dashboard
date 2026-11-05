@@ -67,7 +67,7 @@ export function registerWebhooks(server: FastifyInstance, app: App) {
         }
         if (m.type === "other") return;
         const source = m.referral ? `ctwa:${m.referral.source_id ?? m.referral.source_type ?? "anuncio"}` : undefined;
-        await engine.handleWhatsApp({ from: m.from, name: m.name, text, replyId: m.replyId, source, transcribed, adHeadline: m.referral?.headline });
+        await engine.handleWhatsApp({ from: m.from, name: m.name, text, replyId: m.replyId, source, transcribed, adHeadline: m.referral?.headline, waMessageId: m.waMessageId });
       });
     }
     return reply;

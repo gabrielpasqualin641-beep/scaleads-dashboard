@@ -124,3 +124,32 @@ test("v1.1: segredos obrigatórios em produção", async () => {
   assert.deepEqual(missingProdSecrets({ ...base, VOICE_PROVIDER: "retell", RETELL_LLM_SECRET: "", CRON_SECRET: "" }), ["RETELL_LLM_SECRET", "CRON_SECRET"]);
   assert.ok(missingProdSecrets({ ...base, HOTMART_HOTTOK: "" }).includes("HOTMART_HOTTOK"));
 });
+
+test("v1.2: só porcentagens da base científica passam", async () => {
+  const rules = (t: string) => checkOutput(t, "whatsapp").map((v) => v.rule);
+  assert.deepEqual(rules("Estima-se que afete 20% a 30% dos homens."), []);
+  assert.deepEqual(rules("Num levantamento no Brasil, 30,3% relataram."), []);
+  assert.deepEqual(rules("Num estudo, 82,5% ganharam controle; em outro, 54%."), []);
+  assert.ok(rules("Cerca de 45% dos homens têm isso.").includes("numero nao autorizado"));
+  assert.ok(rules("Mais de 90% melhoram.").includes("numero nao autorizado"));
+});
+
+test("v1.2: nenhum resultado ou prazo atribuído ao produto", () => {
+  const rules = (t: string) => checkOutput(t, "whatsapp").map((v) => v.rule);
+  assert.ok(rules("O CONTROLE 2.0 tem 82,5% de sucesso.").includes("resultado atribuido ao produto"));
+  assert.ok(rules("O treino garante que você melhora.").includes("promessa de resultado"));
+  assert.ok(rules("Em 3 semanas você vai estar melhor.").includes("prazo atribuido ao produto"));
+  // Citar o estudo, sem atribuir ao produto, é permitido
+  assert.deepEqual(rules("Um estudo de 2014 com treino de 12 semanas mostrou que 82,5% ganharam controle. Os resultados variam."), []);
+  assert.deepEqual(rules("Ninguém garante resultado, porque cada pessoa responde de um jeito."), []);
+});
+
+test("v1.2: mensagens curtas e espera de digitação", async () => {
+  const { splitParts, typingDelayMs } = await import("../../src/agent/outbound.js");
+  assert.deepEqual(splitParts("Oi! ||| Tudo bem? ||| Me conta."), ["Oi!", "Tudo bem?", "Me conta."]);
+  assert.deepEqual(splitParts("a|||b|||c|||d"), ["a", "b", "c d"]);
+  assert.deepEqual(splitParts("só uma"), ["só uma"]);
+  assert.equal(typingDelayMs("oi"), 1200);
+  assert.equal(typingDelayMs("x".repeat(50)), 2000);
+  assert.equal(typingDelayMs("x".repeat(500)), 4000);
+});

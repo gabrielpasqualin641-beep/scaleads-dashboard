@@ -28,6 +28,11 @@ function recommendedProduct(input: BrainInput): Product | null {
 
 const has = (t: string, re: RegExp) => re.test(t);
 
+const problemaRe = /\b(durando pouco|duro pouco|dura pouco|termino (muito )?rapido|gozo (muito )?rapido|ejacul\w*|precoce|nao consigo segurar|nao seguro|acaba (muito )?rapido|muito rapido na cama)\b/;
+
+const PREVALENCIA = (nome: string) =>
+  `Poxa${nome ? `, ${nome}` : ""}, imagino que isso venha pesando.|||E olha, você tá longe de ser o único: um levantamento aqui no Brasil mostrou que é o problema masculino mais comum, quase 1 em cada 3 homens.|||Isso sempre foi assim pra você ou começou em algum momento?`;
+
 export class OfflineBrain implements Brain {
   name = "offline";
 
@@ -82,6 +87,12 @@ export class OfflineBrain implements Brain {
           : "Entendo. Vale pensar no custo de continuar como está.\nO CONTROLE 2.0 sai em 12x de R$33,08 sem juros, com garantia de 7 dias. Se preferir começar menor, o Controle Express custa R$47.\nQual faz mais sentido pra você agora?",
       };
     }
+    // Sinal de possível causa médica: recomenda urologista, sem diagnosticar.
+    if (has(t, /\b(dor|doi|ardencia|arde|ardendo|queima\w*)\b.{0,30}\b(urinar|xixi|mijar|urina)\b|\b(urinar|xixi)\b.{0,20}\b(dor|doi|arde|ardencia)\b|dificuldade de erecao|nao fica duro|perco a erecao|comecou de repente|do nada comecou|tomo (um )?remedio/)) {
+      return {
+        text: "Obrigada por me contar isso, é importante.|||Com esse sintoma, vale muito passar também por um médico urologista, pra avaliar com cuidado. Eu não consigo avaliar isso por aqui.|||O treino pode caminhar junto com o acompanhamento médico. Quer que eu te explique como ele funciona?",
+      };
+    }
     if (has(t, /\b(remedio|medicament\w*|comprimido|viagra|sildenafil\w*|tadalafil\w*|cialis|dapoxetin\w*|pilula|farmacia)\b/)) {
       await tool("registrar_objecao", { tipo: "remedio" });
       return {
@@ -93,7 +104,7 @@ export class OfflineBrain implements Brain {
       return {
         text: voz
           ? "O método vem de 23 anos de clínica do Marlon e mais de 70 mil clientes. Mas os resultados variam de pessoa para pessoa. Por isso tem garantia de 7 dias. Dá para testar sem risco."
-          : "O método vem de 23 anos de clínica do Marlon e de mais de 70 mil clientes, mas os resultados variam de pessoa para pessoa.\nPor isso existe a garantia de 7 dias: dá para testar sem risco.\nQuer que eu te explique como funciona o treino?",
+          : "Olha, tem um estudo de 2014 que acompanhou homens fazendo exercícios por 12 semanas, e a maioria ganhou mais controle.|||Cada pessoa responde de um jeito, então os resultados variam, mas isso mostra que treinar funciona melhor do que esperar passar. E tem garantia de 7 dias pra testar sem risco.|||Quer que eu te explique como funciona o treino?",
       };
     }
     if (has(t, /\b(sigil\w*|discreto|discrecao|alguem vai saber|ninguem saber|minha (esposa|mulher|namorada) (vai )?(ver|saber)|privacidade|anonim\w*)\b/)) {
@@ -148,7 +159,7 @@ export class OfflineBrain implements Brain {
       return {
         text: voz
           ? "Pronto, te mandei o link no WhatsApp. Se tiver qualquer dúvida no pagamento, me fala."
-          : "Pronto, te mandei o link aqui em cima. Você começa ainda hoje.\nSe aparecer qualquer dúvida no pagamento, é só me chamar.",
+          : "Pronto, te mandei o link aqui 👇|||Se em 7 dias não fizer sentido, a Hotmart devolve tudo. Qualquer dúvida no pagamento, me chama.",
       };
     }
     if (/^(nao|agora nao|nao obrigado)\b/.test(t) && /posso te mandar|quer que eu|quer ver/.test(prev)) {
@@ -170,22 +181,22 @@ export class OfflineBrain implements Brain {
       await tool("atualizar_etapa", { etapa: "descoberta" });
       return { text: `${nome ? `${nome}, ` : ""}pra eu te indicar o melhor caminho: o que te fez buscar ajuda agora?` };
     }
-    if (prev.includes("o que te fez buscar ajuda")) {
-      return { text: "Entendi, obrigado por me contar. Isso acontece há quanto tempo?" };
+    if (prev.includes("o que te fez buscar ajuda") || problemaRe.test(t)) {
+      return { text: PREVALENCIA(nome) };
     }
-    if (prev.includes("ha quanto tempo")) {
-      return { text: "Faz sentido. E você já tentou alguma coisa antes?" };
+    if (prev.includes("sempre foi assim") || prev.includes("ha quanto tempo")) {
+      return { text: "Entendo, obrigada por dividir isso comigo.|||E você já chegou a tentar alguma coisa pra melhorar?" };
     }
-    if (prev.includes("ja tentou alguma coisa")) {
+    if (prev.includes("ja tentou alguma coisa") || prev.includes("chegou a tentar alguma coisa")) {
       await tool("atualizar_etapa", { etapa: "recomendacao" });
       const educ = "Na maioria dos casos, isso está ligado à ansiedade e a um ritmo que o corpo aprendeu. E o que foi aprendido pode ser treinado. Essa é a visão do Marlon em 23 anos de clínica.";
       if (has(t, /\b(tudo|varias coisas|terapia|psicolog\w*|medico|nada funcionou|ja tentei de tudo|emocional|trauma)\b/)) {
-        return { text: `${educ}\nPelo que você contou, eu indicaria a consulta online com o Marlon: atendimento individual, R$900 por sessão de 50 min.\nQuer ver os horários?` };
+        return { text: `${educ}\nPelo que você contou, faz sentido começar pela consulta online com o Marlon: atendimento individual, R$900 por sessão de 50 min.\nQuer ver os horários?` };
       }
       if (has(t, /\b(nao|nunca|nada)\b/) && has(t, /\b(barato|pouco|desconfiado|duvida|primeiro passo)\b/)) {
-        return { text: `${educ}\nPara começar, eu indicaria o Controle Express (R$47): 7 exercícios, acesso imediato e garantia de 7 dias.\nPosso te mandar o link? Você começa ainda hoje.` };
+        return { text: `${educ}\nPara começar, o melhor é o Controle Express (R$47): 7 exercícios, acesso imediato e garantia de 7 dias.\nPosso te mandar o link? Você começa ainda hoje.` };
       }
-      return { text: `${educ}\nEu indicaria o Treino CONTROLE 2.0: são 8 exercícios em vídeo, passo a passo, por 12x de R$33,08 ou R$397, com garantia de 7 dias.\nPosso te mandar o link? Você começa ainda hoje.` };
+      return { text: `${educ}\nComo você nunca tentou nada, faz sentido começar pelo Treino CONTROLE 2.0: são 8 exercícios em vídeo, passo a passo, por 12x de R$33,08 ou R$397, com garantia de 7 dias.\nPosso te mandar o link? Você começa ainda hoje.` };
     }
 
     if (has(t, /\b(como funciona|o que (e|tem)|quais exercicios|detalhes)\b/)) {

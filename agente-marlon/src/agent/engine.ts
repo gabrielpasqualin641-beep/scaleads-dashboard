@@ -18,7 +18,7 @@ import {
   norm,
   shortenForVoice,
 } from "./guardrails.js";
-import { agentIntro, sendWhatsAppText } from "./outbound.js";
+import { agentIntro, sendWhatsAppParts, sendWhatsAppText, splitParts } from "./outbound.js";
 import { applyOptout, newTurnState, runTool, type ToolContext, type TurnState } from "./tools.js";
 
 export interface TurnResult {
@@ -46,7 +46,7 @@ export class Engine {
   // ---------------------------------------------------------------- WhatsApp
 
   /** Entrada de uma mensagem do lead no WhatsApp (texto já transcrito, se era áudio). */
-  async handleWhatsApp(input: { from: string; name?: string | null; text: string; replyId?: string; source?: string; transcribed?: boolean; adHeadline?: string }): Promise<TurnResult> {
+  async handleWhatsApp(input: { from: string; name?: string | null; text: string; replyId?: string; source?: string; transcribed?: boolean; adHeadline?: string; waMessageId?: string }): Promise<TurnResult> {
     const { store } = this.deps;
     let lead = await store.getLeadByPhone(input.from);
     if (!lead) {
@@ -84,21 +84,27 @@ export class Engine {
     const special = await this.handleSpecialReply(lead, input.replyId);
     if (special) return special;
 
-    const result = await this.turn(lead, "whatsapp", text);
+    const result = await this.turn(lead, "whatsapp", text, [], undefined, { deferSends: true });
     if (result.text) result.text = await this.withIntro(lead, result.text);
+    const deferred = result.state.deferred;
+    result.state.deferred = [];
+    const runDeferred = async () => {
+      // Links e confirmações das tools ("te mandei o link aqui 👇" e, logo abaixo, o link).
+      while (deferred.length) await deferred.shift()!();
+    };
     if (result.text) {
       const fresh = (await store.getLead(lead.id))!;
-      const offeredLink = /posso te mandar o link|quer que eu (te )?mande o link|quer o link/.test(norm(result.text));
-      if (result.state.listedSlots.length && !result.state.toolLog.some((t) => t.name === "agendar_consulta")) {
-        await sendWhatsAppText(this.deps, fresh, result.text, {
-          list: { label: "Ver horários", rows: result.state.listedSlots.slice(0, 6).map((s) => ({ id: `slot:${s.start}`, title: s.label })) },
-        });
-      } else if (offeredLink && !result.guard) {
-        await sendWhatsAppText(this.deps, fresh, result.text, { buttons: QUICK_REPLIES });
-      } else {
-        await sendWhatsAppText(this.deps, fresh, result.text);
-      }
+      const parts = splitParts(result.text);
+      const showSlots = result.state.listedSlots.length && !result.state.toolLog.some((t) => t.name === "agendar_consulta");
+      const list = showSlots ? { label: "Ver horários", rows: result.state.listedSlots.slice(0, 6).map((s) => ({ id: `slot:${s.start}`, title: s.label })) } : undefined;
+      // O link entra logo depois da mensagem que aponta para ele; se nenhuma apontar, vai no fim.
+      const pointer = deferred.length ? parts.findIndex((p) => /👇|aqui embaixo|logo abaixo|te mandei|te mando|segue o link/i.test(p)) : -1;
+      const cut = pointer >= 0 ? pointer + 1 : parts.length;
+      await sendWhatsAppParts(this.deps, fresh, parts.slice(0, cut), { inboundMessageId: input.waMessageId, list: cut === parts.length ? list : undefined });
+      await runDeferred();
+      if (cut < parts.length) await sendWhatsAppParts(this.deps, fresh, parts.slice(cut), { inboundMessageId: input.waMessageId, list });
     }
+    await runDeferred();
     await this.maybeSummarize(lead.id);
     return result;
   }
@@ -158,10 +164,18 @@ export class Engine {
   // ---------------------------------------------------------------- Núcleo
 
   /** Um turno de conversa em qualquer canal. Não envia nada: devolve o texto final, já verificado. */
-  async turn(leadIn: Lead, channel: Channel, text: string, extraNotes: string[] = [], historyOverride?: Message[]): Promise<TurnResult> {
+  async turn(
+    leadIn: Lead,
+    channel: Channel,
+    text: string,
+    extraNotes: string[] = [],
+    historyOverride?: Message[],
+    opts: { deferSends?: boolean } = {},
+  ): Promise<TurnResult> {
     const { store } = this.deps;
     let lead = leadIn;
     const state = newTurnState();
+    state.deferSends = Boolean(opts.deferSends);
     const ctx: ToolContext = { deps: this.deps, lead, channel, state };
     const done = (t: string, guard?: TurnResult["guard"], hangup = false): TurnResult => ({ text: t, state, guard, violations: [], hangup });
 
@@ -231,9 +245,9 @@ export class Engine {
     // Se a IA transferiu, a conversa fica com o humano daqui pra frente.
     let final = out.text;
     let violations = out.violations;
-    if (!final && !state.transferred) final = SAFE_FALLBACK;
+    if (!final && !state.transferred) final = state.sentLinks.length ? "Te mandei aqui 👇" : SAFE_FALLBACK;
 
-    if (channel === "voz") final = shortenForVoice(final);
+    if (channel === "voz") final = shortenForVoice(final.replace(/\s*\|\|\|\s*/g, " "));
     out = { text: final, violations };
     return { text: out.text, state, violations, hangup: state.optedOut || state.endConversation };
   }
@@ -253,7 +267,7 @@ export class Engine {
       return { text: "Esse ponto é melhor alguém da equipe te responder. Já chamei uma pessoa para continuar com você.", violations: ["recusa"] };
     }
     let text = autoFixOutput(r.text, input.channel);
-    let v = checkOutput(text, input.channel);
+    let v = checkParts(text, input.channel);
     if (v.length && this.brain.name === "claude" && !input.toolCtx.state.transferred) {
       const retryNotes = [
         ...input.notes,
@@ -261,7 +275,7 @@ export class Engine {
       ];
       const r2 = await this.brain.respond({ ...input, notes: retryNotes });
       text = autoFixOutput(r2.text, input.channel);
-      v = checkOutput(text, input.channel);
+      v = checkParts(text, input.channel);
     }
     if (v.length) {
       console.warn("[engine] resposta bloqueada:", v);
@@ -408,6 +422,11 @@ export interface VoiceSession {
   identityTries?: number;
   transcript: string[]; // só em memória, durante a ligação
   extraNotes: string[];
+}
+
+/** Verifica cada mensagem curta (|||) separadamente. */
+function checkParts(text: string, channel: Channel) {
+  return text.split(/\|\|\|/).flatMap((p) => checkOutput(p, channel));
 }
 
 /** Histórico da ligação atual (só memória) no formato de mensagens. */

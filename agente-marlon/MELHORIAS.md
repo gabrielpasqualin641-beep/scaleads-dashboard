@@ -1,3 +1,36 @@
+# Melhorias v1.2: agente humano, inteligente e persuasivo
+
+Situação: `npm run typecheck` sem erros, `npm test` com 19 de 19 testes passando, `npm run test:scenarios` com **44 de 44** cenários passando no modo offline, sem violar nenhuma regra da seção 5 e com todos os links levando `sck=f4-ia`. O cenário 46 só roda no modo live.
+
+**`npm run test:scenarios:live` não foi executado:** não há `ANTHROPIC_API_KEY` neste ambiente. Com a chave no `.env`, o comando roda os 45 cenários com o Claude e grava as transcrições em `docs/conversas-live.md`.
+
+## O que mudou
+1. **Base científica** (`agent/knowledge/ciencia.md`): prevalência, causas e estudos com exercícios, com fontes e regras de citação. Entra no prompt automaticamente, porque `loadSystemPrompt` inclui todos os arquivos de `agent/knowledge/`.
+2. **Prompt de sistema:**
+   - **Estilo:** as seções "Tom" e "Como você vende" foram substituídas por "Quem você é", "Como você conversa" (WhatsApp brasileiro, mensagens curtas com `|||`, frases proibidas) e "Como você conduz a venda" (9 passos, com dado, educação, pequeno sim e fechamento com forma de pagamento).
+   - **Seções novas:** "Custo de esperar" e "Sinais de causa médica".
+   - **Mantido da v1.1:** ler o momento da pessoa, a escada de produtos e o "vou pensar".
+3. **Exemplos** (`agent/knowledge/exemplos.md`): (a) conversa completa do CONTROLE 2.0, (b) objeção de preço que desce para o Express, (c) lead decidido.
+4. **Envio humanizado:**
+   - A resposta é dividida em até 3 mensagens (`|||`). Antes de cada uma aparece o "digitando" (Cloud API) e há uma espera de `chars/25 s`, entre 1,2 s e 4 s (`HUMAN_DELAY=false` desliga; os testes e o simulador já vêm desligados).
+   - Cada mensagem passa pelo filtro de saída.
+   - **Sem botões de resposta rápida** na oferta.
+   - **O link sai logo depois da mensagem que aponta para ele** ("te mandei o link aqui 👇"). Antes, o link era enviado antes do texto da IA.
+   - **Na ligação,** `|||` vira um espaço.
+5. **Guardrails:**
+   - **Números:** passam só as porcentagens da base (20%, 30%, 30,3%, 82,5%, 54%).
+   - **Bloqueios novos:** porcentagem ligada a um produto ("o CONTROLE 2.0 tem X% de sucesso"), "garante" e prazo ("em X semanas você vai").
+   - **Negações** ("ninguém garante", "não prometo") continuam permitidas.
+6. **Cenários novos:** 43 (dado de prevalência), 44 (causa médica → urologista), 45 (estudo sem promessa) e 46 (conversa (a) inteira, só live: sem frases de robô, retomando detalhes, fechamento com forma de pagamento). O executor ganhou `somente_live`, `sem_frases_proibidas` e `retoma_detalhe`.
+7. **Roteiro offline** (usado só sem chave): ganhou o dado de prevalência, o caminho do urologista e o estudo no "funciona?", e perdeu as frases proibidas.
+
+## Próximos passos
+1. **Rodar com a chave:** coloque a `ANTHROPIC_API_KEY` no `.env` (veja o `.env.demo.example`) e rode `npm run test:scenarios:live`. Depois, leia `docs/conversas-live.md`.
+2. **Calibrar o "retoma detalhe":** é uma heurística (radical de 4 letras ou número dito antes). Se der falso negativo no live, ajuste a lista de palavras ignoradas em `tests/runScenarios.ts`.
+3. **Validação:** validar os dados científicos com o Marlon e o advogado (seção 3.1 do `COMPLIANCE.md`).
+
+---
+
 # Melhorias v1.1
 
 Resumo do que mudou em relação à v1.0. Situação: `npm test` com 16 de 16 testes passando, `npm run test:scenarios` com **41 de 41** cenários passando (nenhuma regra da seção 5 violada, todos os links com `sck=f4-ia`) e `npm run typecheck` sem erros.

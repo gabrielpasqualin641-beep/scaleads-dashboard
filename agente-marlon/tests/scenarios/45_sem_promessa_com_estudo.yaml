@@ -1,0 +1,8 @@
+nome: Funciona mesmo? (estudo sem promessa)
+descricao: Pode citar o estudo, mas diz que os resultados variam e nunca atribui porcentagem ao produto.
+passos:
+  - lead: "Oi"
+  - lead: "Mas funciona mesmo?"
+    espera:
+      deve: ["varia"]
+      nao_deve: ["garanto", "controle[^.!?]{0,60}%", "%[^.!?]{0,60}controle"]

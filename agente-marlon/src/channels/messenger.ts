@@ -23,6 +23,8 @@ export interface Messenger {
   sendButtons(to: string, text: string, buttons: Button[]): Promise<string | null>;
   sendList(to: string, text: string, buttonLabel: string, rows: ListRow[]): Promise<string | null>;
   sendTemplate(to: string, tpl: TemplateSend): Promise<string | null>;
+  /** Mostra "digitando..." para o lead (opcional; precisa do id da mensagem recebida). */
+  typing?(to: string, inboundMessageId?: string): Promise<void>;
 }
 
 export type SentRecord = { at?: string } & (

@@ -21,6 +21,7 @@ export interface Deps {
   dialer: VoiceDialer | null;
   bus: EventEmitter; // eventos em tempo real para o painel
   now: () => Date;
+  humanDelay?: boolean; // "digitando" e espera entre mensagens (desligado em testes e no simulador)
 }
 
 export type BusEvent =

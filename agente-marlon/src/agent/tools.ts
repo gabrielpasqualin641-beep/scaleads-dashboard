@@ -19,10 +19,19 @@ export interface TurnState {
   optedOut: boolean;
   endConversation: boolean;
   toolLog: Array<{ name: string; input: unknown; result: unknown }>;
+  /** No WhatsApp, links e confirmações saem DEPOIS do texto da IA ("te mandei o link aqui 👇"). */
+  deferSends: boolean;
+  deferred: Array<() => Promise<void>>;
 }
 
 export function newTurnState(): TurnState {
-  return { sentLinks: [], listedSlots: [], transferred: false, optedOut: false, endConversation: false, toolLog: [] };
+  return { sentLinks: [], listedSlots: [], transferred: false, optedOut: false, endConversation: false, toolLog: [], deferSends: false, deferred: [] };
+}
+
+/** Envia agora, ou guarda para depois do texto da IA quando o turno pede. */
+async function sendOrDefer(ctx: ToolContext, fn: () => Promise<void>) {
+  if (ctx.state.deferSends) ctx.state.deferred.push(fn);
+  else await fn();
 }
 
 export interface ToolContext {
@@ -188,15 +197,17 @@ export async function runTool(name: string, input: Input, ctx: ToolContext): Pro
       }
       const url = buildCheckoutUrl(produto, ctx.channel);
       const info = loadProducts()[produto];
-      const history = await deps.store.listMessages(l.id, 200);
-      const introduced = history.some((m) => m.direction === "out" && m.author !== "system" && mentionsVirtualAssistant(m.text));
       const linkText =
         produto === "controle_2"
           ? `Aqui está o link do Treino CONTROLE 2.0 (12x de R$33,08 sem juros ou R$397 à vista, com garantia de 7 dias):\n${url}`
           : `Aqui está o link do Controle Express (R$47, acesso imediato, garantia de 7 dias):\n${url}`;
-      // Identificação obrigatória: quem chega pedindo o link não pode receber o link como primeira mensagem sem apresentação.
-      const text = introduced ? linkText : `${agentIntro(l)}\n${linkText}`;
-      await sendWhatsAppSmart(deps, l, text, { name: "link_solicitado", params: [l.name?.split(" ")[0] ?? "tudo bem", url] });
+      await sendOrDefer(ctx, async () => {
+        // Identificação obrigatória: quem chega pedindo o link não pode receber o link como primeira mensagem sem apresentação.
+        const history = await deps.store.listMessages(l.id, 200);
+        const introduced = history.some((m) => m.direction === "out" && m.author !== "system" && mentionsVirtualAssistant(m.text));
+        const text = introduced ? linkText : `${agentIntro(l)}\n${linkText}`;
+        await sendWhatsAppSmart(deps, l, text, { name: "link_solicitado", params: [l.name?.split(" ")[0] ?? "tudo bem", url] });
+      });
       await deps.store.addEvent({ leadId: l.id, type: "link_enviado", channel: ctx.channel, data: { produto, url } });
       await deps.store.updateLead(l.id, { stage: "link_enviado" });
       await onLinkEnviado(deps, l, produto);
@@ -229,11 +240,13 @@ export async function runTool(name: string, input: Input, ctx: ToolContext): Pro
       const rawLink = await deps.payments.createConsultaLink({ appointmentId: appt.id, leadName: l.name, email: l.email });
       const payLink = withTracking(rawLink, ctx.channel);
       await deps.store.updateAppointment(appt.id, { paymentLink: payLink });
-      await sendWhatsAppSmart(
-        deps,
-        l,
-        `Consulta online com o Marlon reservada para ${slot.label} (50 min).\nPagamento (R$900): ${payLink}\nLembrando: sessões não são reembolsáveis. Eu te lembro um dia antes e duas horas antes.`,
-        { name: "link_solicitado", params: [l.name?.split(" ")[0] ?? "tudo bem", payLink] },
+      await sendOrDefer(ctx, () =>
+        sendWhatsAppSmart(
+          deps,
+          l,
+          `Consulta online com o Marlon reservada para ${slot.label} (50 min).\nPagamento (R$900): ${payLink}\nLembrando: sessões não são reembolsáveis. Eu te lembro um dia antes e duas horas antes.`,
+          { name: "link_solicitado", params: [l.name?.split(" ")[0] ?? "tudo bem", payLink] },
+        ),
       );
       await deps.store.addEvent({ leadId: l.id, type: "consulta_agendada", channel: ctx.channel, data: { appointmentId: appt.id, start: slot.start } });
       await deps.store.addEvent({ leadId: l.id, type: "link_enviado", channel: ctx.channel, data: { produto: "consulta", url: payLink } });

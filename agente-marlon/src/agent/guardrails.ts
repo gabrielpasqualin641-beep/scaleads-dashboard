@@ -85,6 +85,26 @@ export function detectMedicationTopic(text: string): boolean {
 const MED_RE =
   /\b(viagra|sildenafil\w*|tadalafil\w*|cialis|vardenafil\w*|levitra|dapoxetin\w*|priligy|sertralin\w*|paroxetin\w*|fluoxetin\w*|clomipramin\w*|lidocain\w*|benzocain\w*|antidepressiv\w*|ansiolitic\w*|rivotril|clonazepam|\d+ ?mg\b|miligrama\w*|comprimido\w*|dosagem|posologia)\b/;
 
+/** Porcentagens que existem na base científica (agent/knowledge/ciencia.md). Qualquer outra é bloqueada. */
+export const ALLOWED_PERCENTS = new Set(["20", "30", "30.3", "82.5", "54"]);
+
+/** Frases que soam como robô (o prompt proíbe; a suíte live verifica). */
+export const ROBOTIC_PHRASES = [
+  /entendi,? obrigad[oa] por me contar/,
+  /(^|[.!?|]\s*)faz sentido\.(\s|$)/,
+  /\beu indicaria\b/,
+  /\bcomo posso te ajudar\?/,
+  /\bposso te ajudar em algo\?/,
+  /\bfico a disposicao\b/,
+  /\botima pergunta\b/,
+  /\bagradeco o contato\b/,
+];
+
+export function roboticPhrases(text: string): string[] {
+  const t = norm(text);
+  return ROBOTIC_PHRASES.filter((re) => re.test(t)).map((re) => re.source);
+}
+
 export interface Violation {
   rule: string;
   excerpt: string;
@@ -92,8 +112,9 @@ export interface Violation {
 
 const OUTPUT_RULES: Array<{ rule: string; re: RegExp }> = [
   { rule: "promessa de cura", re: /\b(cura|curar|curado|curada|cura definitiva)\b/ },
-  { rule: "promessa de resultado", re: /\b(garanto|garantimos|garantido|garantida|com certeza (vai|voce vai)|100 ?%|sem falha|resultado certo|resolve de vez|vai resolver|nunca mais vai)\b/ },
+  { rule: "promessa de resultado", re: /\b(garanto|garantimos|garante|garantem|garantido|garantida|com certeza (vai|voce vai)|100 ?%|sem falha|resultado certo|resolve de vez|vai resolver|nunca mais vai)\b/ },
   { rule: "promessa de tempo", re: /\b(durar|dure|aguentar) (mais )?(\d+|dez|vinte|trinta|varios|muitos) (min|minutos)\b|\bem \d+ dias (voce|vc) (vai|estara)\b/ },
+  { rule: "prazo atribuido ao produto", re: /\bem (\d+|uma|duas|tres|quatro|poucas|algumas) (semanas?|dias|meses|mes) (voce|vc|tu) (ja )?(vai|vai estar|vai ter|vai conseguir|consegue|estara|tera)\b/ },
   { rule: "urgencia falsa", re: /\b(ultimas vagas|ultima vaga|so hoje|somente hoje|apenas hoje|acaba hoje|por tempo limitado|corre que|oferta relampago|vagas limitadas)\b/ },
   { rule: "desconto ou bonus inventado", re: /\b(cupom|bonus|brinde|desconto (especial|exclusivo|de \d+)|\d+ ?% (de )?(off|desconto))\b/ },
   { rule: "medicamento", re: MED_RE },
@@ -117,6 +138,20 @@ export function checkOutput(text: string, channel: Channel): Violation[] {
     if (channel === "voz") out.push({ rule: "link falado na ligacao", excerpt: url });
     else if (isCheckoutUrl(url) && !hasRequiredTracking(url)) out.push({ rule: "link sem sck=f4-ia", excerpt: url });
   }
+  // Números: só as porcentagens da base científica; e nenhum número de estudo atribuído aos produtos.
+  const raw = text.toLowerCase();
+  for (const m of raw.matchAll(/(\d+(?:[.,]\d+)?)\s?%/g)) {
+    const n = m[1].replace(",", ".");
+    if (!ALLOWED_PERCENTS.has(n)) out.push({ rule: "numero nao autorizado", excerpt: m[0] });
+  }
+  const prodRe = /(controle 2\.0|controle express|controle2|express|treino|m[ée]todo do marlon|o m[ée]todo|o curso|o programa)/;
+  for (const sentence of raw.split(/(?<=[.!?])\s+|\n+/)) {
+    if (prodRe.test(sentence) && /\d+(?:[.,]\d+)?\s?%|\d+(?:[.,]\d+)? por cento/.test(sentence) && !/\b(estudo|levantamento|pesquisa)\b/.test(sentence)) {
+      out.push({ rule: "resultado atribuido ao produto", excerpt: sentence.trim().slice(0, 80) });
+    } else if (prodRe.test(sentence) && /\b\d+(?:[.,]\d+)?\s?% de (sucesso|eficacia|eficácia|resultado|melhora|acerto)/.test(sentence)) {
+      out.push({ rule: "resultado atribuido ao produto", excerpt: sentence.trim().slice(0, 80) });
+    }
+  }
   if (channel === "voz") {
     const long = text.split(/(?<=[.!?])\s+/).find((s) => words(s).length > 20);
     if (long) out.push({ rule: "frase longa demais para voz", excerpt: long.slice(0, 60) });
@@ -126,7 +161,7 @@ export function checkOutput(text: string, channel: Channel): Violation[] {
 
 function isNegatedContext(t: string, idx: number): boolean {
   const window = t.slice(Math.max(0, idx - 50), idx + 40);
-  return SAFE_NEGATIONS.test(window) || /\bnao\b[^.!?]{0,30}$/.test(t.slice(Math.max(0, idx - 30), idx));
+  return SAFE_NEGATIONS.test(window) || /\b(nao|ninguem|nenhum|nenhuma|nunca)\b[^.!?]{0,30}$/.test(t.slice(Math.max(0, idx - 30), idx));
 }
 
 /** Corrige o que é corrigível sem o modelo: links de checkout ganham o rastreamento. */

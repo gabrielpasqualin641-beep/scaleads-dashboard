@@ -55,6 +55,7 @@ export function createHarness(opts: { brain?: Brain; live?: boolean; start?: str
     dialer,
     bus: new EventEmitter(),
     now: () => clock.now,
+    humanDelay: false,
     brain: opts.brain ?? (opts.live ? makeBrain("claude") : makeBrain("offline")),
   });
   return {

@@ -96,6 +96,16 @@ export class WhatsAppCloudMessenger implements Messenger {
     return { data: Buffer.from(await file.arrayBuffer()), mime: j.mime_type };
   }
 
+  /** "Digitando..." (Cloud API: status read + typing_indicator; some ao enviar a resposta ou em 25 s). */
+  async typing(_to: string, inboundMessageId?: string) {
+    if (!inboundMessageId) return;
+    await fetch(`${this.base}/${config.WA_PHONE_NUMBER_ID}/messages`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${config.WA_ACCESS_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ messaging_product: "whatsapp", status: "read", message_id: inboundMessageId, typing_indicator: { type: "text" } }),
+    }).catch(() => undefined);
+  }
+
   async markRead(messageId: string) {
     await fetch(`${this.base}/${config.WA_PHONE_NUMBER_ID}/messages`, {
       method: "POST",
