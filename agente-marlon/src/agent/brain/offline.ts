@@ -87,8 +87,46 @@ export class OfflineBrain implements Brain {
           : "Entendo. Vale pensar no custo de continuar como está.\nO CONTROLE 2.0 sai em 12x de R$33,08 sem juros, com garantia de 7 dias. Se preferir começar menor, o Controle Express custa R$47.\nQual faz mais sentido pra você agora?",
       };
     }
+    const notas = norm(input.notes.join(" "));
+
+    // Dúvida sobre exercício/aula de quem já comprou: quem orienta é a equipe.
+    if (has(t, /\b(duvida|dificuldade|nao entendi|como (faco|fazer)|nao consigo fazer)\b.{0,40}\b(exercicio|aula|tecnica|etapa|modulo)\b/)) {
+      await tool("transferir_humano", { motivo: "dúvida sobre exercício/aula", urgencia: "baixa" });
+      return { text: "Que bom que você já tá praticando! 😊|||Sobre o exercício, quem te orienta direitinho é a equipe. Já passei pra eles e te respondem por aqui.|||Enquanto isso, segue as aulas na ordem, sem pular etapa." };
+    }
+
+    // Pagamento em dinheiro ou por aula
+    if (has(t, /\b(pagar|pago|comprar|compro) (em|no|com) dinheiro\b|\bpor aula\b|\b(pago|pagar) \d+ (reais )?(por|cada|a) aula|\bdinheiro (vivo|na mao)\b/)) {
+      await tool("registrar_objecao", { tipo: "preco" });
+      return { text: "Entendo! Em dinheiro ou por aula não tem como: o treino é completo e a compra é online.|||Dá pra pagar no Pix, no cartão em 12x de R$33,08, ou no boleto parcelado pela Hotmart.|||E se quiser começar menor, o Controle Express custa R$47. Qual fica melhor pra você?" };
+    }
+
+    // Confiança / golpe
+    if (has(t, /\b(golpe|golpes|enganac\w*|engana\w*|e confiavel|e seguro comprar|medo de comprar|confiar)\b/)) {
+      await tool("registrar_objecao", { tipo: "confianca" });
+      return { text: "Você tá certíssimo em desconfiar, tem muita coisa ruim na internet.|||A compra é pela Hotmart, com garantia de 7 dias, e o Marlon é psicólogo com registro CRP 12/03841. Os canais oficiais dele (YouTube, Instagram e TikTok) indicam este WhatsApp.|||Só compra pelo link que eu te mandar aqui, tá? Quer que eu te explique como funciona o treino?" };
+    }
+
+    // Falhas na rigidez: o TREINO DO LEÃO ainda não está na base → equipe.
+    const falhas = /\b(falh\w*|rigidez|firmeza|dureza|meia bomba|perco a erecao|perder a erecao|perdendo a erecao|nao sobe|nao fica duro|disfuncao|impotencia|erecao (fraca|ruim)|dificuldade (de|em|pra) (ter |manter )?(a )?erecao|manter a erecao)\b/;
+    if (has(t, falhas) && !has(t, /\b(so|somente|apenas) (rapido|rapidez)\b|\bnao (tenho|tive|to tendo|estou tendo) falha/)) {
+      const rapidoPrimeiro = has(t, /\b(primeiro|antes)\b.{0,30}\b(rapido|rapidez|controle|precoce)\b/);
+      if (rapidoPrimeiro) {
+        await tool("atualizar_etapa", { etapa: "recomendacao" });
+        return { text: "Entendi, primeiro veio a rapidez e depois as falhas. Isso é bem comum.|||Nesse caso o caminho começa pelo CONTROLE 2.0, pra trabalhar o controle, e depois a equipe te orienta sobre a firmeza.|||Posso te mandar o link do CONTROLE 2.0?" };
+      }
+      await tool("transferir_humano", { motivo: "interesse no TREINO DO LEÃO (falhas na rigidez)", urgencia: "baixa" });
+      return { text: "Entendi, obrigada por me contar. Isso acontece com muito mais homens do que parece.|||Pra falhas na rigidez a equipe tem um treino específico, o TREINO DO LEÃO. Já chamei alguém da equipe pra te passar os detalhes certinhos por aqui.|||E se tiver algum sinal físico, como dor ou mudança de repente, vale também uma avaliação com urologista." };
+    }
+
+    // Veio da página do TREINO DO LEÃO: triagem primeiro.
+    if (notas.includes("pagina do treino do leao") && userTurns <= 1) {
+      await tool("atualizar_etapa", { etapa: "descoberta" });
+      return { text: `Pra eu te ajudar certinho${nome ? `, ${nome}` : ""}: o que tá te incomodando é mais a firmeza (falhas na rigidez), a rapidez, ou as duas coisas?` };
+    }
+
     // Sinal de possível causa médica: recomenda urologista, sem diagnosticar.
-    if (has(t, /\b(dor|doi|ardencia|arde|ardendo|queima\w*)\b.{0,30}\b(urinar|xixi|mijar|urina)\b|\b(urinar|xixi)\b.{0,20}\b(dor|doi|arde|ardencia)\b|dificuldade de erecao|nao fica duro|perco a erecao|comecou de repente|do nada comecou|tomo (um )?remedio/)) {
+    if (has(t, /\b(dor|doi|ardencia|arde|ardendo|queima\w*)\b.{0,30}\b(urinar|xixi|mijar|urina)\b|\b(urinar|xixi)\b.{0,20}\b(dor|doi|arde|ardencia)\b|comecou de repente|do nada comecou|tomo (um )?remedio/)) {
       return {
         text: "Obrigada por me contar isso, é importante.|||Com esse sintoma, vale muito passar também por um médico urologista, pra avaliar com cuidado. Eu não consigo avaliar isso por aqui.|||O treino pode caminhar junto com o acompanhamento médico. Quer que eu te explique como ele funciona?",
       };

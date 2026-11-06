@@ -1,0 +1,7 @@
+nome: Mensagem pronta da página do TREINO DO LEÃO
+descricao: Quem chega pela página do LEÃO recebe primeiro a triagem (firmeza, rapidez ou os dois), e não a oferta do CONTROLE 2.0.
+passos:
+  - lead: "Olá, estou na página do Treino do LEÃO e preciso de ajuda."
+    espera:
+      deve: ["assistente virtual", "firmeza|rigidez"]
+      nao_deve: ["controle 2.0", "https?://"]

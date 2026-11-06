@@ -61,6 +61,12 @@ Cada regra tem uma camada **determinística**, que não depende do modelo de IA,
 - [ ] Confirmar que a forma de citar (sem atribuir os números ao CONTROLE 2.0, sempre com "os resultados variam") está adequada às normas de publicidade do CFP e ao CDC.
 - O sistema bloqueia qualquer porcentagem fora da base (20%, 30%, 30,3%, 82,5%, 54%), qualquer porcentagem ligada ao nome de um produto, "garante" e prazos ("em X semanas você vai").
 
+## 3.2 Conversas reais usadas no desenvolvimento (v1.7)
+- [ ] Confirmar com o Marlon e o advogado que o uso interno de conversas anonimizadas para melhorar o agente está coberto pela política de privacidade (dados sensíveis, art. 11 da LGPD).
+- As conversas não foram copiadas para o projeto nem para o prompt; só os padrões entraram, em `docs/analise-conversas.md`.
+- [ ] Validar a frase "quem não trata a ejaculação precoce tende a piorar e a ter falhas", muito usada pela equipe. O agente não a usa até a validação; ele usa "é comum as duas coisas aparecerem juntas".
+- [ ] A equipe usa "mais de 90% das falhas não são físicas", que não tem fonte na base. O filtro do agente bloqueia esse número.
+
 ## 4. Checklist antes de produção
 
 **Jurídico**

@@ -71,6 +71,26 @@ export function detectRobotQuestion(text: string): boolean {
     /\b(pessoa de verdade|ser humano|humano de verdade)\s*\?/.test(t);
 }
 
+/** "É o Marlon? É o doutor? É com o senhor mesmo?": a resposta é sempre a verdade (assistente virtual). */
+export function detectMarlonQuestion(text: string): boolean {
+  const t = norm(text);
+  return (
+    /\b(e|eh|seria) (o|com o) (dr\.?|doutor|marlon|proprio marlon)(\s|\b)[^?]{0,40}\?/.test(t) ||
+    /\b(falo|falando|to falando|estou falando|tou falando) com o (dr\.?|doutor|marlon|proprio marlon)(\s|\b)/.test(t) ||
+    /\b(e|eh) (com )?o senhor mesmo\b/.test(t) ||
+    /\bquem (e|esta) (que )?(me )?(respondendo|falando)( aqui)?\s*\?/.test(t)
+  );
+}
+
+/** Mensagens prontas das páginas e do site: viram contexto para a IA. */
+export function detectEntryOrigin(text: string): "pagina_leao" | "suporte_controle2" | "consulta_site" | null {
+  const t = norm(text);
+  if (/estou na pagina do treino do leao/.test(t)) return "pagina_leao";
+  if (/(suporte do treino controle 2\.0|estou no treino controle 2\.0 e preciso)/.test(t)) return "suporte_controle2";
+  if (/sexosemduvida\.com.*consultas? online/.test(t)) return "consulta_site";
+  return null;
+}
+
 export function detectHumanRequest(text: string): boolean {
   const t = norm(text);
   return /\b(falar com (o )?(marlon|atendente|humano|alguem|pessoa|equipe)|quero (um )?(atendente|humano))\b/.test(t);

@@ -1,3 +1,27 @@
+# Melhorias v1.7: aprendizados das conversas reais da equipe
+
+Situação: `npm run typecheck` sem erros, `npm test` com 20 de 20 testes passando, `npm run test:scenarios` com **50 de 50** cenários passando no modo offline. O cenário 46 continua só no modo live.
+
+A análise completa está em `docs/analise-conversas.md`. Ela foi feita a partir de 48 conversas anonimizadas, sem nenhuma fala copiada para o projeto.
+
+## O que mudou
+- **Triagem** como a equipe faz: "só rápido, ou também falhas na rigidez? O que veio primeiro?".
+- **Falhas na rigidez:** a conversa vai para a equipe com o motivo "interesse no TREINO DO LEÃO". O agente não inventa preço, link nem detalhes, porque o produto ainda não está na base.
+- **Mensagens prontas reconhecidas:** "estou na página do Treino do LEÃO", "suporte do Treino CONTROLE 2.0" e "consultas online" pelo site viram contexto para a IA.
+- **"É o Marlon? É o doutor?":** resposta fixa e honesta (assistente virtual).
+- **Dúvida sobre exercício ou aula** de quem já comprou: vai para a equipe; o agente não ensina técnica.
+- **FAQ:** acesso (e-mail, app Hotmart, Minhas compras, vitalício), pagamento (sem dinheiro, sem venda por aula, boleto parcelado), canais oficiais e como funciona a consulta.
+- **Objeções novas:** golpe/confiança, "é o Marlon?", dinheiro ou por aula, "já tentei creme/anestésico/pensar em outra coisa", sem cartão.
+- **Cenários novos (47 a 52):** falhas na rigidez, "é o Marlon?", dinheiro ou por aula, dúvida de exercício, página do LEÃO e medo de golpe.
+
+## Pendente (precisa de resposta da equipe)
+- **TREINO DO LEÃO:** link de checkout, preço (R$397, ou R$297 comprando junto?), garantia e conteúdo. Com isso, o agente passa a recomendar e vender o LEÃO.
+- **CONTROLE 2.0:** quantidade de aulas ("mais de 20 vídeos" nas conversas, "8 exercícios" na base).
+- **Consulta:** R$900 ou R$800?
+- **Narrativa:** validar com o Marlon a frase "não tratar faz piorar".
+
+---
+
 # Melhorias v1.2: agente humano, inteligente e persuasivo
 
 Situação: `npm run typecheck` sem erros, `npm test` com 19 de 19 testes passando, `npm run test:scenarios` com **44 de 44** cenários passando no modo offline, sem violar nenhuma regra da seção 5 e com todos os links levando `sck=f4-ia`. O cenário 46 só roda no modo live.

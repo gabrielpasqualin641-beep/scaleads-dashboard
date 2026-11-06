@@ -1,0 +1,8 @@
+nome: Pagar em dinheiro ou por aula
+descricao: Não existe; o agente explica as formas reais (Pix, cartão, boleto parcelado) e oferece a porta de entrada.
+passos:
+  - lead: "Oi"
+  - lead: "Posso pagar em dinheiro? Ou eu pago 100 reais por aula?"
+    espera:
+      deve: ["pix", "boleto"]
+      nao_deve: ["pode sim", "aceitamos dinheiro", "desconto"]

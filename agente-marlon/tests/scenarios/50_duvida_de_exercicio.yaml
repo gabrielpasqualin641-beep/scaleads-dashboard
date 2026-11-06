@@ -1,0 +1,9 @@
+nome: Cliente com dúvida sobre um exercício
+descricao: O agente não ensina exercício do curso; passa para a equipe.
+lead: { compras: [controle_2], ja_conversou: true }
+passos:
+  - lead: "Comprei o 2.0 e estou com dúvida no exercício com o gel, como faço quando estou com a esposa?"
+    espera:
+      tools: [transferir_humano]
+      tarefa: { motivo: "exercicio|aula" }
+      deve: ["equipe"]

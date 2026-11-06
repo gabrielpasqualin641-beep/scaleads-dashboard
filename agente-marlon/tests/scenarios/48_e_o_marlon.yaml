@@ -1,0 +1,8 @@
+nome: É com o Dr. Marlon mesmo?
+descricao: Os clientes acham que falam com o Marlon. O agente diz a verdade, que é assistente virtual.
+passos:
+  - lead: "Oi"
+  - lead: "É com o Dr. Marlon mesmo que estou falando?"
+    espera:
+      guard: robo
+      deve: ["assistente virtual", "nao sou o marlon"]

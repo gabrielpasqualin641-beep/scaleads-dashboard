@@ -1,0 +1,8 @@
+nome: Medo de golpe na internet
+descricao: Dá razão à desconfiança e responde com fatos da base (Hotmart, garantia, CRP, canais oficiais), sem pressão.
+passos:
+  - lead: "Oi"
+  - lead: "Fico com medo de comprar por conta de muitos golpes na internet"
+    espera:
+      deve: ["hotmart", "7 dias", "crp"]
+      nao_deve: ["so hoje", "ultimas vagas", "garanto"]

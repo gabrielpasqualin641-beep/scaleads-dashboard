@@ -153,3 +153,13 @@ test("v1.2: mensagens curtas e espera de digitação", async () => {
   assert.equal(typingDelayMs("x".repeat(50)), 2000);
   assert.equal(typingDelayMs("x".repeat(500)), 4000);
 });
+
+test("v1.7: pergunta se é o Marlon / o doutor", async () => {
+  const { detectMarlonQuestion, detectEntryOrigin } = await import("../../src/agent/guardrails.js");
+  for (const f of ["É com o Dr. Marlon mesmo que estou falando?", "é o marlon?", "Falo com o doutor?", "é com o senhor mesmo?", "Quem está me respondendo?"]) assert.ok(detectMarlonQuestion(f), f);
+  for (const f of ["Bom dia dr", "vi os vídeos do Marlon", "o Marlon atende online?"]) assert.ok(!detectMarlonQuestion(f), f);
+  assert.equal(detectEntryOrigin("Olá, estou na página do Treino do LEÃO e preciso de ajuda."), "pagina_leao");
+  assert.equal(detectEntryOrigin("Olá, gostaria de falar com o suporte do Treino CONTROLE 2.0."), "suporte_controle2");
+  assert.equal(detectEntryOrigin("Olá, encontrei seu contato no site sexosemduvida.com e gostaria saber mais sobre as consultas online."), "consulta_site");
+  assert.equal(detectEntryOrigin("Oi, quanto custa?"), null);
+});

@@ -10,6 +10,8 @@ import {
   autoFixOutput,
   checkOutput,
   detectCrisis,
+  detectEntryOrigin,
+  detectMarlonQuestion,
   detectMinor,
   detectOptout,
   detectRefund,
@@ -66,6 +68,18 @@ export class Engine {
         author: "system",
         text: `A pessoa chegou por um anúncio com o título: "${input.adHeadline.slice(0, 120)}". Comece a partir do que o anúncio falou.`,
       });
+    }
+    // Mensagens prontas das páginas/site: contexto para a IA conduzir a triagem certa.
+    const origin = detectEntryOrigin(input.text);
+    if (origin) {
+      const ORIGIN_NOTES = {
+        pagina_leao:
+          "A pessoa veio da página do TREINO DO LEÃO (treino para falhas na rigidez). Faça a triagem: é falha na rigidez, rapidez, ou os dois (e o que veio primeiro)? Lembre: o TREINO DO LEÃO ainda não está na base; se for falha na rigidez, transfira para a equipe.",
+        suporte_controle2:
+          "A pessoa pediu suporte do CONTROLE 2.0. Descubra se já é cliente (acesso, dúvida de aula) ou se ainda está conhecendo. Dúvida sobre exercício ou aula vai para a equipe.",
+        consulta_site: "A pessoa veio do site perguntando sobre a consulta online com o Marlon. Explique como funciona e ofereça os horários.",
+      } as const;
+      await store.addMessage({ leadId: lead.id, channel: "whatsapp", direction: "out", author: "system", text: ORIGIN_NOTES[origin] });
     }
     const text = this.replyToText(input.replyId, input.text);
     await store.addMessage({
@@ -219,6 +233,15 @@ export class Engine {
       await store.addEvent({ leadId: lead.id, type: "reembolso", channel, data: { origem: "pedido_na_conversa" } });
       const t = "Claro. Já passei para a equipe cuidar do seu reembolso, sem complicação. Eles te respondem por aqui.";
       return done(t, "reembolso");
+    }
+
+    // 5a) "É o Marlon? É o doutor?": sempre a verdade.
+    if (detectMarlonQuestion(text) && norm(text).split(" ").length <= 14) {
+      const t =
+        channel === "voz"
+          ? `Aqui é a ${config.AGENT_NAME}, assistente virtual da equipe do Marlon Mattedi. O Marlon atende nas consultas. Se preferir, alguém da equipe fala com você.`
+          : `Aqui é a ${config.AGENT_NAME}, assistente virtual da equipe do Marlon Mattedi. Não sou o Marlon: ele atende nas consultas.|||Eu te ajudo por aqui com o que precisar. Se preferir falar com uma pessoa da equipe, é só me dizer.`;
+      return done(t, "robo");
     }
 
     // 5) "É robô?": sempre a verdade.

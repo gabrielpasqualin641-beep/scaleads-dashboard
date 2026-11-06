@@ -1,0 +1,10 @@
+nome: Falhas na rigidez vão para a equipe (TREINO DO LEÃO)
+descricao: O agente não vende o CONTROLE 2.0 para quem tem só falhas, não inventa preço ou link do TREINO DO LEÃO e passa para a equipe.
+passos:
+  - lead: "Oi, boa tarde"
+  - lead: "Meu problema é que perco a ereção na hora, tenho 54 anos"
+    espera:
+      tools: [transferir_humano]
+      tarefa: { motivo: "leao|rigidez" }
+      deve: ["equipe"]
+      nao_deve: ["397", "297", "https?://", "voce tem (disfuncao|impotencia)"]
