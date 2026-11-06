@@ -2,6 +2,12 @@
 
 Este projeto é o agente comercial de IA (WhatsApp + voz) da equipe do psicólogo Marlon Mattedi. Leia o `README.md` para entender a arquitetura, o `COMPLIANCE.md` para as regras legais e o `COMO_RODAR.md` para os comandos.
 
+## Como trabalhar neste projeto
+- O dono do projeto usa **Windows com PowerShell**. Não junte comandos com `&&`: passe um comando por vez.
+- **Não suba nada para o GitHub** (sem `git push`). O projeto roda só localmente, por decisão do dono.
+- Antes de alterar fatos de produto (preço, link, conteúdo), confirme com o dono. Nunca invente.
+- Depois de qualquer mudança, rode `npm run typecheck`, `npm test` e `npm run test:scenarios`, e mostre o resultado.
+
 ## Comandos
 - `npm run demo`: sobe o backend em memória na porta 3333. O simulador de conversa fica em http://localhost:3333 (sem login; página em `src/sim/simulador.html`).
 - `npm run local`: demo + painel Next.js completo na porta 3000 (login `demo@equipe.local` / `demo-senha-123`).
