@@ -3,105 +3,265 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Simulador do agente</title>
+<title>Simulador · Agente Comercial</title>
 <style>
-:root{--bg:#f6f7f9;--panel:#fff;--text:#16181d;--muted:#6b7280;--line:#e5e7eb;--accent:#1f6f5c;--soft:#e6f2ee;--warn:#b45309;--warnsoft:#fef3c7;--danger:#b91c1c;--dangersoft:#fee2e2;--me:#dcf2e9}
-@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--panel:#171a21;--text:#e6e7ea;--muted:#9aa0aa;--line:#272b34;--accent:#4fb59a;--soft:#15302a;--warn:#f59e0b;--warnsoft:#3a2a0a;--danger:#f87171;--dangersoft:#3b1717;--me:#1d3a31}}
-*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
-button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text);padding:6px 12px}
-button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}button:disabled{opacity:.5;cursor:default}
-input{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%}
-.app{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;padding:14px;height:100vh}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:0}
-.head{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.msgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
-.msg{max-width:75%;padding:8px 12px;border-radius:12px;white-space:pre-wrap;word-break:break-word;background:var(--panel);border:1px solid var(--line);align-self:flex-start}
-.msg.me{align-self:flex-end;background:var(--me);border-color:transparent}
-.msg.sys{align-self:center;background:transparent;border:0;color:var(--muted);font-size:12px;font-style:italic;text-align:center}
-.who{font-size:12px;color:var(--muted)}.msg a{color:var(--accent);word-break:break-all}
-.btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.sug{padding:8px 12px 0;display:flex;gap:6px;flex-wrap:wrap}.sug button{font-size:12px}
-.composer{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
-.side{overflow:auto;padding:14px;gap:14px}.small{font-size:12px}.muted{color:var(--muted)}
-.badge{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;background:var(--line);color:var(--muted)}
-.badge.warn{background:var(--warnsoft);color:var(--warn)}.badge.danger{background:var(--dangersoft);color:var(--danger)}
-pre{white-space:pre-wrap;font-size:11px;color:var(--muted);margin:4px 0}
-.call{display:none;flex-direction:column;align-items:center;gap:10px;padding:18px 12px;border-top:1px solid var(--line);background:var(--soft)}
-.call.on{display:flex}
-.call .quem{font-size:16px;font-weight:600}.call .st{font-size:13px;color:var(--muted)}
-.call .ouvindo{min-height:20px;font-style:italic;text-align:center;max-width:90%}
-.call .btns{justify-content:center}
-.call button.atender{background:#16a34a;color:#fff;border-color:#16a34a;padding:10px 22px;border-radius:999px}
-.call button.desligar{background:#dc2626;color:#fff;border-color:#dc2626;padding:10px 22px;border-radius:999px}
-.pulse{width:14px;height:14px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:6px;vertical-align:middle;animation:p 1s infinite}
-@keyframes p{0%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.4)}100%{opacity:1;transform:scale(1)}}
-@media (max-width:860px){.app{grid-template-columns:1fr;height:auto}.msgs{min-height:60vh}}
+:root{
+  --bg:#f2efe9; --bg2:#e8e3da; --panel:#ffffff; --text:#1b1d1f; --muted:#6d6a64; --line:#e4dfd6;
+  --brand:#0e5a4c; --brand2:#127a66; --brandsoft:#e3f1ec; --gold:#b8873b;
+  --warn:#9a5b00; --warnsoft:#fff1d6; --danger:#b42318; --dangersoft:#fde7e5; --ok:#15803d; --oksoft:#e4f6ea;
+  --wa-bg:#efeae2; --wa-in:#ffffff; --wa-out:#d9fdd3; --wa-head:#008069; --wa-tick:#53bdeb; --wa-text:#111b21; --wa-meta:#667781;
+  --shadow:0 1px 2px rgba(20,20,20,.06),0 8px 24px rgba(20,20,20,.06);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0d1110; --bg2:#121816; --panel:#161c1a; --text:#e7ebe9; --muted:#97a19d; --line:#25302c;
+  --brand:#3fb79a; --brand2:#5fd0b2; --brandsoft:#13302a; --gold:#d9a95a;
+  --warn:#f5b54a; --warnsoft:#3a2a0a; --danger:#ff8a80; --dangersoft:#3b1717; --ok:#5ee08a; --oksoft:#123322;
+  --wa-bg:#0b141a; --wa-in:#202c33; --wa-out:#005c4b; --wa-head:#202c33; --wa-tick:#53bdeb; --wa-text:#e9edef; --wa-meta:#8696a0;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font:14px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;color:inherit}
+button:disabled{opacity:.45;cursor:default}
+input,select{font:inherit;color:var(--text)}
+.small{font-size:12px}.muted{color:var(--muted)}
+
+/* ---------- Barra superior ---------- */
+.top{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;display:grid;place-items:center;font-weight:700;letter-spacing:.5px}
+.title b{display:block;font-size:15px}.title span{font-size:12px;color:var(--muted)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:5px 10px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.chip.on .dot{background:var(--ok)}.chip.off .dot{background:var(--warn)}
+.seg{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:3px}
+.seg button{border:0;background:transparent;padding:7px 14px;border-radius:9px;color:var(--muted);font-weight:600}
+.seg button.on{background:var(--panel);color:var(--text);box-shadow:var(--shadow)}
+.ghost{border:1px solid var(--line);background:var(--panel);padding:7px 12px;border-radius:10px}
+
+/* ---------- Palco ---------- */
+.stage{display:grid;grid-template-columns:minmax(380px,1fr) 400px;gap:22px;padding:22px;max-width:1280px;margin:0 auto}
+.phonewrap{display:flex;justify-content:center;align-items:flex-start;background:radial-gradient(1200px 500px at 50% -10%,var(--bg2),transparent);border-radius:24px;padding:10px 0}
+.phone{width:400px;max-width:100%;height:min(780px,calc(100vh - 130px));min-height:560px;border-radius:38px;background:#0c0f0e;padding:10px;box-shadow:0 30px 60px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.4);position:relative}
+.screen{width:100%;height:100%;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;background:var(--wa-bg);position:relative}
+.notch{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:22px;background:#0c0f0e;border-radius:0 0 14px 14px;z-index:4}
+
+/* WhatsApp */
+.wa-head{background:var(--wa-head);color:#fff;display:flex;align-items:center;gap:10px;padding:30px 12px 10px}
+.avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1fa37f,#0e5a4c);display:grid;place-items:center;color:#fff;font-weight:700;flex:none}
+.wa-head .nm{font-weight:600;font-size:15px;line-height:1.2}.wa-head .st{font-size:12px;opacity:.85}
+.wa-head .icons{margin-left:auto;display:flex;gap:16px;opacity:.9;font-size:16px}
+.chat{flex:1;overflow-y:auto;padding:10px 12px 6px;display:flex;flex-direction:column;gap:4px;
+  background-color:var(--wa-bg);
+  background-image:radial-gradient(rgba(0,0,0,.035) 1px,transparent 1px),radial-gradient(rgba(0,0,0,.025) 1px,transparent 1px);
+  background-size:22px 22px,22px 22px;background-position:0 0,11px 11px}
+@media (prefers-color-scheme:dark){.chat{background-image:radial-gradient(rgba(255,255,255,.03) 1px,transparent 1px),radial-gradient(rgba(255,255,255,.02) 1px,transparent 1px)}}
+.daychip{align-self:center;background:var(--wa-in);color:var(--wa-meta);font-size:11.5px;padding:4px 10px;border-radius:8px;margin:6px 0;box-shadow:0 1px .5px rgba(0,0,0,.13)}
+.bub{max-width:82%;padding:6px 8px 4px 9px;border-radius:8px;color:var(--wa-text);font-size:14.2px;line-height:1.38;white-space:pre-wrap;word-break:break-word;box-shadow:0 1px .5px rgba(0,0,0,.13);position:relative;margin-top:2px}
+.bub.in{background:var(--wa-in);align-self:flex-start;border-top-left-radius:2px}
+.bub.out{background:var(--wa-out);align-self:flex-end;border-top-right-radius:2px}
+.bub .meta{float:right;font-size:11px;color:var(--wa-meta);margin:6px 0 -2px 10px;white-space:nowrap}
+.bub .meta .tk{color:var(--wa-tick);margin-left:3px}
+.bub .tag{display:block;font-size:11px;color:var(--brand2);font-weight:600;margin-bottom:2px}
+.bub a{color:#027eb5;word-break:break-all}
+.waopts{align-self:flex-start;max-width:82%;width:82%;display:flex;flex-direction:column;gap:3px;margin-top:2px}
+.waopts button{background:var(--wa-in);border:0;border-radius:8px;padding:9px;color:#00a884;font-weight:600;box-shadow:0 1px .5px rgba(0,0,0,.13)}
+.waopts button:hover{filter:brightness(.97)}
+.sysnote{align-self:center;max-width:88%;text-align:center;font-size:11.8px;color:#54656f;background:#fff5c4;padding:5px 10px;border-radius:8px;margin:6px 0;box-shadow:0 1px .5px rgba(0,0,0,.1)}
+@media (prefers-color-scheme:dark){.sysnote{background:#3b3416;color:#e9dca6}}
+.typing{align-self:flex-start;background:var(--wa-in);border-radius:8px;border-top-left-radius:2px;padding:10px 12px;display:none;gap:4px;box-shadow:0 1px .5px rgba(0,0,0,.13);margin-top:2px}
+.typing.on{display:flex}.typing i{width:7px;height:7px;border-radius:50%;background:var(--wa-meta);animation:tp 1.2s infinite}
+.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+@keyframes tp{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+.empty{margin:auto;max-width:270px;text-align:center;color:var(--wa-meta);font-size:13px;background:rgba(255,255,255,.55);padding:14px;border-radius:12px}
+@media (prefers-color-scheme:dark){.empty{background:rgba(32,44,51,.7)}}
+.atalhos{display:flex;gap:6px;overflow-x:auto;padding:6px 10px 4px;scrollbar-width:none}
+.atalhos::-webkit-scrollbar{display:none}
+.atalhos button{flex:none;border:1px solid rgba(0,0,0,.08);background:var(--wa-in);color:var(--wa-text);border-radius:16px;padding:5px 11px;font-size:12.5px}
+.bar{display:flex;gap:6px;align-items:center;padding:6px 8px 10px}
+.bar input{flex:1;border:0;outline:0;border-radius:22px;padding:11px 14px;background:var(--wa-in);color:var(--wa-text);box-shadow:0 1px .5px rgba(0,0,0,.1)}
+.send{width:44px;height:44px;border-radius:50%;border:0;background:#00a884;color:#fff;display:grid;place-items:center;font-size:18px;flex:none}
+
+/* Ligação */
+.callscreen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;color:#fff;
+  background:radial-gradient(600px 400px at 50% 0%,#1d6b5c,transparent),linear-gradient(180deg,#0f2b26,#081613);padding:60px 22px 34px;z-index:3}
+.callscreen.on{display:flex}
+.callscreen .who{font-size:24px;font-weight:600;margin-top:22px;text-align:center}
+.callscreen .sub{font-size:13px;opacity:.8;margin-top:4px;text-align:center}
+.bigav{width:118px;height:118px;border-radius:50%;background:linear-gradient(135deg,#25b58f,#0e5a4c);display:grid;place-items:center;font-size:44px;font-weight:700;position:relative;margin-top:26px}
+.bigav::before,.bigav::after{content:"";position:absolute;inset:-12px;border-radius:50%;border:2px solid rgba(255,255,255,.18);animation:ring 2s infinite}
+.bigav::after{animation-delay:1s}
+.callscreen.quiet .bigav::before,.callscreen.quiet .bigav::after{animation:none;opacity:0}
+.callscreen.talking .bigav::before,.callscreen.talking .bigav::after{border-color:rgba(94,224,170,.55);animation-duration:1.1s}
+@keyframes ring{0%{transform:scale(.9);opacity:1}100%{transform:scale(1.45);opacity:0}}
+.pill{margin-top:18px;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.1)}
+.pill .dot{width:8px;height:8px;border-radius:50%;background:#aab}
+.pill.ouvindo .dot{background:#5ee08a;animation:tp 1s infinite}.pill.falando .dot{background:#7fd6ff}.pill.pensando .dot{background:#f5c46a;animation:tp 1.2s infinite}
+.legenda{margin-top:22px;min-height:84px;max-width:100%;text-align:center;font-size:15.5px;line-height:1.45;opacity:.95}
+.legenda .eu{display:block;margin-top:10px;font-size:13.5px;opacity:.75;font-style:italic}
+.callctrls{margin-top:auto;display:flex;gap:46px;justify-content:center;align-items:flex-end}
+.cbtn{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px;opacity:.95;background:none;border:0;color:#fff}
+.cbtn .c{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:26px;border:0}
+.cbtn.green .c{background:#22c55e}.cbtn.red .c{background:#ef4444}.cbtn.gray .c{background:rgba(255,255,255,.16)}
+.cbtn.green .c{animation:pulse 1.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}70%{box-shadow:0 0 0 16px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.dica{font-size:11.5px;opacity:.65;text-align:center;margin-top:16px;max-width:320px}
+.idle{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:30px;text-align:center;z-index:2;
+  background:linear-gradient(180deg,#0f2b26,#081613);color:#fff}
+.idle.on{display:flex}
+.idle h3{margin:8px 0 0;font-size:20px}.idle p{margin:0;opacity:.75;font-size:13.5px;max-width:280px}
+.primary-pill{border:0;border-radius:999px;padding:12px 20px;background:#22c55e;color:#fff;font-weight:700;font-size:15px}
+.link-pill{border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:9px 16px;background:transparent;color:#fff}
+
+/* ---------- Bastidores ---------- */
+.side{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow)}
+.card h4{margin:0 0 10px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:8px}
+.field{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 11px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:3px 9px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
+.tag.ok{background:var(--oksoft);color:var(--ok);border-color:transparent}
+.tag.warn{background:var(--warnsoft);color:var(--warn);border-color:transparent}
+.tag.danger{background:var(--dangersoft);color:var(--danger);border-color:transparent}
+.tag.brand{background:var(--brandsoft);color:var(--brand);border-color:transparent}
+.funil{display:flex;flex-direction:column;gap:0;margin-top:2px}
+.step{display:flex;align-items:center;gap:10px;padding:5px 0;color:var(--muted);font-size:13px;position:relative}
+.step .b{width:12px;height:12px;border-radius:50%;border:2px solid var(--line);background:var(--panel);flex:none;z-index:1}
+.step:not(:last-child)::after{content:"";position:absolute;left:5px;top:19px;width:2px;height:calc(100% - 12px);background:var(--line)}
+.step.done{color:var(--text)}.step.done .b{background:var(--brand);border-color:var(--brand)}
+.step.done:not(:last-child)::after{background:var(--brand)}
+.step.cur{color:var(--brand);font-weight:700}.step.cur .b{background:var(--panel);border-color:var(--brand);box-shadow:0 0 0 4px var(--brandsoft)}
+.tl{display:flex;flex-direction:column;gap:6px}
+.tl details{border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:var(--bg)}
+.tl summary{cursor:pointer;font-weight:600;font-size:12.5px;list-style:none;display:flex;gap:8px;align-items:center}
+.tl summary::-webkit-details-marker{display:none}
+.tl pre{white-space:pre-wrap;font-size:11px;color:var(--muted);margin:6px 0 0;max-height:200px;overflow:auto}
+.jobs{display:flex;flex-direction:column;gap:6px}
+.job{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:7px 10px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
+.btngrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.btngrid button,.act{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 10px;font-size:12.5px;text-align:left}
+.btngrid button:hover,.act:hover{border-color:var(--brand)}
+.rng{width:100%}
+@media (max-width:980px){.stage{grid-template-columns:1fr}.phone{height:720px}}
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="card">
-    <div class="head">
-      <div style="flex:1;min-width:220px"><b>Fale com o agente como se fosse o lead</b><div class="small muted" id="info">carregando…</div></div>
-      <button id="tab-wa" class="primary">WhatsApp</button>
-      <button id="tab-voz">Ligação</button>
-      <button id="novo">Novo contato</button>
-    </div>
-    <div class="msgs" id="msgs"><div class="msg sys" id="vazio">Escreva como se você fosse um lead chegando no WhatsApp. Ex.: “Oi, quero saber do treino”.</div></div>
-    <div class="sug" id="sug"></div>
-    <div class="call" id="call">
-      <div class="quem" id="call-quem">📞 Equipe Marlon Mattedi</div>
-      <div class="st"><span class="pulse" id="call-pulse"></span><span id="call-status">chamando…</span> <span id="call-timer"></span></div>
-      <div class="ouvindo" id="call-ouvindo"></div>
-      <div class="btns">
-        <button type="button" class="atender" id="call-atender">Atender</button>
-        <button type="button" id="call-interromper" style="display:none">Interromper e falar</button>
-        <button type="button" class="desligar" id="call-desligar">Recusar</button>
-      </div>
-      <div class="small muted" id="call-dica" style="text-align:center;max-width:520px"></div>
-    </div>
-    <form class="composer" id="form">
-      <button type="button" class="primary" id="ligar-voz" style="display:none">📞 Receber ligação (voz)</button>
-      <button type="button" id="ligar" style="display:none">Ligação por texto</button>
-      <input id="texto" placeholder="Mensagem do lead…" autocomplete="off" autofocus>
-      <button class="primary" id="enviar">Enviar</button>
-      <button type="button" id="desligar" style="display:none">Desligar</button>
-    </form>
+<header class="top">
+  <div class="logo">MM</div>
+  <div class="title"><b>Agente Comercial · Simulador</b><span>Equipe Marlon Mattedi · teste como se você fosse o lead</span></div>
+  <div class="chips">
+    <span class="chip" id="chip-cerebro"><span class="dot"></span><span id="info-cerebro">carregando…</span></span>
+    <span class="chip"><span>🕒</span><span id="info-relogio">—</span></span>
+    <div class="seg"><button id="tab-wa" class="on">WhatsApp</button><button id="tab-voz">Ligação</button></div>
+    <button class="ghost" id="novo">↺ Novo contato</button>
   </div>
-  <div class="card side">
-    <div><b>Nome do lead</b><input id="nome" value="João Teste" style="margin-top:6px"><div class="small muted" id="tel" style="margin-top:4px"></div></div>
-    <div><b>Voz da ligação</b>
-      <select id="voz" style="margin-top:6px;width:100%;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text)"></select>
-      <div class="small muted" style="margin-top:4px">Velocidade <input id="vel" type="range" min="0.8" max="1.3" step="0.05" value="1.05" style="width:60%;vertical-align:middle;padding:0"></div>
-      <div class="small muted" style="margin-top:4px">No Edge, as vozes "Online (Natural)" (Francisca, Thalita, Antonio) são as mais parecidas com a de produção.</div>
-    </div>
-    <div><b>Por dentro do agente</b>
-      <div class="small" style="margin-top:6px">Regra fixa ativada: <span id="regra" class="muted">nenhuma</span></div>
-      <div class="small" style="margin-top:6px">Ferramentas usadas na última resposta:</div><div id="tools" class="small muted">nenhuma</div>
-    </div>
-    <div id="estado" class="small"></div>
-    <div><b>Testar o tempo e eventos</b>
-      <div class="small muted" style="margin:4px 0 6px">Adianta o relógio para ver lembretes, retomadas e pós-venda saindo.</div>
-      <div class="btns" id="tempo"></div>
-      <div class="btns">
-        <button class="small" data-acao="consentimento">Dar consentimento de ligação</button>
-        <button class="small" data-hotmart="PURCHASE_OUT_OF_SHOPPING_CART:controle2">Abandonou carrinho</button>
-        <button class="small" data-hotmart="PURCHASE_APPROVED:controle2">Comprou CONTROLE 2.0</button>
-        <button class="small" data-hotmart="PURCHASE_APPROVED:express">Comprou Express</button>
+</header>
+
+<main class="stage">
+  <section class="phonewrap">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="wa-head">
+          <div class="avatar" id="av">C</div>
+          <div><div class="nm" id="wa-nome">Clara · Equipe Marlon</div><div class="st" id="wa-status">online</div></div>
+          <div class="icons"><span title="vídeo">📹</span><span title="ligar">📞</span><span>⋮</span></div>
+        </div>
+        <div class="chat" id="msgs">
+          <div class="daychip">HOJE</div>
+          <div class="empty" id="vazio">Escreva como se você fosse um lead chegando no WhatsApp. Ex.: “Oi, quero saber do treino”.</div>
+          <div class="typing" id="typing"><i></i><i></i><i></i></div>
+        </div>
+        <div class="atalhos" id="sug"></div>
+        <form class="bar" id="form">
+          <input id="texto" placeholder="Mensagem" autocomplete="off" autofocus>
+          <button class="send" id="enviar" title="Enviar">➤</button>
+        </form>
+
+        <div class="idle" id="idle">
+          <div class="bigav" style="margin-top:0">C</div>
+          <h3>Teste a ligação</h3>
+          <p>O telefone toca, você atende e conversa falando no microfone, como numa ligação de verdade. Use o Chrome ou o Edge.</p>
+          <button class="primary-pill" id="ligar-voz">📞 Receber ligação</button>
+          <button class="link-pill" id="ligar">Ligação por texto</button>
+        </div>
+
+        <div class="callscreen" id="call">
+          <div class="sub" id="call-tipo">chamada recebida</div>
+          <div class="bigav">C</div>
+          <div class="who" id="call-quem">Equipe Marlon Mattedi</div>
+          <div class="sub" id="call-timer"></div>
+          <div class="pill" id="call-pill"><span class="dot" id="call-pulse"></span><span id="call-status">chamando…</span></div>
+          <div class="legenda"><span id="call-legenda"></span><span class="eu" id="call-ouvindo"></span></div>
+          <div class="callctrls">
+            <button type="button" class="cbtn red" id="call-desligar"><span class="c">✆</span><span id="call-desligar-txt">Recusar</span></button>
+            <button type="button" class="cbtn gray" id="call-interromper" style="display:none"><span class="c">✋</span><span>Interromper</span></button>
+            <button type="button" class="cbtn green" id="call-atender"><span class="c">📞</span><span>Atender</span></button>
+          </div>
+          <div class="dica" id="call-dica"></div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
+  </section>
+
+  <aside class="side">
+    <div class="card">
+      <h4>👤 Lead</h4>
+      <input class="field" id="nome" value="João Teste">
+      <div class="row" style="margin-top:8px"><span class="small muted" id="tel"></span><span id="consent-tag"></span></div>
+      <div class="row" id="flags" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h4>📈 Funil</h4>
+      <div class="funil" id="funil"></div>
+    </div>
+
+    <div class="card">
+      <h4>🧠 Por dentro da última resposta</h4>
+      <div class="row small" style="margin-bottom:8px">Regra fixa: <span id="regra"><span class="tag">nenhuma</span></span></div>
+      <div class="tl" id="tools"><span class="small muted">Nenhuma ferramenta usada ainda.</span></div>
+    </div>
+
+    <div class="card">
+      <h4>⏰ Próximos contatos automáticos</h4>
+      <div class="jobs" id="jobs"><span class="small muted">Nenhum agendado.</span></div>
+    </div>
+
+    <div class="card">
+      <h4>🧪 Simular</h4>
+      <div class="small muted" style="margin-bottom:8px">Adiante o relógio para ver lembretes, retomadas e pós-venda saindo.</div>
+      <div class="btngrid" id="tempo"></div>
+      <div class="btngrid" style="margin-top:8px">
+        <button data-acao="consentimento">✅ Consentimento de ligação</button>
+        <button data-hotmart="PURCHASE_OUT_OF_SHOPPING_CART:controle2">🛒 Abandonou carrinho</button>
+        <button data-hotmart="PURCHASE_APPROVED:controle2">💳 Comprou CONTROLE 2.0</button>
+        <button data-hotmart="PURCHASE_APPROVED:express">💳 Comprou Express</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>🎙️ Voz da ligação</h4>
+      <select class="field" id="voz"></select>
+      <div class="row small muted" style="margin-top:8px">Velocidade <input class="rng" id="vel" type="range" min="0.8" max="1.3" step="0.05" value="1.05" style="flex:1"></div>
+      <div class="small muted" style="margin-top:6px">Mais natural: coloque <code>ELEVENLABS_API_KEY</code> no <code>.env</code> e escolha "ElevenLabs". Sem ela, use o Edge com as vozes "Online (Natural)". Use fone de ouvido.</div>
+    </div>
+  </aside>
+</main>
+
 <script>
 const $ = (id) => document.getElementById(id);
 const SUG = {
-  whatsapp: ["Oi, quero saber do treino","Quanto custa?","Funciona pra mim?","É sigiloso?","Tá caro","Vou pensar","Você é um robô?","Quero marcar uma consulta","Quero o link do CONTROLE 2.0","Para"],
+  whatsapp: ["Oi, quero saber do treino","Quanto custa?","Funciona pra mim?","É sigiloso?","Tá caro","Vou pensar","Você é um robô?","Perco a ereção na hora","Quero marcar uma consulta","Quero o link do CONTROLE 2.0","Para"],
   voz: ["Alô?","Sou eu","Não, aqui é a esposa dele","Pode falar, estou sozinho","Agora não, estou no trabalho","Quanto custa?","É robô?","Não me liga mais"],
 };
-let canal = "whatsapp", ligacao = null, ocupado = false;
+const ETAPAS = [["novo","Novo"],["conversa","Conversa"],["descoberta","Descoberta"],["recomendacao","Recomendação"],["link_enviado","Link enviado"],["comprou","Comprou"],["consulta_agendada","Consulta agendada"]];
+const JOB_NOMES = { boas_vindas:"Boas-vindas", retomada_carrinho:"Retomada de carrinho", ligacao:"Ligação", pos_venda:"Pós-venda", lembrete_consulta:"Lembrete de consulta", confirmacao_por_voz:"Confirmação por voz", retorno_combinado:"Retorno combinado", link_sem_compra:"Lembrete do link" };
+let canal = "whatsapp", ligacao = null, ocupado = false, AG = "Clara";
 let telefone = novoTel();
 function novoTel(){ return "55119" + Math.floor(10000000 + Math.random()*89999999); }
-$("tel").textContent = "Telefone simulado: +" + telefone;
+function mostraTel(){ $("tel").textContent = "+" + telefone.replace(/^(\d{2})(\d{2})(\d{5})(\d{4})$/, "$1 $2 $3-$4"); }
+mostraTel();
 
 async function api(path, body){
   const r = await fetch(path, { method: body ? "POST" : "GET", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
@@ -111,54 +271,69 @@ async function api(path, body){
 }
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
 function linkify(s){ return esc(s).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noreferrer">$1</a>'); }
+function hora(){ return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
+function rolar(){ $("msgs").scrollTop = 1e9; }
+function addNoChat(el){ $("vazio")?.remove(); $("msgs").insertBefore(el, $("typing")); rolar(); }
+
 function bolha(de, texto, extra, nota){
-  $("vazio")?.remove();
+  if (de === "sys") { const d = document.createElement("div"); d.className = "sysnote"; d.textContent = texto; return addNoChat(d); }
   const d = document.createElement("div");
-  d.className = "msg " + (de === "lead" ? "me" : de === "sys" ? "sys" : "");
-  if (de === "sys") d.textContent = texto;
-  else {
-    d.innerHTML = '<div class="who">' + (de === "lead" ? "Você (lead)" : canal === "voz" ? "IA (falando)" : "IA") + (nota ? " · " + esc(nota) : "") + "</div>" + linkify(texto);
-    const opts = extra && (extra.botoes || extra.opcoes);
-    if (opts) {
-      const b = document.createElement("div"); b.className = "btns";
-      for (const o of opts) { const x = document.createElement("button"); x.textContent = o.title; x.onclick = () => enviarWhatsApp(o.title, o); b.appendChild(x); }
-      d.appendChild(b);
-    }
+  d.className = "bub " + (de === "lead" ? "out" : "in");
+  const tag = nota ? '<span class="tag">' + esc(nota) + "</span>" : (de !== "lead" && canal === "voz" ? '<span class="tag">🔊 ' + esc(AG) + ' (ligação)</span>' : "");
+  d.innerHTML = tag + linkify(texto) + '<span class="meta">' + hora() + (de === "lead" ? '<span class="tk">✓✓</span>' : "") + "</span>";
+  addNoChat(d);
+  const opts = extra && (extra.botoes || extra.opcoes);
+  if (opts) {
+    const box = document.createElement("div"); box.className = "waopts";
+    for (const o of opts) { const x = document.createElement("button"); x.textContent = (extra.opcoes ? "🗓️ " : "↩︎ ") + o.title; x.onclick = () => enviarWhatsApp(o.title, o); box.appendChild(x); }
+    addNoChat(box);
   }
-  $("msgs").appendChild(d); $("msgs").scrollTop = 1e9;
 }
-function saidas(rs){ for (const s of rs) bolha("ia", s.texto, s, s.tipo === "template" ? "template " + s.nome + " (fora da janela de 24h)" : ""); }
-function setOcupado(v){ ocupado = v; document.querySelectorAll("button").forEach(b => { if (b.id !== "tab-wa" && b.id !== "tab-voz" && !b.id.startsWith("call-")) b.disabled = v; }); }
-async function run(fn){ setOcupado(true); try { return await fn(); } catch(e){ bolha("sys", "Erro: " + e.message); } finally { setOcupado(false); $("texto").focus(); } }
+function saidas(rs){ for (const s of rs) bolha("ia", s.texto, s, s.tipo === "template" ? "Mensagem automática · template " + s.nome : ""); }
+function setOcupado(v){
+  ocupado = v;
+  document.querySelectorAll("button").forEach(b => { if (!["tab-wa","tab-voz"].includes(b.id) && !b.id.startsWith("call-")) b.disabled = v; });
+  $("typing").classList.toggle("on", v && !chamadaVisivel); if (v) rolar();
+  $("wa-status").textContent = v ? (canal === "voz" ? "na ligação…" : "digitando…") : "online";
+}
+async function run(fn){ setOcupado(true); try { return await fn(); } catch(e){ bolha("sys", "Erro: " + e.message); } finally { setOcupado(false); if (!chamadaVisivel) $("texto").focus(); } }
 
 function mostra(r){
-  if (r.regra !== undefined) $("regra").innerHTML = r.regra ? '<span class="badge warn">' + esc(r.regra) + "</span>" : '<span class="muted">nenhuma</span>';
-  if (r.tools) $("tools").innerHTML = r.tools.length ? r.tools.map(t => "<details><summary><code>" + esc(t.nome) + "</code></summary><pre>" + esc(JSON.stringify({ entrada: t.entrada, resultado: t.resultado }, null, 2)) + "</pre></details>").join("") : "nenhuma";
+  if (r.regra !== undefined) $("regra").innerHTML = r.regra ? '<span class="tag warn">⚡ ' + esc(r.regra) + "</span>" : '<span class="tag">nenhuma</span>';
+  if (r.tools) $("tools").innerHTML = r.tools.length
+    ? r.tools.map(t => '<details><summary><span class="tag brand">🔧</span>' + esc(t.nome) + "</summary><pre>" + esc(JSON.stringify({ entrada: t.entrada, resultado: t.resultado }, null, 2)) + "</pre></details>").join("")
+    : '<span class="small muted">Nenhuma ferramenta nesta resposta.</span>';
   const e = r.estado; if (!e) return;
-  let h = '<b style="font-size:14px">Estado do lead</b><div>Etapa do funil: <span class="badge">' + esc(e.etapa) + "</span></div>";
-  h += "<div>Compras: " + (e.compras.join(", ") || "nenhuma") + "</div><div>Consentimento de ligação: " + (e.consentimentoLigacao ? "sim" : "não") + "</div>";
-  if (e.iaPausada) h += '<div><span class="badge warn">IA pausada (com a equipe)</span></div>';
-  if (e.optOutWhatsapp) h += '<div><span class="badge danger">opt-out WhatsApp</span></div>';
-  if (e.optOutVoz) h += '<div><span class="badge danger">opt-out ligação</span></div>';
-  if (e.bloqueadoMenor) h += '<div><span class="badge danger">bloqueado (menor de idade)</span></div>';
-  for (const t of e.transferencias) h += '<div><span class="badge ' + (t.urgencia === "alta" ? "danger" : "warn") + '">transferência ' + esc(t.urgencia) + "</span> " + esc(t.motivo) + "</div>";
-  h += '<div style="margin-top:4px">Próximos contatos automáticos:</div>' + (e.proximosContatos.length ? e.proximosContatos.map(j => '<div class="muted">· ' + esc(j.tipo) + (j.etapa ? " " + esc(j.etapa) : "") + " em " + esc(j.quando) + "</div>").join("") : '<div class="muted">nenhum</div>');
-  $("estado").innerHTML = h;
+  const idx = ETAPAS.findIndex(([k]) => k === e.etapa);
+  $("funil").innerHTML = ETAPAS.map(([k, n], i) => '<div class="step ' + (i < idx ? "done" : i === idx ? "cur" : "") + '"><span class="b"></span>' + n + "</div>").join("")
+    + (["perdido","encerrado"].includes(e.etapa) ? '<div class="step cur"><span class="b"></span>' + esc(e.etapa) + "</div>" : "");
+  $("consent-tag").innerHTML = e.consentimentoLigacao ? '<span class="tag ok">📞 aceita ligação</span>' : '<span class="tag">📞 sem consentimento</span>';
+  const f = [];
+  if (e.compras.length) f.push('<span class="tag ok">💳 ' + esc(e.compras.join(", ")) + "</span>");
+  if (e.iaPausada) f.push('<span class="tag warn">⏸ IA pausada · com a equipe</span>');
+  if (e.optOutWhatsapp) f.push('<span class="tag danger">⛔ opt-out WhatsApp</span>');
+  if (e.optOutVoz) f.push('<span class="tag danger">⛔ não ligar</span>');
+  if (e.bloqueadoMenor) f.push('<span class="tag danger">🔞 menor de idade</span>');
+  for (const t of e.transferencias) f.push('<span class="tag ' + (t.urgencia === "alta" ? "danger" : "warn") + '">🙋 equipe (' + esc(t.urgencia) + "): " + esc(t.motivo) + "</span>");
+  $("flags").innerHTML = f.join("");
+  $("jobs").innerHTML = e.proximosContatos.length
+    ? e.proximosContatos.map(j => '<div class="job"><span>' + esc(JOB_NOMES[j.tipo] || j.tipo) + (j.etapa ? " · " + esc(j.etapa) : "") + '</span><span class="muted">' + esc(j.quando) + "</span></div>").join("")
+    : '<span class="small muted">Nenhum agendado.</span>';
 }
 
 async function enviarWhatsApp(msg, botao){
-  bolha("lead", botao ? "[" + botao.title + "]" : msg);
+  bolha("lead", botao ? botao.title : msg);
   const r = await run(() => api("/api/sim/whatsapp", { telefone, nome: $("nome").value, texto: msg, botao: botao && botao.id, tituloBotao: botao && botao.title }));
   if (!r) return;
   if (r.respostas.length) saidas(r.respostas);
-  else bolha("sys", r.estado && r.estado.iaPausada ? "A IA está pausada neste contato (transferido para a equipe). Ninguém responde automaticamente." : "Sem resposta.");
+  else bolha("sys", r.estado && r.estado.iaPausada ? "A IA está pausada neste contato (passou para a equipe). Ninguém responde automaticamente." : "Sem resposta.");
   if (r.bloqueios.length) bolha("sys", "Resposta do modelo bloqueada pelo filtro: " + r.bloqueios.join(", "));
   mostra(r); atualizaInfo(r.relogio);
 }
 async function iniciarLigacao(){
   const r = await run(() => api("/api/sim/ligacao", { telefone, nome: $("nome").value }));
   if (!r) return;
-  ligacao = r.ligacaoId; bolha("sys", "Ligação iniciada (simulada). A IA fala primeiro."); bolha("ia", r.fala); mostra(r); layout();
+  ligacao = r.ligacaoId; layout(); bolha("sys", "Ligação por texto iniciada. A assistente fala primeiro."); bolha("ia", r.fala); mostra(r);
 }
 async function falar(msg){
   if (!ligacao) return;
@@ -166,49 +341,54 @@ async function falar(msg){
   const r = await run(() => api("/api/sim/ligacao/" + ligacao, { texto: msg, telefone }));
   if (!r) return;
   bolha("ia", r.fala);
-  if (r.desligou) { bolha("sys", "A IA encerrou a ligação. Fica salvo só um resumo (a transcrição é descartada)."); ligacao = null; layout(); }
+  if (r.desligou) { bolha("sys", "A assistente encerrou a ligação. Fica salvo só um resumo (a transcrição é descartada)."); ligacao = null; layout(); }
   mostra(r);
   return r;
 }
 function layout(){
   const voz = canal === "voz";
-  $("tab-wa").className = voz ? "" : "primary"; $("tab-voz").className = voz ? "primary" : "";
-  const emChamada = chamadaVisivel;
-  if ($("vazio")) $("vazio").textContent = voz ? "Clique em \u201c📞 Receber ligação (voz)\u201d: o telefone toca, você atende e conversa falando no microfone, como numa ligação de verdade. Use o Chrome ou o Edge." : "Escreva como se você fosse um lead chegando no WhatsApp. Ex.: \u201cOi, quero saber do treino\u201d.";
-  $("ligar").style.display = $("ligar-voz").style.display = voz && !ligacao && !emChamada ? "" : "none";
-  $("texto").style.display = $("enviar").style.display = voz && !ligacao ? "none" : "";
-  $("desligar").style.display = voz && ligacao && !vozAtiva ? "" : "none";
-  $("form").style.display = emChamada ? "none" : "";
-  $("sug").style.display = emChamada ? "none" : "";
-  $("texto").placeholder = voz ? "O que você responde na ligação…" : "Mensagem do lead…";
+  $("tab-wa").className = voz ? "" : "on"; $("tab-voz").className = voz ? "on" : "";
+  $("idle").classList.toggle("on", voz && !ligacao && !chamadaVisivel);
+  $("wa-nome").textContent = voz ? AG + " · Ligação" : AG + " · Equipe Marlon";
+  if ($("vazio")) $("vazio").textContent = voz ? "Ligação por texto: responda digitando, como se tivesse atendido." : "Escreva como se você fosse um lead chegando no WhatsApp. Ex.: “Oi, quero saber do treino”.";
+  $("texto").placeholder = voz ? "O que você responde na ligação…" : "Mensagem";
   $("sug").innerHTML = "";
   for (const s of SUG[canal]) { const b = document.createElement("button"); b.textContent = s; b.onclick = () => voz ? (ligacao ? falar(s) : null) : enviarWhatsApp(s); $("sug").appendChild(b); }
 }
 async function atualizaInfo(relogio){
   try {
     const i = await api("/api/sim/info");
-    $("info").textContent = "Cérebro: " + (i.cerebro === "claude" ? "Claude (" + i.modelo + ")" : "offline (roteiro, sem IA). Coloque ANTHROPIC_API_KEY no .env para usar o Claude") + " · relógio simulado: " + (relogio || i.relogio);
-  } catch(e){ $("info").textContent = "Não consegui falar com o backend: " + e.message; }
+    if ((i.tts === "elevenlabs") !== ttsServidor) { ttsServidor = i.tts === "elevenlabs"; preencheVozes(); }
+    if (i.agente && i.agente !== AG) { AG = i.agente; document.querySelectorAll(".bigav,#av").forEach(el => el.textContent = AG[0]); layout(); }
+    const claude = i.cerebro === "claude";
+    $("chip-cerebro").className = "chip " + (claude ? "on" : "off");
+    $("info-cerebro").textContent = claude ? "Claude · " + i.modelo : "Roteiro offline (sem IA)";
+    $("chip-cerebro").title = claude ? "Respostas geradas pelo Claude" : "Sem ANTHROPIC_API_KEY no .env: respostas de roteiro fixo";
+    $("info-relogio").textContent = relogio || i.relogio;
+  } catch(e){ $("info-cerebro").textContent = "backend fora do ar"; }
 }
 
 $("form").onsubmit = (e) => { e.preventDefault(); const t = $("texto").value.trim(); if (!t || ocupado) return; $("texto").value = ""; canal === "voz" ? falar(t) : enviarWhatsApp(t); };
 $("tab-wa").onclick = () => { canal = "whatsapp"; layout(); };
 $("tab-voz").onclick = () => { canal = "voz"; layout(); };
 $("ligar").onclick = iniciarLigacao;
-$("desligar").onclick = async () => { await api("/api/sim/ligacao/" + ligacao + "/encerrar", {}).catch(() => {}); ligacao = null; bolha("sys", "Você desligou."); layout(); };
 $("novo").onclick = async () => {
   if (chamadaVisivel) await desligarVoz(false);
   if (ligacao) await api("/api/sim/ligacao/" + ligacao + "/encerrar", {}).catch(() => {});
   await api("/api/sim/reset", { telefone }).catch(() => {});
-  telefone = novoTel(); ligacao = null; $("tel").textContent = "Telefone simulado: +" + telefone;
-  $("msgs").innerHTML = ""; $("estado").innerHTML = ""; $("tools").textContent = "nenhuma"; $("regra").innerHTML = '<span class="muted">nenhuma</span>'; layout();
+  telefone = novoTel(); ligacao = null; mostraTel();
+  $("msgs").innerHTML = '<div class="daychip">HOJE</div><div class="empty" id="vazio"></div><div class="typing" id="typing"><i></i><i></i><i></i></div>';
+  $("funil").innerHTML = ""; $("flags").innerHTML = ""; $("consent-tag").innerHTML = "";
+  $("jobs").innerHTML = '<span class="small muted">Nenhum agendado.</span>';
+  $("tools").innerHTML = '<span class="small muted">Nenhuma ferramenta usada ainda.</span>'; $("regra").innerHTML = '<span class="tag">nenhuma</span>';
+  layout();
 };
 for (const t of ["+30m","+3h","+1d","+3d"]) {
-  const b = document.createElement("button"); b.className = "small"; b.textContent = "Avançar " + t;
+  const b = document.createElement("button"); b.textContent = "⏩ Avançar " + t;
   b.onclick = async () => {
     const r = await run(() => api("/api/sim/tempo", { avancar: t, telefone }));
     if (!r) return;
-    bolha("sys", "Relógio avançado " + t + " → " + r.relogio + ". " + r.executadas + " cadência(s) executada(s)" + (r.ligacoesNovas ? ", " + r.ligacoesNovas + " ligação(ões) discada(s)" : "") + ".");
+    bolha("sys", "⏩ Relógio avançado " + t + " → " + r.relogio + " · " + r.executadas + " contato(s) automático(s)" + (r.ligacoesNovas ? " · " + r.ligacoesNovas + " ligação(ões) discada(s)" : ""));
     saidas(r.respostas); mostra(r); atualizaInfo(r.relogio);
   };
   $("tempo").appendChild(b);
@@ -224,30 +404,59 @@ document.querySelectorAll("[data-hotmart]").forEach(b => b.onclick = async () =>
 });
 
 // ===================== Ligação por voz (navegador) =====================
-// Microfone → reconhecimento de fala do navegador (pt-BR) → mesma API da ligação → resposta lida em voz alta.
+// Microfone → reconhecimento de fala do navegador (pt-BR) → mesma API da ligação → resposta em voz (ElevenLabs ou navegador).
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let vozAtiva = false, chamadaVisivel = false, rec = null, silencios = 0, t0 = 0, timerInt = null, ringStop = null;
+let ttsServidor = false, audioAtual = null, avisouTts = false, vozEscolhida = false;
 
 function vozesPt(){ return (window.speechSynthesis ? speechSynthesis.getVoices() : []).filter(v => /^pt/i.test(v.lang)); }
 function preencheVozes(){
   const vs = vozesPt(), sel = $("voz"), atual = sel.value;
-  sel.innerHTML = vs.length ? vs.map((v, i) => '<option value="' + i + '">' + esc(v.name) + " (" + v.lang + ")</option>").join("") : "<option>nenhuma voz em português encontrada</option>";
-  if (atual && Number(atual) < vs.length) { sel.value = atual; return; }
+  const eleven = ttsServidor ? '<option value="eleven">ElevenLabs · voz neural (recomendada)</option>' : "";
+  sel.innerHTML = eleven + (vs.length ? vs.map((v, i) => '<option value="' + i + '">Navegador · ' + esc(v.name) + "</option>").join("") : '<option value="">nenhuma voz do navegador em português</option>');
+  if (ttsServidor && (!vozEscolhida || atual === "eleven")) { sel.value = "eleven"; return; }
+  if (vozEscolhida && atual && Number(atual) < vs.length) { sel.value = atual; return; }
   const pref = [/francisca/i, /thalita/i, /natural/i, /online/i, /google/i, /luciana/i, /maria/i].map(re => vs.findIndex(v => /br/i.test(v.lang) && re.test(v.name))).find(i => i >= 0);
   if (pref !== undefined) sel.value = String(pref);
 }
-if (window.speechSynthesis) { speechSynthesis.onvoiceschanged = preencheVozes; preencheVozes(); }
+$("voz").onchange = () => { vozEscolhida = true; };
+if (window.speechSynthesis) speechSynthesis.onvoiceschanged = preencheVozes;
+preencheVozes();
 
 function limpaFala(t){ return String(t).replace(/\|\|\|/g, " ").replace(/https?:\/\/\S+/g, "").replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "").replace(/\s+/g, " ").trim(); }
 function statusCall(s){
-  const M = { chamando: "chamando…", falando: "a assistente está falando…", ouvindo: "ouvindo… pode falar", pensando: "pensando…", encerrada: "chamada encerrada" };
+  const M = { chamando: "chamando…", falando: AG + " falando", ouvindo: "ouvindo · pode falar", pensando: "pensando…", encerrada: "chamada encerrada" };
   $("call-status").textContent = M[s] || s;
-  $("call-pulse").style.background = s === "ouvindo" ? "#16a34a" : s === "falando" ? "var(--accent)" : "var(--muted)";
+  $("call-pill").className = "pill " + s;
+  $("call").classList.toggle("talking", s === "falando");
+  $("call").classList.toggle("quiet", s !== "chamando" && s !== "falando");
   $("call-interromper").style.display = s === "falando" ? "" : "none";
 }
-function fala(t){
+async function falaEleven(texto){
+  const r = await fetch("/api/sim/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texto }) });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || ("erro " + r.status));
+  const url = URL.createObjectURL(await r.blob());
+  await new Promise(res => {
+    const a = new Audio(url); audioAtual = a;
+    a.playbackRate = Number($("vel").value || 1.05);
+    const fim = () => { audioAtual = null; URL.revokeObjectURL(url); res(); };
+    a.onended = fim; a.onpause = fim; a.onerror = fim;
+    statusCall("falando");
+    a.play().catch(fim);
+  });
+}
+async function fala(t){
+  const texto = limpaFala(t);
+  if (!texto) return;
+  $("call-legenda").textContent = texto;
+  if ($("voz").value === "eleven") {
+    try { return await falaEleven(texto); }
+    catch (e) { if (!avisouTts) { avisouTts = true; bolha("sys", "A voz da ElevenLabs falhou (" + e.message + "). Usando a voz do navegador."); } }
+  }
+  return falaNavegador(texto);
+}
+function falaNavegador(texto){
   return new Promise(res => {
-    const texto = limpaFala(t);
     if (!texto || !window.speechSynthesis) return res();
     const u = new SpeechSynthesisUtterance(texto);
     u.lang = "pt-BR";
@@ -259,7 +468,6 @@ function fala(t){
   });
 }
 function tocar(){
-  // Toque de chamada recebida (2 bipes a cada 2 s), feito com WebAudio.
   const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return () => {};
   const ctx = new Ctx(); let parar = false;
   const bip = (t) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = 440; g.gain.value = 0.08; o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.35); };
@@ -272,28 +480,29 @@ function tomDesligar(){
   const ctx = new Ctx(); [0, 0.25, 0.5].forEach(d => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = 425; g.gain.value = 0.07; o.connect(g); g.connect(ctx.destination); o.start(ctx.currentTime + d); o.stop(ctx.currentTime + d + 0.15); });
   setTimeout(() => ctx.close().catch(() => {}), 1200);
 }
-function relogioCall(){ const s = Math.floor((Date.now() - t0) / 1000); $("call-timer").textContent = "· " + String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); }
+function relogioCall(){ const s = Math.floor((Date.now() - t0) / 1000); $("call-timer").textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); }
 
 function receberLigacao(){
   if (!SR) { bolha("sys", "Este navegador não tem reconhecimento de voz. Use o Google Chrome ou o Microsoft Edge (no computador)."); return; }
   chamadaVisivel = true; layout();
   $("call").classList.add("on");
-  $("call-quem").textContent = "📞 Chamada de: Equipe Marlon Mattedi";
-  $("call-atender").style.display = ""; $("call-desligar").textContent = "Recusar";
-  $("call-ouvindo").textContent = ""; $("call-timer").textContent = "";
-  $("call-dica").textContent = "Quando atender, a assistente fala primeiro. Depois, responda falando no microfone. O navegador vai pedir permissão para usar o microfone.";
+  $("call-tipo").textContent = "chamada recebida";
+  $("call-atender").style.display = ""; $("call-desligar-txt").textContent = "Recusar";
+  $("call-legenda").textContent = ""; $("call-ouvindo").textContent = ""; $("call-timer").textContent = "celular · +55 11 4000-0000";
+  $("call-dica").textContent = "Atenda: " + AG + " fala primeiro. Depois, responda falando no microfone (o navegador pede permissão).";
   statusCall("chamando");
   ringStop = tocar();
 }
 async function atender(){
   if (ringStop) { ringStop(); ringStop = null; }
-  $("call-atender").style.display = "none"; $("call-desligar").textContent = "Desligar";
+  $("call-atender").style.display = "none"; $("call-desligar-txt").textContent = "Desligar";
+  $("call-tipo").textContent = "em ligação";
   vozAtiva = true; silencios = 0; t0 = Date.now(); timerInt = setInterval(relogioCall, 1000); relogioCall();
-  $("call-dica").textContent = "Fale naturalmente e espere ela terminar de falar. Se ela demorar, use \"Interromper e falar\". Ficar em silêncio também é um teste: ela pergunta de novo e depois encerra.";
+  $("call-dica").textContent = "Fale naturalmente e espere ela terminar. Use fone de ouvido. Ficar em silêncio também é um teste.";
   statusCall("pensando");
   const r = await run(() => api("/api/sim/ligacao", { telefone, nome: $("nome").value }));
   if (!r || !vozAtiva) return;
-  ligacao = r.ligacaoId; bolha("sys", "Ligação por voz atendida."); bolha("ia", r.fala); mostra(r); layout();
+  ligacao = r.ligacaoId; bolha("sys", "📞 Ligação por voz atendida."); bolha("ia", r.fala); mostra(r);
   await fala(r.fala);
   ouvir();
 }
@@ -306,14 +515,14 @@ function ouvir(){
   rec.onresult = (e) => {
     let interim = "";
     for (let i = e.resultIndex; i < e.results.length; i++) { const tr = e.results[i][0].transcript; if (e.results[i].isFinal) final += tr; else interim += tr; }
-    $("call-ouvindo").textContent = (final + " " + interim).trim();
+    $("call-ouvindo").textContent = "você: " + (final + " " + interim).trim();
   };
   rec.onerror = (e) => {
     if (e.error === "not-allowed" || e.error === "service-not-allowed") { bolha("sys", "O microfone foi bloqueado. Clique no cadeado da barra de endereço, permita o microfone e ligue de novo."); desligarVoz(false); }
   };
   rec.onend = async () => {
     rec = null; if (!vozAtiva) return;
-    const txt = final.trim(); $("call-ouvindo").textContent = "";
+    const txt = final.trim();
     if (txt) { silencios = 0; return turnoVoz(txt); }
     silencios++;
     if (silencios >= 2) { silencios = 0; return turnoVoz("(silêncio)"); }
@@ -324,6 +533,7 @@ function ouvir(){
 async function turnoVoz(txt){
   statusCall("pensando");
   const r = await falar(txt);
+  $("call-ouvindo").textContent = "";
   if (!r || !vozAtiva) { if (vozAtiva) ouvir(); return; }
   await fala(r.fala);
   if (r.desligou) { tomDesligar(); return encerrarVisual(); }
@@ -331,25 +541,26 @@ async function turnoVoz(txt){
 }
 function encerrarVisual(){
   vozAtiva = false; clearInterval(timerInt); statusCall("encerrada");
-  const dur = $("call-timer").textContent.replace("· ", "");
-  if (dur) bolha("sys", "Ligação encerrada (" + dur + ").");
-  setTimeout(() => { $("call").classList.remove("on"); chamadaVisivel = false; layout(); }, 1200);
+  const dur = /^\d\d:\d\d$/.test($("call-timer").textContent) ? $("call-timer").textContent : "";
+  if (dur) bolha("sys", "📞 Ligação encerrada · " + dur);
+  setTimeout(() => { $("call").classList.remove("on"); chamadaVisivel = false; layout(); }, 1300);
 }
 async function desligarVoz(avisar = true){
   if (ringStop) { ringStop(); ringStop = null; }
   const estavaAtiva = vozAtiva;
   vozAtiva = false;
   if (window.speechSynthesis) speechSynthesis.cancel();
+  if (audioAtual) audioAtual.pause();
   if (rec) { try { rec.abort(); } catch (e) {} rec = null; }
   if (ligacao) { await api("/api/sim/ligacao/" + ligacao + "/encerrar", {}).catch(() => {}); ligacao = null; }
   if (avisar) bolha("sys", estavaAtiva ? "Você desligou." : "Você recusou a ligação.");
   tomDesligar();
-  vozAtiva = true; encerrarVisual();
+  encerrarVisual();
 }
 $("ligar-voz").onclick = receberLigacao;
 $("call-atender").onclick = atender;
 $("call-desligar").onclick = () => desligarVoz(true);
-$("call-interromper").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); };
+$("call-interromper").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); if (audioAtual) audioAtual.pause(); };
 
 layout(); atualizaInfo();
 </script>

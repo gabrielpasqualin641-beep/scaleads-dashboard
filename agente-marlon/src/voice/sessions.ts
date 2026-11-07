@@ -40,4 +40,4 @@ export function pickCallerId(purpose: "oferta" | "servico", normal: string, n030
   return normal;
 }
 
-export const CLOSING_PHRASES = ["Eu retorno depois. Obrigada!", "Não vamos mais te ligar.", "não posso seguir com você por aqui"];
+export const CLOSING_PHRASES = ["retorno depois. Obrigada!", "Não vamos mais te ligar.", "não posso seguir com você por aqui"];

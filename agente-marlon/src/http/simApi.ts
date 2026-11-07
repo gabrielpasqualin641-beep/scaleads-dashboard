@@ -57,7 +57,33 @@ export function registerSimApi(server: FastifyInstance, h: Harness) {
   // Sem login: estas rotas só existem no modo demo (memória, sem WhatsApp real).
   server.register(async (r) => {
 
-    r.get("/api/sim/info", async () => ({ cerebro: e.brain.name, modelo: e.brain.name === "claude" ? config.ANTHROPIC_MODEL : null, agente: config.AGENT_NAME, relogio: relogio() }));
+    r.get("/api/sim/info", async () => ({
+      cerebro: e.brain.name,
+      modelo: e.brain.name === "claude" ? config.ANTHROPIC_MODEL : null,
+      agente: config.AGENT_NAME,
+      relogio: relogio(),
+      tts: config.ELEVENLABS_API_KEY ? "elevenlabs" : "navegador",
+    }));
+
+    // Voz neural (ElevenLabs) para a ligação simulada. A chave fica só no servidor.
+    r.post("/api/sim/tts", async (req, reply) => {
+      const { texto } = (req.body ?? {}) as { texto?: string };
+      if (!config.ELEVENLABS_API_KEY) return reply.code(400).send({ error: "ELEVENLABS_API_KEY não configurada" });
+      const voz = (config.VOICE_GENDER === "masculina" ? config.ELEVENLABS_VOICE_ID_MASCULINA : config.ELEVENLABS_VOICE_ID_FEMININA) || "EXAVITQu4vr4xnSDxMaL";
+      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voz}?output_format=mp3_44100_128`, {
+        method: "POST",
+        headers: { "xi-api-key": config.ELEVENLABS_API_KEY, "Content-Type": "application/json", Accept: "audio/mpeg" },
+        body: JSON.stringify({
+          text: String(texto ?? "").slice(0, 1200),
+          model_id: config.ELEVENLABS_TTS_MODEL,
+          language_code: "pt",
+          voice_settings: { stability: 0.35, similarity_boost: 0.8, style: 0.35, use_speaker_boost: true },
+        }),
+      });
+      if (!res.ok) return reply.code(502).send({ error: `ElevenLabs ${res.status}: ${(await res.text()).slice(0, 200)}` });
+      reply.header("Content-Type", "audio/mpeg").header("Cache-Control", "no-store");
+      return reply.send(Buffer.from(await res.arrayBuffer()));
+    });
 
     // Mensagem (ou toque em botão) do lead no WhatsApp
     r.post("/api/sim/whatsapp", async (req) => {

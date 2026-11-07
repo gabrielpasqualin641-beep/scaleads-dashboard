@@ -1,3 +1,16 @@
+# Melhorias v1.8.2: simulador redesenhado e ligação mais humana
+
+- **Visual novo do simulador** (http://localhost:3333):
+  - o lado do lead é um celular com cara de WhatsApp: cabeçalho da Clara, "digitando…", balões com hora e ✓✓, botões interativos e atalhos;
+  - a ligação é uma tela de chamada de celular: avatar com anel pulsando, Atender e Recusar, cronômetro, legenda ao vivo do que ela fala e do que você diz;
+  - o lado direito virou um painel de bastidores, com o funil em etapas, a regra ativada, as ferramentas usadas, os próximos contatos e as simulações.
+- **Voz natural:** com `ELEVENLABS_API_KEY` no `.env`, a ligação do simulador usa a voz neural da ElevenLabs (a mesma prevista para produção). A chave fica no servidor local. Sem ela, continua a voz do navegador.
+- **Falas da ligação variadas:** abertura, confirmação de identidade, privacidade, "quem é?", encerramento e "agora não" ganharam 2 ou 3 variações cada. A saudação acompanha a hora do dia (bom dia, boa tarde, boa noite). O que é obrigatório continua em todas as variações.
+- **Prompt: seção "Ao telefone":** fala como gente, confirmações variadas, reage antes de perguntar, preços falados por extenso, sem listas.
+- **Atenção:** a repetição que aparece sem a chave da Anthropic vem do **roteiro offline**, que tem frases fixas por natureza. A conversa humana e variada aparece com o Claude (`ANTHROPIC_API_KEY` no `.env`).
+
+---
+
 # Melhorias v1.8.1: ligação por voz no simulador
 
 - **Fluxo da chamada:** no simulador (`npm run demo` → http://localhost:3333 → aba Ligação → **📞 Receber ligação (voz)**), o telefone toca, você atende e conversa **falando no microfone**. A assistente responde **em voz alta**.

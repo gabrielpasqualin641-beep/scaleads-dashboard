@@ -341,13 +341,22 @@ export class Engine {
 
   voiceOpener(session: VoiceSession, lead: Lead): string {
     const rec = session.recorded ? " Esta ligação pode ser gravada para garantir a qualidade do atendimento." : "";
+    const a = config.AGENT_NAME;
+    const sauda = saudacao(this.deps.now());
     if (session.direction === "inbound") {
       session.phase = "aberta";
-      return `Oi! Aqui é a ${config.AGENT_NAME}, assistente virtual da equipe do Marlon Mattedi.${rec} Como posso te ajudar?`;
+      return pick([
+        `${sauda}! Aqui é a ${a}, assistente virtual da equipe do Marlon Mattedi.${rec} Em que eu posso te ajudar?`,
+        `Oi, ${sauda.toLowerCase()}! Você tá falando com a ${a}, assistente virtual da equipe do Marlon Mattedi.${rec} Me conta, como posso te ajudar?`,
+      ]);
     }
     session.phase = "identidade";
-    const quem = lead.name ? `Eu falo com ${artigo(lead)} ${firstName(lead)}?` : "Eu falo com o titular deste número?";
-    return `Oi, tudo bem? Aqui é a ${config.AGENT_NAME}, assistente virtual da equipe do Marlon Mattedi.${rec} ${quem}`;
+    const nome = lead.name ? `${artigo(lead)} ${firstName(lead)}` : "o titular deste número";
+    return pick([
+      `Oi, ${sauda.toLowerCase()}! Aqui é a ${a}, assistente virtual da equipe do Marlon Mattedi.${rec} Eu falo com ${nome}?`,
+      `Alô, oi! Tudo bem? É a ${a}, assistente virtual da equipe do Marlon Mattedi.${rec} Falo com ${nome}?`,
+      `${sauda}! Quem fala é a ${a}, sou assistente virtual da equipe do Marlon Mattedi.${rec} Falo com ${nome}?`,
+    ]);
   }
 
   /** Um turno de voz, com o portão de discrição antes de qualquer menção ao assunto. */
@@ -370,24 +379,44 @@ export class Engine {
 
     if (session.phase === "identidade") {
       if (/\b(quem (e|fala|quer falar)|do que se trata|qual o assunto|de onde)\b/.test(t)) {
-        return say(`É da equipe do Marlon Mattedi. Eu falo com ${lead.name ? `${artigo(lead)} ${firstName(lead)}` : "o titular deste número"}?`);
+        const quem = lead.name ? `${artigo(lead)} ${firstName(lead)}` : "o titular deste número";
+        return say(pick([`É da equipe do Marlon Mattedi. Eu falo com ${quem}?`, `Aqui é da equipe do Marlon Mattedi, tá? Falo com ${quem}?`, `Da equipe do Marlon Mattedi. Por favor, falo com ${quem}?`]));
       }
       const isNo = /\b(nao|engano|errado|nao e ele|nao esta|saiu|ele nao|ela nao|sou a (esposa|mulher|mae|namorada|filha)|sou o (pai|filho|irmao)|e a esposa|e o filho|nao conheco)\b/.test(t);
       const isYes = /\b(sim|sou eu|e ele|e o proprio|eu mesmo|falando|pois nao|isso|pode falar|ele mesmo|sou|e eu)\b/.test(t);
       if (isYes && !isNo) {
         session.phase = "privacidade";
         await store.updateLead(lead.id, { identityConfirmed: true });
-        return say("Que bom. É um bom momento para a gente conversar com privacidade? Se preferir não receber ligações, é só me dizer.");
+        return say(
+          pick([
+            "Que bom! É um bom momento pra gente conversar com privacidade? Ah, e se preferir não receber ligações, é só me dizer.",
+            "Ah, que bom falar com você! Você consegue conversar agora, com privacidade? Se preferir não receber ligações, me fala, tá?",
+            "Oi! Antes de tudo: é um bom momento pra falar com privacidade? E se preferir não receber ligações, é só dizer.",
+          ]),
+        );
       }
       // "Alô?", "Oi", "hã?", silêncio: pergunta de novo uma vez, sem citar o assunto.
       if (!isNo && (session.identityTries ?? 0) < 1) {
         session.identityTries = (session.identityTries ?? 0) + 1;
         const quem = lead.name ? `${artigo(lead)} ${firstName(lead)}` : "o titular deste número";
-        return say(`Oi! Aqui é a ${config.AGENT_NAME}, da equipe do Marlon Mattedi. Eu falo com ${quem}?`);
+        return say(
+          pick([
+            `Oi! Aqui é a ${config.AGENT_NAME}, da equipe do Marlon Mattedi. Eu falo com ${quem}?`,
+            `Opa, oi! É a ${config.AGENT_NAME}, da equipe do Marlon Mattedi. Falo com ${quem}?`,
+            `Oi, tá me ouvindo? Aqui é a ${config.AGENT_NAME}, da equipe do Marlon Mattedi. Falo com ${quem}?`,
+          ]),
+        );
       }
       // Outra pessoa atendeu (ou não deu para confirmar): nunca citar o assunto.
       if (isNo && session.callId) await store.updateCall(session.callId, { status: "outra_pessoa" });
-      return say("Tudo bem, é da equipe do Marlon. Eu retorno depois. Obrigada!", true);
+      return say(
+        pick([
+          "Tudo bem, é da equipe do Marlon. Eu retorno depois. Obrigada!",
+          "Ah, sem problema! É da equipe do Marlon. Eu retorno depois. Obrigada!",
+          "Tá bom! Aqui é da equipe do Marlon. Eu retorno depois. Obrigada!",
+        ]),
+        true,
+      );
     }
 
     if (session.phase === "privacidade") {
@@ -398,11 +427,17 @@ export class Engine {
       const isNo = clearNo || (!clearYes && /\bnao\b/.test(t));
       if (isNo) {
         session.phase = "aberta";
-        return say("Sem problema. Posso te mandar a informação pelo WhatsApp, ou te ligar em outro horário. O que prefere?");
+        return say(
+          pick([
+            "Imagina, sem problema! Posso te mandar a informação pelo WhatsApp, ou te ligo num outro horário. O que fica melhor?",
+            "Tranquilo! Prefere que eu te mande pelo WhatsApp, ou te ligo em outro horário?",
+            "Claro, sem pressa. Te mando pelo WhatsApp, ou prefere que eu ligue em outro horário?",
+          ]),
+        );
       }
       session.phase = "aberta";
       const r = await this.turn(lead, "voz", heard, [
-        `A pessoa confirmou que é ela e que pode falar com privacidade. Motivo da ligação: ${session.reason}. Diga brevemente por que ligou e comece a descoberta com uma pergunta.`,
+        `A pessoa confirmou que é ela e que pode falar com privacidade. Motivo da ligação: ${session.reason}. Diga brevemente, com suas palavras, por que ligou e comece a descoberta com uma pergunta aberta. Soe como uma pessoa ao telefone, não como um roteiro.`,
       ], transcriptToHistory(session, lead.id));
       return say(r.text || "Me conta, como posso te ajudar?", Boolean(r.hangup), r);
     }
@@ -466,6 +501,16 @@ function transcriptToHistory(session: VoiceSession, leadId: string): Message[] {
       createdAt: new Date().toISOString(),
     } satisfies Message;
   });
+}
+
+/** Escolhe uma variação (evita falas idênticas em toda ligação). */
+function pick<T>(opts: T[]): T {
+  return opts[Math.floor(Math.random() * opts.length)];
+}
+
+function saudacao(now: Date) {
+  const h = Number(DateTime.fromJSDate(now).setZone(config.TZ_OPERACAO).toFormat("H"));
+  return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
 }
 
 function artigo(_lead: Lead) {

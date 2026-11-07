@@ -69,6 +69,7 @@ const schema = z.object({
   ELEVENLABS_API_KEY: z.string().default(""),
   ELEVENLABS_VOICE_ID_FEMININA: z.string().default(""),
   ELEVENLABS_VOICE_ID_MASCULINA: z.string().default(""),
+  ELEVENLABS_TTS_MODEL: z.string().default("eleven_multilingual_v2"), // voz do simulador (mais natural em PT-BR)
   NAO_ME_PERTURBE_CHECK_URL: z.string().default(""),
 
   // Google Calendar
