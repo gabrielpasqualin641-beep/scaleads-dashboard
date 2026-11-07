@@ -26,6 +26,20 @@ Quando aparecer `SIMULADOR: abra http://localhost:3333`, abra **http://localhost
 
 > Painel completo da equipe (conversas, funil, ligações), opcional: `npm run local` e depois http://localhost:3000, com login `demo@equipe.local` / `demo-senha-123`. Ele demora mais para abrir (prepara o painel em cerca de 1 minuto). Para só conversar com o agente, use o `npm run demo`.
 
+## 3.1 Ligação por voz (falar e ouvir)
+1. Com o `npm run demo` rodando, abra http://localhost:3333 no **Google Chrome** ou no **Microsoft Edge**, no computador.
+2. Clique na aba **Ligação** e depois em **📞 Receber ligação (voz)**. O telefone toca.
+3. Clique em **Atender**. A assistente fala primeiro, em voz alta.
+4. Quando aparecer **"ouvindo… pode falar"**, responda falando no microfone. Na primeira vez, o navegador pede permissão para o microfone: clique em **Permitir**.
+5. Para encerrar, clique em **Desligar**. Ou diga "não me liga mais" e veja a assistente encerrar sozinha.
+
+Dicas:
+- **Voz:** escolha em **Voz da ligação**, no painel da direita. No Edge, as vozes "Online (Natural)" (Francisca, Thalita, Antonio) soam bem mais naturais.
+- **Use fone de ouvido**, para o microfone não captar a voz da assistente.
+- **"Interromper e falar"** corta a fala da assistente para você responder.
+- **O silêncio também é um teste:** se você não falar nada, a assistente pergunta de novo e depois encerra de forma neutra.
+- Isto simula a conversa da ligação. A voz e o tempo de resposta da ligação real (Vapi/Twilio) serão diferentes. O reconhecimento de voz do Chrome e do Edge é feito pelos servidores do Google e da Microsoft: use só para testes.
+
 ## 4. Usar o Claude de verdade (opcional)
 Sem chave, quem responde é o roteiro offline: ele tem frases fixas e só entende o que foi previsto. Para conversar com a IA de verdade:
 

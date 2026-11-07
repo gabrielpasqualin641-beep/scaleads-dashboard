@@ -1,3 +1,13 @@
+# Melhorias v1.8.1: ligação por voz no simulador
+
+- **Fluxo da chamada:** no simulador (`npm run demo` → http://localhost:3333 → aba Ligação → **📞 Receber ligação (voz)**), o telefone toca, você atende e conversa **falando no microfone**. A assistente responde **em voz alta**.
+- **Mesmo motor da ligação real:** usa o mesmo portão de identidade e privacidade, as mesmas regras (opt-out, CVV, menor de idade) e o mesmo encerramento automático. Só a voz e o reconhecimento de fala são os do navegador (Chrome ou Edge).
+- **Opções da tela:** escolha da voz e da velocidade, botão "Interromper e falar", tratamento de silêncio (pergunta de novo e depois encerra) e cronômetro da chamada.
+- **Teste:** feito com reconhecimento de fala simulado. Os 50 cenários e os 20 testes continuam passando.
+- O prompt do Gemini (`docs/prompt-gemini-v1.9.md`) continua valendo para esta versão.
+
+---
+
 # Melhorias v1.7: aprendizados das conversas reais da equipe
 
 Situação: `npm run typecheck` sem erros, `npm test` com 20 de 20 testes passando, `npm run test:scenarios` com **50 de 50** cenários passando no modo offline. O cenário 46 continua só no modo live.

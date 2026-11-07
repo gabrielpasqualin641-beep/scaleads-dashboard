@@ -26,6 +26,15 @@ input{font:inherit;color:var(--text);background:var(--panel);border:1px solid va
 .badge{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;background:var(--line);color:var(--muted)}
 .badge.warn{background:var(--warnsoft);color:var(--warn)}.badge.danger{background:var(--dangersoft);color:var(--danger)}
 pre{white-space:pre-wrap;font-size:11px;color:var(--muted);margin:4px 0}
+.call{display:none;flex-direction:column;align-items:center;gap:10px;padding:18px 12px;border-top:1px solid var(--line);background:var(--soft)}
+.call.on{display:flex}
+.call .quem{font-size:16px;font-weight:600}.call .st{font-size:13px;color:var(--muted)}
+.call .ouvindo{min-height:20px;font-style:italic;text-align:center;max-width:90%}
+.call .btns{justify-content:center}
+.call button.atender{background:#16a34a;color:#fff;border-color:#16a34a;padding:10px 22px;border-radius:999px}
+.call button.desligar{background:#dc2626;color:#fff;border-color:#dc2626;padding:10px 22px;border-radius:999px}
+.pulse{width:14px;height:14px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:6px;vertical-align:middle;animation:p 1s infinite}
+@keyframes p{0%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.4)}100%{opacity:1;transform:scale(1)}}
 @media (max-width:860px){.app{grid-template-columns:1fr;height:auto}.msgs{min-height:60vh}}
 </style>
 </head>
@@ -40,8 +49,20 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--muted);margin:4px 0}
     </div>
     <div class="msgs" id="msgs"><div class="msg sys" id="vazio">Escreva como se você fosse um lead chegando no WhatsApp. Ex.: “Oi, quero saber do treino”.</div></div>
     <div class="sug" id="sug"></div>
+    <div class="call" id="call">
+      <div class="quem" id="call-quem">📞 Equipe Marlon Mattedi</div>
+      <div class="st"><span class="pulse" id="call-pulse"></span><span id="call-status">chamando…</span> <span id="call-timer"></span></div>
+      <div class="ouvindo" id="call-ouvindo"></div>
+      <div class="btns">
+        <button type="button" class="atender" id="call-atender">Atender</button>
+        <button type="button" id="call-interromper" style="display:none">Interromper e falar</button>
+        <button type="button" class="desligar" id="call-desligar">Recusar</button>
+      </div>
+      <div class="small muted" id="call-dica" style="text-align:center;max-width:520px"></div>
+    </div>
     <form class="composer" id="form">
-      <button type="button" class="primary" id="ligar" style="display:none">Iniciar ligação</button>
+      <button type="button" class="primary" id="ligar-voz" style="display:none">📞 Receber ligação (voz)</button>
+      <button type="button" id="ligar" style="display:none">Ligação por texto</button>
       <input id="texto" placeholder="Mensagem do lead…" autocomplete="off" autofocus>
       <button class="primary" id="enviar">Enviar</button>
       <button type="button" id="desligar" style="display:none">Desligar</button>
@@ -49,6 +70,11 @@ pre{white-space:pre-wrap;font-size:11px;color:var(--muted);margin:4px 0}
   </div>
   <div class="card side">
     <div><b>Nome do lead</b><input id="nome" value="João Teste" style="margin-top:6px"><div class="small muted" id="tel" style="margin-top:4px"></div></div>
+    <div><b>Voz da ligação</b>
+      <select id="voz" style="margin-top:6px;width:100%;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text)"></select>
+      <div class="small muted" style="margin-top:4px">Velocidade <input id="vel" type="range" min="0.8" max="1.3" step="0.05" value="1.05" style="width:60%;vertical-align:middle;padding:0"></div>
+      <div class="small muted" style="margin-top:4px">No Edge, as vozes "Online (Natural)" (Francisca, Thalita, Antonio) são as mais parecidas com a de produção.</div>
+    </div>
     <div><b>Por dentro do agente</b>
       <div class="small" style="margin-top:6px">Regra fixa ativada: <span id="regra" class="muted">nenhuma</span></div>
       <div class="small" style="margin-top:6px">Ferramentas usadas na última resposta:</div><div id="tools" class="small muted">nenhuma</div>
@@ -102,7 +128,7 @@ function bolha(de, texto, extra, nota){
   $("msgs").appendChild(d); $("msgs").scrollTop = 1e9;
 }
 function saidas(rs){ for (const s of rs) bolha("ia", s.texto, s, s.tipo === "template" ? "template " + s.nome + " (fora da janela de 24h)" : ""); }
-function setOcupado(v){ ocupado = v; document.querySelectorAll("button").forEach(b => { if (b.id !== "tab-wa" && b.id !== "tab-voz") b.disabled = v; }); }
+function setOcupado(v){ ocupado = v; document.querySelectorAll("button").forEach(b => { if (b.id !== "tab-wa" && b.id !== "tab-voz" && !b.id.startsWith("call-")) b.disabled = v; }); }
 async function run(fn){ setOcupado(true); try { return await fn(); } catch(e){ bolha("sys", "Erro: " + e.message); } finally { setOcupado(false); $("texto").focus(); } }
 
 function mostra(r){
@@ -142,13 +168,18 @@ async function falar(msg){
   bolha("ia", r.fala);
   if (r.desligou) { bolha("sys", "A IA encerrou a ligação. Fica salvo só um resumo (a transcrição é descartada)."); ligacao = null; layout(); }
   mostra(r);
+  return r;
 }
 function layout(){
   const voz = canal === "voz";
   $("tab-wa").className = voz ? "" : "primary"; $("tab-voz").className = voz ? "primary" : "";
-  $("ligar").style.display = voz && !ligacao ? "" : "none";
+  const emChamada = chamadaVisivel;
+  if ($("vazio")) $("vazio").textContent = voz ? "Clique em \u201c📞 Receber ligação (voz)\u201d: o telefone toca, você atende e conversa falando no microfone, como numa ligação de verdade. Use o Chrome ou o Edge." : "Escreva como se você fosse um lead chegando no WhatsApp. Ex.: \u201cOi, quero saber do treino\u201d.";
+  $("ligar").style.display = $("ligar-voz").style.display = voz && !ligacao && !emChamada ? "" : "none";
   $("texto").style.display = $("enviar").style.display = voz && !ligacao ? "none" : "";
-  $("desligar").style.display = voz && ligacao ? "" : "none";
+  $("desligar").style.display = voz && ligacao && !vozAtiva ? "" : "none";
+  $("form").style.display = emChamada ? "none" : "";
+  $("sug").style.display = emChamada ? "none" : "";
   $("texto").placeholder = voz ? "O que você responde na ligação…" : "Mensagem do lead…";
   $("sug").innerHTML = "";
   for (const s of SUG[canal]) { const b = document.createElement("button"); b.textContent = s; b.onclick = () => voz ? (ligacao ? falar(s) : null) : enviarWhatsApp(s); $("sug").appendChild(b); }
@@ -166,6 +197,7 @@ $("tab-voz").onclick = () => { canal = "voz"; layout(); };
 $("ligar").onclick = iniciarLigacao;
 $("desligar").onclick = async () => { await api("/api/sim/ligacao/" + ligacao + "/encerrar", {}).catch(() => {}); ligacao = null; bolha("sys", "Você desligou."); layout(); };
 $("novo").onclick = async () => {
+  if (chamadaVisivel) await desligarVoz(false);
   if (ligacao) await api("/api/sim/ligacao/" + ligacao + "/encerrar", {}).catch(() => {});
   await api("/api/sim/reset", { telefone }).catch(() => {});
   telefone = novoTel(); ligacao = null; $("tel").textContent = "Telefone simulado: +" + telefone;
@@ -190,6 +222,135 @@ document.querySelectorAll("[data-hotmart]").forEach(b => b.onclick = async () =>
   const r = await run(() => api("/api/sim/hotmart", { telefone, nome: $("nome").value, evento, produto }));
   if (r) { bolha("sys", "Hotmart: " + evento + " (" + (produto === "express" ? "Controle Express" : "CONTROLE 2.0") + ") " + (r.resultado.handled ? "registrado" : "ignorado") + "."); mostra(r); }
 });
+
+// ===================== Ligação por voz (navegador) =====================
+// Microfone → reconhecimento de fala do navegador (pt-BR) → mesma API da ligação → resposta lida em voz alta.
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let vozAtiva = false, chamadaVisivel = false, rec = null, silencios = 0, t0 = 0, timerInt = null, ringStop = null;
+
+function vozesPt(){ return (window.speechSynthesis ? speechSynthesis.getVoices() : []).filter(v => /^pt/i.test(v.lang)); }
+function preencheVozes(){
+  const vs = vozesPt(), sel = $("voz"), atual = sel.value;
+  sel.innerHTML = vs.length ? vs.map((v, i) => '<option value="' + i + '">' + esc(v.name) + " (" + v.lang + ")</option>").join("") : "<option>nenhuma voz em português encontrada</option>";
+  if (atual && Number(atual) < vs.length) { sel.value = atual; return; }
+  const pref = [/francisca/i, /thalita/i, /natural/i, /online/i, /google/i, /luciana/i, /maria/i].map(re => vs.findIndex(v => /br/i.test(v.lang) && re.test(v.name))).find(i => i >= 0);
+  if (pref !== undefined) sel.value = String(pref);
+}
+if (window.speechSynthesis) { speechSynthesis.onvoiceschanged = preencheVozes; preencheVozes(); }
+
+function limpaFala(t){ return String(t).replace(/\|\|\|/g, " ").replace(/https?:\/\/\S+/g, "").replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "").replace(/\s+/g, " ").trim(); }
+function statusCall(s){
+  const M = { chamando: "chamando…", falando: "a assistente está falando…", ouvindo: "ouvindo… pode falar", pensando: "pensando…", encerrada: "chamada encerrada" };
+  $("call-status").textContent = M[s] || s;
+  $("call-pulse").style.background = s === "ouvindo" ? "#16a34a" : s === "falando" ? "var(--accent)" : "var(--muted)";
+  $("call-interromper").style.display = s === "falando" ? "" : "none";
+}
+function fala(t){
+  return new Promise(res => {
+    const texto = limpaFala(t);
+    if (!texto || !window.speechSynthesis) return res();
+    const u = new SpeechSynthesisUtterance(texto);
+    u.lang = "pt-BR";
+    const v = vozesPt()[Number($("voz").value)];
+    if (v) u.voice = v;
+    u.rate = Number($("vel").value || 1.05);
+    u.onend = () => res(); u.onerror = () => res();
+    speechSynthesis.cancel(); statusCall("falando"); speechSynthesis.speak(u);
+  });
+}
+function tocar(){
+  // Toque de chamada recebida (2 bipes a cada 2 s), feito com WebAudio.
+  const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return () => {};
+  const ctx = new Ctx(); let parar = false;
+  const bip = (t) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = 440; g.gain.value = 0.08; o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.35); };
+  const ciclo = () => { if (parar) return; const t = ctx.currentTime; bip(t); bip(t + 0.5); setTimeout(ciclo, 2000); };
+  ciclo();
+  return () => { parar = true; ctx.close().catch(() => {}); };
+}
+function tomDesligar(){
+  const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
+  const ctx = new Ctx(); [0, 0.25, 0.5].forEach(d => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = 425; g.gain.value = 0.07; o.connect(g); g.connect(ctx.destination); o.start(ctx.currentTime + d); o.stop(ctx.currentTime + d + 0.15); });
+  setTimeout(() => ctx.close().catch(() => {}), 1200);
+}
+function relogioCall(){ const s = Math.floor((Date.now() - t0) / 1000); $("call-timer").textContent = "· " + String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); }
+
+function receberLigacao(){
+  if (!SR) { bolha("sys", "Este navegador não tem reconhecimento de voz. Use o Google Chrome ou o Microsoft Edge (no computador)."); return; }
+  chamadaVisivel = true; layout();
+  $("call").classList.add("on");
+  $("call-quem").textContent = "📞 Chamada de: Equipe Marlon Mattedi";
+  $("call-atender").style.display = ""; $("call-desligar").textContent = "Recusar";
+  $("call-ouvindo").textContent = ""; $("call-timer").textContent = "";
+  $("call-dica").textContent = "Quando atender, a assistente fala primeiro. Depois, responda falando no microfone. O navegador vai pedir permissão para usar o microfone.";
+  statusCall("chamando");
+  ringStop = tocar();
+}
+async function atender(){
+  if (ringStop) { ringStop(); ringStop = null; }
+  $("call-atender").style.display = "none"; $("call-desligar").textContent = "Desligar";
+  vozAtiva = true; silencios = 0; t0 = Date.now(); timerInt = setInterval(relogioCall, 1000); relogioCall();
+  $("call-dica").textContent = "Fale naturalmente e espere ela terminar de falar. Se ela demorar, use \"Interromper e falar\". Ficar em silêncio também é um teste: ela pergunta de novo e depois encerra.";
+  statusCall("pensando");
+  const r = await run(() => api("/api/sim/ligacao", { telefone, nome: $("nome").value }));
+  if (!r || !vozAtiva) return;
+  ligacao = r.ligacaoId; bolha("sys", "Ligação por voz atendida."); bolha("ia", r.fala); mostra(r); layout();
+  await fala(r.fala);
+  ouvir();
+}
+function ouvir(){
+  if (!vozAtiva) return;
+  let final = "";
+  try { rec = new SR(); } catch (e) { bolha("sys", "Não consegui abrir o microfone: " + e.message); return desligarVoz(false); }
+  rec.lang = "pt-BR"; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+  statusCall("ouvindo");
+  rec.onresult = (e) => {
+    let interim = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) { const tr = e.results[i][0].transcript; if (e.results[i].isFinal) final += tr; else interim += tr; }
+    $("call-ouvindo").textContent = (final + " " + interim).trim();
+  };
+  rec.onerror = (e) => {
+    if (e.error === "not-allowed" || e.error === "service-not-allowed") { bolha("sys", "O microfone foi bloqueado. Clique no cadeado da barra de endereço, permita o microfone e ligue de novo."); desligarVoz(false); }
+  };
+  rec.onend = async () => {
+    rec = null; if (!vozAtiva) return;
+    const txt = final.trim(); $("call-ouvindo").textContent = "";
+    if (txt) { silencios = 0; return turnoVoz(txt); }
+    silencios++;
+    if (silencios >= 2) { silencios = 0; return turnoVoz("(silêncio)"); }
+    ouvir();
+  };
+  try { rec.start(); } catch (e) { setTimeout(ouvir, 300); }
+}
+async function turnoVoz(txt){
+  statusCall("pensando");
+  const r = await falar(txt);
+  if (!r || !vozAtiva) { if (vozAtiva) ouvir(); return; }
+  await fala(r.fala);
+  if (r.desligou) { tomDesligar(); return encerrarVisual(); }
+  ouvir();
+}
+function encerrarVisual(){
+  vozAtiva = false; clearInterval(timerInt); statusCall("encerrada");
+  const dur = $("call-timer").textContent.replace("· ", "");
+  if (dur) bolha("sys", "Ligação encerrada (" + dur + ").");
+  setTimeout(() => { $("call").classList.remove("on"); chamadaVisivel = false; layout(); }, 1200);
+}
+async function desligarVoz(avisar = true){
+  if (ringStop) { ringStop(); ringStop = null; }
+  const estavaAtiva = vozAtiva;
+  vozAtiva = false;
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  if (rec) { try { rec.abort(); } catch (e) {} rec = null; }
+  if (ligacao) { await api("/api/sim/ligacao/" + ligacao + "/encerrar", {}).catch(() => {}); ligacao = null; }
+  if (avisar) bolha("sys", estavaAtiva ? "Você desligou." : "Você recusou a ligação.");
+  tomDesligar();
+  vozAtiva = true; encerrarVisual();
+}
+$("ligar-voz").onclick = receberLigacao;
+$("call-atender").onclick = atender;
+$("call-desligar").onclick = () => desligarVoz(true);
+$("call-interromper").onclick = () => { if (window.speechSynthesis) speechSynthesis.cancel(); };
+
 layout(); atualizaInfo();
 </script>
 </body>
