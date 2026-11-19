@@ -9,6 +9,7 @@ import type { Call, Lead } from "../domain/types.js";
 import type { VoiceDialer } from "../deps.js";
 import { FakeCalendar } from "../integrations/calendar.js";
 import { ManualLinks } from "../integrations/payments.js";
+import { FakeTts, type TtsProvider } from "../integrations/tts.js";
 import { runJob } from "../queue/jobs.js";
 import { MemoryScheduler } from "../queue/scheduler.js";
 import { MemoryStore } from "../store/MemoryStore.js";
@@ -40,7 +41,7 @@ export interface Harness {
 }
 
 /** Monta o agente inteiro em memória (sem rede): mesmo Engine, tools, guardrails e cadências da produção. */
-export function createHarness(opts: { brain?: Brain; live?: boolean; start?: string; has0303?: boolean } = {}): Harness {
+export function createHarness(opts: { brain?: Brain; live?: boolean; start?: string; has0303?: boolean; tts?: TtsProvider | null } = {}): Harness {
   const clock = { now: opts.start ? new Date(opts.start) : nextBusinessMorning() };
   const store = new MemoryStore(() => clock.now);
   const messenger = new RecordingMessenger(renderTemplate, () => clock.now);
@@ -56,6 +57,7 @@ export function createHarness(opts: { brain?: Brain; live?: boolean; start?: str
     bus: new EventEmitter(),
     now: () => clock.now,
     humanDelay: false,
+    tts: opts.tts !== undefined ? opts.tts : new FakeTts(),
     brain: opts.brain ?? (opts.live ? makeBrain("claude") : makeBrain("offline")),
   });
   return {

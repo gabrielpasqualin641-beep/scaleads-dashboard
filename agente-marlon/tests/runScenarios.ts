@@ -51,7 +51,7 @@ interface Expect {
   encerra?: boolean;
   neutra?: boolean;
   sem_resposta?: boolean;
-  envios?: { templates?: string[]; nenhum?: boolean; minimo?: number };
+  envios?: { templates?: string[]; nenhum?: boolean; minimo?: number; audio?: boolean };
   lead?: Partial<Record<keyof Lead, unknown>>;
   tarefa?: { urgencia?: string; motivo?: string };
   discou?: number;
@@ -64,6 +64,7 @@ interface Expect {
 
 interface Step {
   lead?: string; // mensagem do lead no WhatsApp
+  lead_audio?: string; // áudio do lead no WhatsApp (já transcrito)
   voz?: string; // fala do lead na ligação
   ligacao?: { motivo?: string; direcao?: "inbound" | "outbound" };
   fim_ligacao?: boolean;
@@ -154,6 +155,11 @@ async function runScenario(file: string, sc: Scenario) {
       transcript.push(`  lead › ${step.lead}`);
       result = await h.app.engine.handleWhatsApp({ from: PHONE, name: lead.name, text: step.lead });
     }
+    if (step.lead_audio !== undefined) {
+      lastInboundIdx = h.messenger.sent.length;
+      transcript.push(`  lead 🎤 › ${step.lead_audio}`);
+      result = await h.app.engine.handleWhatsApp({ from: PHONE, name: lead.name, text: step.lead_audio, transcribed: true });
+    }
     if (step.ligacao) {
       const r = await h.startCall((await h.store.getLead(lead.id))!, step.ligacao.motivo, step.ligacao.direcao);
       session = r.session;
@@ -179,7 +185,7 @@ async function runScenario(file: string, sc: Scenario) {
 
     const newSends = h.messenger.sent.slice(sentBefore);
     for (const s of newSends) transcript.push(`  ${s.to === PHONE ? "IA" : `→ ${s.to}`} [${s.kind === "template" ? `template ${s.tpl.name}` : s.kind}] › ${sentText(s)}`);
-    if (step.lead !== undefined || step.botao) reply = newSends.filter((s) => s.to === PHONE).map(sentText).join("\n");
+    if (step.lead !== undefined || step.lead_audio !== undefined || step.botao) reply = newSends.filter((s) => s.to === PHONE).map(sentText).join("\n");
 
     lead = (await h.store.getLead(lead.id))!;
     if (lead.optOutWhatsapp && optoutAt.whatsapp === undefined) optoutAt.whatsapp = h.messenger.sent.length;
@@ -202,6 +208,10 @@ async function runScenario(file: string, sc: Scenario) {
     if (e.sem_resposta && reply.trim()) fail(`não deveria responder, respondeu: "${reply}"`);
     if (e.envios?.nenhum && newSends.some((s) => s.to === PHONE)) fail(`nenhum envio esperado, houve ${newSends.length}`);
     for (const name of e.envios?.templates ?? []) if (!newSends.some((s) => s.kind === "template" && s.tpl.name === name)) fail(`template ${name} deveria ter sido enviado`);
+    if (e.envios?.audio !== undefined) {
+      const teveAudio = newSends.some((s) => s.kind === "audio" && s.to === PHONE);
+      if (teveAudio !== e.envios.audio) fail(e.envios.audio ? "deveria ter respondido com áudio" : "não deveria ter mandado áudio");
+    }
     if (e.envios?.minimo !== undefined && newSends.length < e.envios.minimo) fail(`esperava ao menos ${e.envios.minimo} envio(s)`);
     for (const [k, v] of Object.entries(e.lead ?? {})) if (JSON.stringify((lead as any)[k]) !== JSON.stringify(v)) fail(`lead.${k} = ${JSON.stringify((lead as any)[k])}, esperado ${JSON.stringify(v)}`);
     if (e.tarefa) {
@@ -236,6 +246,9 @@ async function runScenario(file: string, sc: Scenario) {
     for (const url of extractUrls(txt)) if (isCheckoutUrl(url) || /pagamento|pay\./.test(url)) if (!hasRequiredTracking(url)) failures.push(`GLOBAL: link sem sck=f4-ia: ${url}`);
     const v = checkOutput(txt, "whatsapp").filter((x) => x.rule !== "link sem sck=f4-ia");
     if (v.length) failures.push(`GLOBAL: mensagem viola regra (${v.map((x) => x.rule).join(", ")}): "${txt.slice(0, 120)}"`);
+    if (s.kind === "audio" && /https?:\/\//.test(s.text)) failures.push(`GLOBAL: áudio com link: "${s.text.slice(0, 80)}"`);
+    if (s.kind === "audio" && /\[\[audio\]\]/i.test(s.text)) failures.push("GLOBAL: marca [[audio]] vazou para o lead");
+    if (/\[\[audio\]\]/i.test(txt)) failures.push(`GLOBAL: marca [[audio]] vazou para o lead: "${txt.slice(0, 80)}"`);
     if (s.kind === "template" && !isNeutral(s.rendered)) failures.push(`GLOBAL: template não neutro: ${s.rendered}`);
     if (s.kind === "template" && s.at && !isWithinContactWindow(new Date(s.at)) && s.to === PHONE) failures.push(`GLOBAL: contato ativo fora da janela 9h-20h/domingo: ${s.at}`);
   }

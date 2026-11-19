@@ -163,3 +163,34 @@ test("v1.7: pergunta se é o Marlon / o doutor", async () => {
   assert.equal(detectEntryOrigin("Olá, encontrei seu contato no site sexosemduvida.com e gostaria saber mais sobre as consultas online."), "consulta_site");
   assert.equal(detectEntryOrigin("Oi, quanto custa?"), null);
 });
+
+test("v1.9: qual parte vira áudio", async () => {
+  const { escolherAudio } = await import("../../src/agent/outbound.js");
+  const base = { modo: "auto" as const, leadMandouAudio: false, temVoz: true, parteComIntro: null };
+  // Marcada pela IA → vira áudio, e a marca some
+  let r = escolherAudio(["[[audio]]Poxa, imagino que isso pese.", "Isso sempre foi assim?"], base);
+  assert.equal(r.audioIndex, 0);
+  assert.deepEqual(r.parts, ["Poxa, imagino que isso pese.", "Isso sempre foi assim?"]);
+  // Link nunca vira áudio
+  r = escolherAudio(["[[audio]]Segue: https://pay.hotmart.com/x?sck=f4-ia"], base);
+  assert.equal(r.audioIndex, -1);
+  // Sem voz configurada → tudo texto
+  r = escolherAudio(["[[audio]]Oi"], { ...base, temVoz: false });
+  assert.equal(r.audioIndex, -1);
+  assert.deepEqual(r.parts, ["Oi"]);
+  // Modo off → nunca
+  assert.equal(escolherAudio(["[[audio]]Oi"], { ...base, modo: "off" }).audioIndex, -1);
+  // Lead mandou áudio → espelha na parte principal (sem link)
+  r = escolherAudio(["Curta.", "Uma resposta bem mais longa e acolhedora.", "Link: https://x.com"], { ...base, leadMandouAudio: true });
+  assert.equal(r.audioIndex, 1);
+  // Modo espelhar ignora a marca se o lead não mandou áudio
+  assert.equal(escolherAudio(["[[audio]]Oi"], { ...base, modo: "espelhar" }).audioIndex, -1);
+  // A parte com a apresentação obrigatória não vira áudio
+  assert.equal(escolherAudio(["[[audio]]Oi! Aqui é a Clara, assistente virtual."], { ...base, parteComIntro: 0 }).audioIndex, -1);
+});
+
+test("v1.9: texto ajustado para fala", async () => {
+  const { textoParaFala } = await import("../../src/integrations/tts.js");
+  assert.equal(textoParaFala("[[audio]]São 12x de R$33,08 ou R$397 😊"), "São 12 vezes de 33 reais e 8 centavos ou 397 reais");
+  assert.equal(textoParaFala("O CONTROLE 2.0|||veja https://x.com"), "O Controle dois ponto zero veja");
+});

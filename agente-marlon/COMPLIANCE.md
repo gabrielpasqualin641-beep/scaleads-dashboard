@@ -67,6 +67,13 @@ Cada regra tem uma camada **determinística**, que não depende do modelo de IA,
 - [ ] Validar a frase "quem não trata a ejaculação precoce tende a piorar e a ter falhas", muito usada pela equipe. O agente não a usa até a validação; ele usa "é comum as duas coisas aparecerem juntas".
 - [ ] A equipe usa "mais de 90% das falhas não são físicas", que não tem fonte na base. O filtro do agente bloqueia esse número.
 
+## 3.3 Respostas em áudio com voz sintética (v1.9)
+- A assistente pode responder com mensagem de voz (voz sintética da ElevenLabs). A primeira mensagem é sempre em texto e diz que é assistente virtual. Se perguntarem "é robô?", a resposta é a verdade, em texto.
+- O áudio passa pelo mesmo filtro de saída do texto. Áudio nunca leva link e fica restrito a acolhimento e explicação.
+- A notificação de áudio no WhatsApp é neutra ("🎤 Áudio").
+- O painel guarda a transcrição do áudio enviado (texto), não o arquivo.
+- [ ] Validar com o advogado e o Marlon o uso de voz sintética: se é preciso dizer, no primeiro áudio, que a voz é gerada por IA, e se a voz escolhida não pode lembrar a de uma pessoa real da equipe.
+
 ## 4. Checklist antes de produção
 
 **Jurídico**

@@ -20,7 +20,7 @@ import {
   norm,
   shortenForVoice,
 } from "./guardrails.js";
-import { agentIntro, sendWhatsAppParts, sendWhatsAppText, splitParts } from "./outbound.js";
+import { agentIntro, escolherAudio, sendWhatsAppParts, sendWhatsAppText, splitParts } from "./outbound.js";
 import { applyOptout, newTurnState, runTool, type ToolContext, type TurnState } from "./tools.js";
 
 export interface TurnResult {
@@ -99,7 +99,9 @@ export class Engine {
     if (special) return special;
 
     const result = await this.turn(lead, "whatsapp", text, [], undefined, { deferSends: true });
+    const semIntro = result.text;
     if (result.text) result.text = await this.withIntro(lead, result.text);
+    const introAdicionada = Boolean(semIntro) && result.text !== semIntro;
     const deferred = result.state.deferred;
     result.state.deferred = [];
     const runDeferred = async () => {
@@ -108,15 +110,21 @@ export class Engine {
     };
     if (result.text) {
       const fresh = (await store.getLead(lead.id))!;
-      const parts = splitParts(result.text);
+      const escolha = escolherAudio(splitParts(result.text), {
+        modo: config.WA_AUDIO_REPLIES,
+        leadMandouAudio: Boolean(input.transcribed),
+        temVoz: Boolean(this.deps.tts && this.deps.messenger.sendAudio),
+        parteComIntro: introAdicionada ? 0 : null,
+      });
+      const parts = escolha.parts;
       const showSlots = result.state.listedSlots.length && !result.state.toolLog.some((t) => t.name === "agendar_consulta");
       const list = showSlots ? { label: "Ver horários", rows: result.state.listedSlots.slice(0, 6).map((s) => ({ id: `slot:${s.start}`, title: s.label })) } : undefined;
       // O link entra logo depois da mensagem que aponta para ele; se nenhuma apontar, vai no fim.
       const pointer = deferred.length ? parts.findIndex((p) => /👇|aqui embaixo|logo abaixo|te mandei|te mando|segue o link/i.test(p)) : -1;
       const cut = pointer >= 0 ? pointer + 1 : parts.length;
-      await sendWhatsAppParts(this.deps, fresh, parts.slice(0, cut), { inboundMessageId: input.waMessageId, list: cut === parts.length ? list : undefined });
+      await sendWhatsAppParts(this.deps, fresh, parts.slice(0, cut), { inboundMessageId: input.waMessageId, list: cut === parts.length ? list : undefined, audioIndex: escolha.audioIndex });
       await runDeferred();
-      if (cut < parts.length) await sendWhatsAppParts(this.deps, fresh, parts.slice(cut), { inboundMessageId: input.waMessageId, list });
+      if (cut < parts.length) await sendWhatsAppParts(this.deps, fresh, parts.slice(cut), { inboundMessageId: input.waMessageId, list, audioIndex: escolha.audioIndex - cut });
     }
     await runDeferred();
     await this.maybeSummarize(lead.id);
@@ -270,7 +278,7 @@ export class Engine {
     let violations = out.violations;
     if (!final && !state.transferred) final = state.sentLinks.length ? "Te mandei aqui 👇" : SAFE_FALLBACK;
 
-    if (channel === "voz") final = shortenForVoice(final.replace(/\s*\|\|\|\s*/g, " "));
+    if (channel === "voz") final = shortenForVoice(final.replace(/\[\[audio\]\]\s*/gi, "").replace(/\s*\|\|\|\s*/g, " "));
     out = { text: final, violations };
     return { text: out.text, state, violations, hangup: state.optedOut || state.endConversation };
   }

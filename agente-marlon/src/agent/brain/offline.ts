@@ -31,7 +31,7 @@ const has = (t: string, re: RegExp) => re.test(t);
 const problemaRe = /\b(durando pouco|duro pouco|dura pouco|termino (muito )?rapido|gozo (muito )?rapido|ejacul\w*|precoce|nao consigo segurar|nao seguro|acaba (muito )?rapido|muito rapido na cama)\b/;
 
 const PREVALENCIA = (nome: string) =>
-  `Poxa${nome ? `, ${nome}` : ""}, imagino que isso venha pesando.|||E olha, você tá longe de ser o único: um levantamento aqui no Brasil mostrou que é o problema masculino mais comum, quase 1 em cada 3 homens.|||Isso sempre foi assim pra você ou começou em algum momento?`;
+  `[[audio]]Poxa${nome ? `, ${nome}` : ""}, imagino que isso venha pesando. E olha, você tá longe de ser o único: um levantamento aqui no Brasil mostrou que é o problema masculino mais comum, quase 1 em cada 3 homens.|||Isso sempre foi assim pra você ou começou em algum momento?`;
 
 export class OfflineBrain implements Brain {
   name = "offline";
@@ -227,7 +227,7 @@ export class OfflineBrain implements Brain {
     }
     if (prev.includes("ja tentou alguma coisa") || prev.includes("chegou a tentar alguma coisa")) {
       await tool("atualizar_etapa", { etapa: "recomendacao" });
-      const educ = "Na maioria dos casos, isso está ligado à ansiedade e a um ritmo que o corpo aprendeu. E o que foi aprendido pode ser treinado. Essa é a visão do Marlon em 23 anos de clínica.";
+      const educ = "[[audio]]Na maioria dos casos, isso está ligado à ansiedade e a um ritmo que o corpo aprendeu. E o que foi aprendido pode ser treinado. Essa é a visão do Marlon em 23 anos de clínica.|||";
       if (has(t, /\b(tudo|varias coisas|terapia|psicolog\w*|medico|nada funcionou|ja tentei de tudo|emocional|trauma)\b/)) {
         return { text: `${educ}\nPelo que você contou, faz sentido começar pela consulta online com o Marlon: atendimento individual, R$900 por sessão de 50 min.\nQuer ver os horários?` };
       }

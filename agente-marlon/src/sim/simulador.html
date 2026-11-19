@@ -81,6 +81,22 @@ input,select{font:inherit;color:var(--text)}
 .bar{display:flex;gap:6px;align-items:center;padding:6px 8px 10px}
 .bar input{flex:1;border:0;outline:0;border-radius:22px;padding:11px 14px;background:var(--wa-in);color:var(--wa-text);box-shadow:0 1px .5px rgba(0,0,0,.1)}
 .send{width:44px;height:44px;border-radius:50%;border:0;background:#00a884;color:#fff;display:grid;place-items:center;font-size:18px;flex:none}
+.mic{width:44px;height:44px;border-radius:50%;border:0;background:var(--wa-in);color:#00a884;display:grid;place-items:center;font-size:18px;flex:none;box-shadow:0 1px .5px rgba(0,0,0,.1)}
+.mic.rec{background:#ef4444;color:#fff;animation:pulse 1.2s infinite}
+.vn{display:flex;align-items:center;gap:9px;min-width:230px;padding:2px 0}
+.vn .play{width:34px;height:34px;border-radius:50%;border:0;background:#00a884;color:#fff;display:grid;place-items:center;font-size:13px;flex:none}
+.bub.out .vn .play{background:#3b7a57}
+.vn .wave{flex:1;display:flex;align-items:center;gap:2px;height:26px}
+.vn .wave i{display:block;width:3px;border-radius:2px;background:var(--wa-meta);opacity:.55}
+.vn.tocando .wave i{background:#00a884;opacity:1;animation:wv .9s infinite ease-in-out}
+.vn .wave i:nth-child(odd){animation-delay:.15s}.vn .wave i:nth-child(3n){animation-delay:.3s}
+@keyframes wv{0%,100%{transform:scaleY(.6)}50%{transform:scaleY(1.15)}}
+.vn .dur{font-size:11px;color:var(--wa-meta);min-width:30px}
+.vn .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1fa37f,#0e5a4c);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none;position:relative}
+.vn .av::after{content:"🎤";position:absolute;right:-4px;bottom:-4px;font-size:11px}
+.transc{display:block;margin-top:4px;font-size:12.5px;color:var(--wa-meta);cursor:pointer}
+.transc .t{display:none;color:var(--wa-text);font-size:13.5px;margin-top:3px}
+.transc.aberta .t{display:block}
 
 /* Ligação */
 .callscreen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;color:#fff;
@@ -175,6 +191,7 @@ input,select{font:inherit;color:var(--text)}
         <div class="atalhos" id="sug"></div>
         <form class="bar" id="form">
           <input id="texto" placeholder="Mensagem" autocomplete="off" autofocus>
+          <button type="button" class="mic" id="gravar" title="Mandar áudio (fale no microfone)">🎤</button>
           <button class="send" id="enviar" title="Enviar">➤</button>
         </form>
 
@@ -241,9 +258,10 @@ input,select{font:inherit;color:var(--text)}
     </div>
 
     <div class="card">
-      <h4>🎙️ Voz da ligação</h4>
+      <h4>🎙️ Voz da Clara (ligação e áudios)</h4>
       <select class="field" id="voz"></select>
       <div class="row small muted" style="margin-top:8px">Velocidade <input class="rng" id="vel" type="range" min="0.8" max="1.3" step="0.05" value="1.05" style="flex:1"></div>
+      <label class="row small" style="margin-top:8px;cursor:pointer"><input type="checkbox" id="autoplay" checked> Tocar sozinho os áudios que a Clara manda no WhatsApp</label>
       <div class="small muted" style="margin-top:6px">Mais natural: coloque <code>ELEVENLABS_API_KEY</code> no <code>.env</code> e escolha "ElevenLabs". Sem ela, use o Edge com as vozes "Online (Natural)". Use fone de ouvido.</div>
     </div>
   </aside>
@@ -275,8 +293,36 @@ function hora(){ return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit"
 function rolar(){ $("msgs").scrollTop = 1e9; }
 function addNoChat(el){ $("vazio")?.remove(); $("msgs").insertBefore(el, $("typing")); rolar(); }
 
+function notaDeVoz(de, texto){
+  const d = document.createElement("div");
+  d.className = "bub " + (de === "lead" ? "out" : "in");
+  const seg = Math.max(2, Math.round(texto.length / 15));
+  const dur = Math.floor(seg / 60) + ":" + String(seg % 60).padStart(2, "0");
+  const barras = Array.from({ length: 28 }, (_, i) => '<i style="height:' + (6 + Math.round(Math.abs(Math.sin(i * 1.7 + texto.length)) * 18)) + 'px"></i>').join("");
+  d.innerHTML = '<div class="vn">' + (de === "lead" ? "" : '<div class="av">' + esc(AG[0]) + "</div>") + '<button class="play" title="Ouvir">▶</button><div class="wave">' + barras + '</div><span class="dur">' + dur + "</span></div>"
+    + '<span class="transc">Ver transcrição<span class="t">' + esc(texto) + "</span></span>"
+    + '<span class="meta">' + hora() + (de === "lead" ? '<span class="tk">✓✓</span>' : "") + "</span>";
+  const vn = d.querySelector(".vn"), btn = d.querySelector(".play");
+  btn.onclick = async () => {
+    if (vn.classList.contains("tocando")) { pararFala(); return; }
+    document.querySelectorAll(".vn.tocando").forEach(x => { x.classList.remove("tocando"); x.querySelector(".play").textContent = "▶"; });
+    pararFala();
+    vn.classList.add("tocando"); btn.textContent = "❚❚";
+    await fala(texto, { semLegenda: true });
+    vn.classList.remove("tocando"); btn.textContent = "▶";
+  };
+  d.querySelector(".transc").onclick = (ev) => ev.currentTarget.classList.toggle("aberta");
+  addNoChat(d);
+  return d;
+}
 function bolha(de, texto, extra, nota){
   if (de === "sys") { const d = document.createElement("div"); d.className = "sysnote"; d.textContent = texto; return addNoChat(d); }
+  if (extra && extra.tipo === "audio") {
+    const d = notaDeVoz(de, texto);
+    // Toca sozinho a resposta em áudio da assistente (como ouvir o áudio que chegou).
+    if (de !== "lead" && $("autoplay") && $("autoplay").checked) setTimeout(() => d.querySelector(".play").click(), 150);
+    return;
+  }
   const d = document.createElement("div");
   d.className = "bub " + (de === "lead" ? "out" : "in");
   const tag = nota ? '<span class="tag">' + esc(nota) + "</span>" : (de !== "lead" && canal === "voz" ? '<span class="tag">🔊 ' + esc(AG) + ' (ligação)</span>' : "");
@@ -321,9 +367,9 @@ function mostra(r){
     : '<span class="small muted">Nenhum agendado.</span>';
 }
 
-async function enviarWhatsApp(msg, botao){
-  bolha("lead", botao ? botao.title : msg);
-  const r = await run(() => api("/api/sim/whatsapp", { telefone, nome: $("nome").value, texto: msg, botao: botao && botao.id, tituloBotao: botao && botao.title }));
+async function enviarWhatsApp(msg, botao, comoAudio){
+  if (comoAudio) bolha("lead", msg, { tipo: "audio" }); else bolha("lead", botao ? botao.title : msg);
+  const r = await run(() => api("/api/sim/whatsapp", { telefone, nome: $("nome").value, texto: msg, botao: botao && botao.id, tituloBotao: botao && botao.title, audio: Boolean(comoAudio) }));
   if (!r) return;
   if (r.respostas.length) saidas(r.respostas);
   else bolha("sys", r.estado && r.estado.iaPausada ? "A IA está pausada neste contato (passou para a equipe). Ninguém responde automaticamente." : "Sem resposta.");
@@ -441,14 +487,15 @@ async function falaEleven(texto){
     a.playbackRate = Number($("vel").value || 1.05);
     const fim = () => { audioAtual = null; URL.revokeObjectURL(url); res(); };
     a.onended = fim; a.onpause = fim; a.onerror = fim;
-    statusCall("falando");
+    if (chamadaVisivel) statusCall("falando");
     a.play().catch(fim);
   });
 }
-async function fala(t){
+function pararFala(){ if (window.speechSynthesis) speechSynthesis.cancel(); if (audioAtual) audioAtual.pause(); }
+async function fala(t, opts = {}){
   const texto = limpaFala(t);
   if (!texto) return;
-  $("call-legenda").textContent = texto;
+  if (!opts.semLegenda) $("call-legenda").textContent = texto;
   if ($("voz").value === "eleven") {
     try { return await falaEleven(texto); }
     catch (e) { if (!avisouTts) { avisouTts = true; bolha("sys", "A voz da ElevenLabs falhou (" + e.message + "). Usando a voz do navegador."); } }
@@ -464,7 +511,7 @@ function falaNavegador(texto){
     if (v) u.voice = v;
     u.rate = Number($("vel").value || 1.05);
     u.onend = () => res(); u.onerror = () => res();
-    speechSynthesis.cancel(); statusCall("falando"); speechSynthesis.speak(u);
+    speechSynthesis.cancel(); if (chamadaVisivel) statusCall("falando"); speechSynthesis.speak(u);
   });
 }
 function tocar(){
@@ -557,6 +604,25 @@ async function desligarVoz(avisar = true){
   tomDesligar();
   encerrarVisual();
 }
+// Mandar áudio no WhatsApp: fala no microfone, o navegador transcreve e envia como áudio do lead.
+let gravando = null;
+$("gravar").onclick = () => {
+  if (gravando) { try { gravando.stop(); } catch (e) {} return; }
+  if (!SR) { bolha("sys", "Para mandar áudio, use o Chrome ou o Edge (reconhecimento de voz)."); return; }
+  const r = new SR(); gravando = r; let final = "";
+  r.lang = "pt-BR"; r.interimResults = true; r.continuous = false;
+  $("gravar").classList.add("rec"); $("texto").placeholder = "🎙️ gravando… fale e pare para enviar";
+  r.onresult = (e) => { let it = ""; for (let i = e.resultIndex; i < e.results.length; i++) { if (e.results[i].isFinal) final += e.results[i][0].transcript; else it += e.results[i][0].transcript; } $("texto").placeholder = "🎙️ " + (final + " " + it).trim(); };
+  r.onerror = (e) => { if (e.error === "not-allowed") bolha("sys", "O microfone foi bloqueado. Permita o microfone no cadeado da barra de endereço."); };
+  r.onend = () => {
+    gravando = null; $("gravar").classList.remove("rec"); layout();
+    const t = final.trim();
+    if (t && canal === "whatsapp") enviarWhatsApp(t, null, true);
+    else if (t && ligacao) falar(t);
+  };
+  try { r.start(); } catch (e) { gravando = null; $("gravar").classList.remove("rec"); }
+};
+
 $("ligar-voz").onclick = receberLigacao;
 $("call-atender").onclick = atender;
 $("call-desligar").onclick = () => desligarVoz(true);

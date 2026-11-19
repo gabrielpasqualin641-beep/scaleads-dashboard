@@ -1,0 +1,6 @@
+nome: Primeira mensagem é sempre texto
+descricao: Mesmo que o lead comece com áudio, a apresentação de assistente virtual vai por escrito.
+passos:
+  - lead_audio: "Oi, boa tarde, vi o vídeo do Marlon e queria saber do treino"
+    espera:
+      deve: ["assistente virtual"]

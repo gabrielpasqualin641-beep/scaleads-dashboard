@@ -25,6 +25,8 @@ export interface Messenger {
   sendTemplate(to: string, tpl: TemplateSend): Promise<string | null>;
   /** Mostra "digitando..." para o lead (opcional; precisa do id da mensagem recebida). */
   typing?(to: string, inboundMessageId?: string): Promise<void>;
+  /** Mensagem de voz (áudio). `transcript` é o texto falado (usado em testes e no simulador). */
+  sendAudio?(to: string, data: Buffer, mime: string, transcript: string): Promise<string | null>;
 }
 
 export type SentRecord = { at?: string } & (
@@ -32,6 +34,7 @@ export type SentRecord = { at?: string } & (
   | { kind: "buttons"; to: string; text: string; buttons: Button[] }
   | { kind: "list"; to: string; text: string; rows: ListRow[] }
   | { kind: "template"; to: string; tpl: TemplateSend; rendered: string }
+  | { kind: "audio"; to: string; text: string; mime: string }
 );
 
 /** Guarda tudo o que seria enviado. */
@@ -58,6 +61,10 @@ export class RecordingMessenger implements Messenger {
   }
   async sendTemplate(to: string, tpl: TemplateSend) {
     this.sent.push({ kind: "template", to, tpl, rendered: this.render(tpl), at: this.at() });
+    return null;
+  }
+  async sendAudio(to: string, _data: Buffer, mime: string, transcript: string) {
+    this.sent.push({ kind: "audio", to, text: transcript, mime, at: this.at() });
     return null;
   }
 }

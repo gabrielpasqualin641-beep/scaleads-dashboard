@@ -96,6 +96,19 @@ export class WhatsAppCloudMessenger implements Messenger {
     return { data: Buffer.from(await file.arrayBuffer()), mime: j.mime_type };
   }
 
+  /** Envia uma mensagem de voz: sobe o arquivo na Meta e manda como áudio de voz. */
+  async sendAudio(to: string, data: Buffer, mime: string, _transcript: string) {
+    const form = new FormData();
+    form.append("messaging_product", "whatsapp");
+    form.append("type", mime);
+    form.append("file", new Blob([new Uint8Array(data)], { type: mime }), mime === "audio/ogg" ? "voz.ogg" : "voz.mp3");
+    const up = await fetch(`${this.base}/${config.WA_PHONE_NUMBER_ID}/media`, { method: "POST", headers: { Authorization: `Bearer ${config.WA_ACCESS_TOKEN}` }, body: form });
+    const j = (await up.json().catch(() => ({}))) as { id?: string; error?: { message: string } };
+    if (!up.ok || !j.id) throw new Error(`upload de áudio falhou: ${j.error?.message ?? up.status}`);
+    // "voice: true" faz aparecer como mensagem de voz (com onda), e não como arquivo de áudio.
+    return this.post({ to, type: "audio", audio: { id: j.id, voice: mime === "audio/ogg" } });
+  }
+
   /** "Digitando..." (Cloud API: status read + typing_indicator; some ao enviar a resposta ou em 25 s). */
   async typing(_to: string, inboundMessageId?: string) {
     if (!inboundMessageId) return;

@@ -1,3 +1,25 @@
+# Melhorias v1.9: respostas em áudio no WhatsApp (voz da Clara)
+
+- **Quando ela responde em áudio:**
+  - **no acolhimento**, quando o lead conta o problema;
+  - **na explicação do método**;
+  - **quando o lead manda áudio**: ela espelha e responde em áudio.
+- **Quando nunca responde em áudio:**
+  - em mensagem com **link**, preço com opções ou passo a passo (vai em texto);
+  - na **primeira mensagem** (a apresentação é sempre em texto);
+  - mais de **1 áudio por resposta**;
+  - mensagem com mais de cerca de **40 segundos** de fala.
+- **Quem decide:** a IA marca qual mensagem vira áudio (`[[audio]]`) e o sistema confere as regras acima. O texto é ajustado para fala (preços por extenso, sem emoji nem link). Se a voz falhar, a mensagem sai em **texto**.
+- **Configuração** (`.env`): `WA_AUDIO_REPLIES=auto | espelhar | off` e `WA_AUDIO_FORMAT=ogg_opus | mp3`. O `ogg_opus` aparece como mensagem de voz no WhatsApp.
+- **Simulador:**
+  - a resposta em áudio aparece como **mensagem de voz do WhatsApp** (▶, ondinha, duração, "ver transcrição") e toca sozinha (dá para desligar);
+  - o botão **🎤** permite **você mandar áudio** como o lead.
+- **Painel da equipe:** mensagens enviadas em áudio aparecem com o selo "🎤 áudio (transcrição)".
+- **Testes:** 4 cenários novos (53 a 56) e 2 testes unitários. Também há uma regra global: áudio nunca tem link e a marca `[[audio]]` nunca vaza para o lead.
+- **Não testado com a Meta real:** o envio do áudio pela API do WhatsApp (upload de mídia e mensagem de voz) foi escrito seguindo a API oficial, mas ainda não rodou contra a Meta, porque não temos as credenciais. Se a Meta recusar o formato ogg, troque para `WA_AUDIO_FORMAT=mp3`.
+
+---
+
 # Melhorias v1.8.2: simulador redesenhado e ligação mais humana
 
 - **Visual novo do simulador** (http://localhost:3333):

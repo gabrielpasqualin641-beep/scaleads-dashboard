@@ -1,0 +1,8 @@
+nome: Link nunca vai em áudio
+descricao: Mesmo quando o lead manda áudio pedindo o link, o link sai por escrito (a regra global também confere que nenhum áudio tem link).
+passos:
+  - lead: "Oi"
+  - lead_audio: "Pode me mandar o link do Controle 2.0"
+    espera:
+      tools: [enviar_link_checkout]
+      deve: ["sck=f4-ia"]

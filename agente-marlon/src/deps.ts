@@ -3,6 +3,7 @@ import type { Messenger } from "./channels/messenger.js";
 import type { Call, Lead } from "./domain/types.js";
 import type { CalendarProvider } from "./integrations/calendar.js";
 import type { PaymentLinkProvider } from "./integrations/payments.js";
+import type { TtsProvider } from "./integrations/tts.js";
 import type { Scheduler } from "./queue/scheduler.js";
 import type { Store } from "./store/Store.js";
 
@@ -21,7 +22,8 @@ export interface Deps {
   dialer: VoiceDialer | null;
   bus: EventEmitter; // eventos em tempo real para o painel
   now: () => Date;
-  humanDelay?: boolean; // "digitando" e espera entre mensagens (desligado em testes e no simulador)
+  humanDelay?: boolean;
+  tts?: TtsProvider | null; // voz para respostas em áudio no WhatsApp // "digitando" e espera entre mensagens (desligado em testes e no simulador)
 }
 
 export type BusEvent =

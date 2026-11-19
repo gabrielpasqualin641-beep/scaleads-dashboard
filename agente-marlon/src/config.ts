@@ -69,7 +69,10 @@ const schema = z.object({
   ELEVENLABS_API_KEY: z.string().default(""),
   ELEVENLABS_VOICE_ID_FEMININA: z.string().default(""),
   ELEVENLABS_VOICE_ID_MASCULINA: z.string().default(""),
-  ELEVENLABS_TTS_MODEL: z.string().default("eleven_multilingual_v2"), // voz do simulador (mais natural em PT-BR)
+  ELEVENLABS_TTS_MODEL: z.string().default("eleven_multilingual_v2"), // voz do simulador e dos áudios do WhatsApp
+  // Respostas em áudio no WhatsApp: "auto" (acolhimento/explicação e quando o lead manda áudio), "espelhar" (só quando o lead manda áudio), "off"
+  WA_AUDIO_REPLIES: z.enum(["auto", "espelhar", "off"]).default("auto"),
+  WA_AUDIO_FORMAT: z.enum(["ogg_opus", "mp3"]).default("ogg_opus"), // ogg_opus aparece como mensagem de voz no WhatsApp
   NAO_ME_PERTURBE_CHECK_URL: z.string().default(""),
 
   // Google Calendar

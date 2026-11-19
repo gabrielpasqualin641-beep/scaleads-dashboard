@@ -18,7 +18,7 @@ interface Lead {
   updatedAt: string;
   lastMessage?: { text: string; author: string; at: string } | null;
 }
-interface Msg { id: string; author: "lead" | "ai" | "human" | "system"; text: string; createdAt: string; channel: string }
+interface Msg { id: string; author: "lead" | "ai" | "human" | "system"; text: string; createdAt: string; channel: string; meta?: { audio?: boolean } }
 interface Detail {
   lead: Lead;
   messages: Msg[];
@@ -132,7 +132,7 @@ export default function Conversas() {
             <div className="msgs">
               {detail!.messages.map((m) => (
                 <div key={m.id} className={`msg ${m.author}`}>
-                  <div className="small muted">{AUTHOR[m.author]} · {fmt(m.createdAt)}</div>
+                  <div className="small muted">{AUTHOR[m.author]} · {fmt(m.createdAt)}{m.meta?.audio ? " · 🎤 áudio (transcrição)" : ""}</div>
                   {m.text}
                 </div>
               ))}

@@ -1,6 +1,7 @@
 import { config } from "../config.js";
 import { firstName, type Button, type ListRow } from "../channels/messenger.js";
 import { renderTemplate } from "../channels/whatsapp.js";
+import { textoParaFala } from "../integrations/tts.js";
 import { isInside24hWindow } from "../compliance/rules.js";
 import type { Author, Lead } from "../domain/types.js";
 import { emit, type Deps } from "../deps.js";
@@ -46,16 +47,61 @@ export async function sendWhatsAppParts(
   deps: Deps,
   lead: Lead,
   parts: string[],
-  opts: { inboundMessageId?: string; list?: { label: string; rows: ListRow[] } } = {},
+  opts: { inboundMessageId?: string; list?: { label: string; rows: ListRow[] }; audioIndex?: number } = {},
 ) {
   for (const [i, part] of parts.entries()) {
+    const audio = i === opts.audioIndex;
     if (deps.humanDelay) {
       await deps.messenger.typing?.(lead.phone, opts.inboundMessageId);
-      await new Promise((r) => setTimeout(r, typingDelayMs(part)));
+      // Áudio leva mais tempo para "gravar" do que um texto para digitar.
+      await new Promise((r) => setTimeout(r, audio ? Math.min(6000, Math.max(2000, part.length * 45)) : typingDelayMs(part)));
     }
     const last = i === parts.length - 1;
-    await sendWhatsAppText(deps, lead, part, last && opts.list ? { list: opts.list } : {});
+    if (audio) await sendWhatsAppAudio(deps, lead, part);
+    else await sendWhatsAppText(deps, lead, part, last && opts.list ? { list: opts.list } : {});
   }
+}
+
+/** Mensagem de voz na voz da assistente. Se a voz falhar, a mesma mensagem sai em texto. */
+export async function sendWhatsAppAudio(deps: Deps, lead: Lead, text: string) {
+  try {
+    if (!deps.tts || !deps.messenger.sendAudio) throw new Error("voz não configurada");
+    const audio = await deps.tts.synthesize(textoParaFala(text), config.WA_AUDIO_FORMAT);
+    await deps.messenger.sendAudio(lead.phone, audio.data, audio.mime, text);
+    await deps.store.addMessage({ leadId: lead.id, channel: "whatsapp", direction: "out", author: "ai", text, meta: { audio: true } });
+    emit(deps, { type: "message", leadId: lead.id });
+  } catch (e) {
+    console.warn("[audio] enviando como texto:", (e as Error).message);
+    await sendWhatsAppText(deps, lead, text);
+  }
+}
+
+const AUDIO_MARK = /\[\[audio\]\]\s*/gi;
+const MAX_AUDIO_CHARS = 600; // ~40 s de fala
+
+/**
+ * Escolhe qual parte da resposta vira áudio (no máximo uma) e tira as marcas [[audio]].
+ * Nunca vira áudio: parte com link, parte longa demais, a parte com a apresentação obrigatória.
+ */
+export function escolherAudio(
+  parts: string[],
+  ctx: { modo: "auto" | "espelhar" | "off"; leadMandouAudio: boolean; temVoz: boolean; parteComIntro: number | null },
+): { parts: string[]; audioIndex: number } {
+  const marcadas = parts.map((p) => /\[\[audio\]\]/i.test(p));
+  const limpas = parts.map((p) => p.replace(AUDIO_MARK, "").trim());
+  const pode = (i: number) => i !== ctx.parteComIntro && !/https?:\/\//.test(limpas[i]) && limpas[i].length > 0 && limpas[i].length <= MAX_AUDIO_CHARS;
+  if (!ctx.temVoz || ctx.modo === "off") return { parts: limpas, audioIndex: -1 };
+  if (ctx.modo === "auto") {
+    const i = marcadas.findIndex((m, idx) => m && pode(idx));
+    if (i >= 0) return { parts: limpas, audioIndex: i };
+  }
+  if (ctx.leadMandouAudio) {
+    // Espelha: a pessoa mandou áudio, a resposta principal vai em áudio.
+    let melhor = -1;
+    limpas.forEach((p, i) => { if (pode(i) && (melhor < 0 || p.length > limpas[melhor].length)) melhor = i; });
+    return { parts: limpas, audioIndex: melhor };
+  }
+  return { parts: limpas, audioIndex: -1 };
 }
 
 export async function sendWhatsAppTemplate(deps: Deps, lead: Lead, name: string, params: string[], buttonPayloads?: string[]) {

@@ -1,0 +1,10 @@
+nome: Acolhimento em áudio no WhatsApp
+descricao: Quando o lead conta o problema, a assistente acolhe com uma mensagem de voz e faz a pergunta seguinte por escrito.
+passos:
+  - lead: "Oi"
+    espera:
+      envios: { audio: false }
+  - lead: "Estou durando muito pouco tempo na cama"
+    espera:
+      envios: { audio: true }
+      deve: ["1 em cada 3|comum"]

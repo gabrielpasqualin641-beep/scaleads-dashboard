@@ -1,0 +1,8 @@
+nome: Lead manda áudio e recebe áudio
+descricao: Quem manda áudio recebe a resposta principal em áudio (espelhamento).
+passos:
+  - lead: "Oi"
+  - lead_audio: "Então, eu tô com vergonha de falar disso, mas queria entender esse treino"
+    espera:
+      envios: { audio: true }
+      deve: ["comum|ninguem precisa saber"]

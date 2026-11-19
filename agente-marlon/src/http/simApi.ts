@@ -19,6 +19,7 @@ function view(s: SentRecord) {
   if (s.kind === "template") return { tipo: "template", nome: s.tpl.name, texto: s.rendered };
   if (s.kind === "buttons") return { tipo: "botoes", texto: s.text, botoes: s.buttons };
   if (s.kind === "list") return { tipo: "lista", texto: s.text, opcoes: s.rows };
+  if (s.kind === "audio") return { tipo: "audio", texto: s.text };
   return { tipo: "texto", texto: s.text };
 }
 
@@ -87,9 +88,9 @@ export function registerSimApi(server: FastifyInstance, h: Harness) {
 
     // Mensagem (ou toque em botão) do lead no WhatsApp
     r.post("/api/sim/whatsapp", async (req) => {
-      const b = req.body as { telefone: string; nome?: string; texto?: string; botao?: string; tituloBotao?: string };
+      const b = req.body as { telefone: string; nome?: string; texto?: string; botao?: string; tituloBotao?: string; audio?: boolean };
       const before = h.messenger.sent.length;
-      const result = await e.handleWhatsApp({ from: b.telefone, name: b.nome, text: b.tituloBotao ?? b.texto ?? b.botao ?? "", replyId: b.botao });
+      const result = await e.handleWhatsApp({ from: b.telefone, name: b.nome, text: b.tituloBotao ?? b.texto ?? b.botao ?? "", replyId: b.botao, transcribed: Boolean(b.audio) });
       return {
         respostas: sentSince(b.telefone, before),
         regra: result.guard ?? null,
