@@ -60,7 +60,7 @@ export function registerSimApi(server: FastifyInstance, h: Harness) {
 
     r.get("/api/sim/info", async () => ({
       cerebro: e.brain.name,
-      modelo: e.brain.name === "claude" ? config.ANTHROPIC_MODEL : null,
+      modelo: e.brain.name === "claude" ? config.ANTHROPIC_MODEL : e.brain.name === "gemini" ? config.GEMINI_MODEL : null,
       agente: config.AGENT_NAME,
       relogio: relogio(),
       tts: config.ELEVENLABS_API_KEY ? "elevenlabs" : "navegador",

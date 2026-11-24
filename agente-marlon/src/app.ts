@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import { config } from "./config.js";
 import { ClaudeBrain } from "./agent/brain/claude.js";
+import { GeminiBrain } from "./agent/brain/gemini.js";
 import { OfflineBrain } from "./agent/brain/offline.js";
 import type { Brain } from "./agent/brain/types.js";
 import { Engine } from "./agent/engine.js";
@@ -23,6 +24,13 @@ export function makeBrain(kind = config.BRAIN): Brain {
       return new OfflineBrain();
     }
     return new ClaudeBrain();
+  }
+  if (kind === "gemini") {
+    if (!config.GEMINI_API_KEY) {
+      console.warn("[agente] GEMINI_API_KEY ausente: usando o cérebro offline.");
+      return new OfflineBrain();
+    }
+    return new GeminiBrain();
   }
   return new OfflineBrain();
 }

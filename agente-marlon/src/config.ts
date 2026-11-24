@@ -27,7 +27,10 @@ const schema = z.object({
   ANTHROPIC_EFFORT_WHATSAPP: z.enum(["low", "medium", "high"]).default("medium"),
   // Fallback do servidor em caso de recusa (padrão: ligado)
   ANTHROPIC_FALLBACKS: z.string().optional().transform((v) => (v === undefined ? true : v === "1" || v === "true")),
-  BRAIN: z.enum(["claude", "offline"]).default("claude"),
+  BRAIN: z.enum(["claude", "gemini", "offline"]).default("claude"),
+  // Cérebro alternativo: Gemini (Google AI Studio). Ligue com BRAIN=gemini e a chave abaixo.
+  GEMINI_API_KEY: z.string().default(""),
+  GEMINI_MODEL: z.string().default("gemini-2.5-flash"),
   // Envio humanizado: "digitando" e espera entre as mensagens (false nos testes)
   HUMAN_DELAY: z.string().optional().transform((v) => v !== "false"),
 

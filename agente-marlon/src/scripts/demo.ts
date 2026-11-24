@@ -8,8 +8,12 @@ import { config } from "../config.js";
 import { handleHotmart } from "../integrations/hotmart.js";
 import { createHarness } from "../sim/harness.js";
 import { buildServer } from "../server.js";
+import { makeBrain } from "../app.js";
 
-const h = createHarness({ start: new Date().toISOString(), live: Boolean(config.ANTHROPIC_API_KEY) });
+// Cérebro escolhido pelo .env (BRAIN=claude|gemini|offline). As conversas de exemplo abaixo
+// são semeadas com o offline (instantâneo e grátis); a conversa ao vivo no simulador usa este.
+const configuredBrain = makeBrain();
+const h = createHarness({ start: new Date().toISOString() });
 // O relógio do demo anda junto com o real, e o simulador pode adiantá-lo (/api/sim/tempo) para ver as cadências.
 h.clock.now = new Date();
 setInterval(() => (h.clock.now = new Date(h.clock.now.getTime() + 1000)), 1000).unref();
@@ -37,9 +41,13 @@ const { session } = await h.startCall((await h.store.getLead(lead.id))!, "lead p
 for (const t of ["Sou eu", "Pode falar", "Quanto custa?"]) await e.handleVoiceTurn(session, t);
 await h.endCall(session);
 
+// A partir daqui, a conversa ao vivo no simulador usa o cérebro do .env (ex.: Gemini).
+h.app.engine.brain = configuredBrain;
+
 const server = await buildServer(h.app, { sim: h });
 await server.listen({ port: config.PORT, host: "0.0.0.0" });
-console.log(`Demo no ar: http://localhost:${config.PORT} · cérebro: ${h.app.engine.brain.name} · login demo@equipe.local / demo-senha-123`);
+const modelo = configuredBrain.name === "claude" ? ` (${config.ANTHROPIC_MODEL})` : configuredBrain.name === "gemini" ? ` (${config.GEMINI_MODEL})` : "";
+console.log(`Demo no ar: http://localhost:${config.PORT} · cérebro: ${configuredBrain.name}${modelo} · login demo@equipe.local / demo-senha-123`);
 console.log("");
 console.log("==============================================================");
 console.log(`  SIMULADOR: abra http://localhost:${config.PORT} no navegador`);
