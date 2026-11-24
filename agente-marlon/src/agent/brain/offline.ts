@@ -27,11 +27,18 @@ function recommendedProduct(input: BrainInput): Product | null {
 }
 
 const has = (t: string, re: RegExp) => re.test(t);
+const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
 
 const problemaRe = /\b(durando pouco|duro pouco|dura pouco|termino (muito )?rapido|gozo (muito )?rapido|ejacul\w*|precoce|nao consigo segurar|nao seguro|acaba (muito )?rapido|muito rapido na cama)\b/;
 
-const PREVALENCIA = (nome: string) =>
-  `[[audio]]Poxa${nome ? `, ${nome}` : ""}, imagino que isso venha pesando. E olha, você tá longe de ser o único: um levantamento aqui no Brasil mostrou que é o problema masculino mais comum, quase 1 em cada 3 homens.|||Isso sempre foi assim pra você ou começou em algum momento?`;
+const PREVALENCIA = (nome: string) => {
+  const reacao = pick([
+    `Poxa${nome ? `, ${nome}` : ""}, imagino que isso venha pesando.`,
+    `Nossa${nome ? `, ${nome}` : ""}, sei que não é fácil falar disso. Obrigada pela confiança.`,
+    `Entendo${nome ? `, ${nome}` : ""}. E fica tranquilo, isso aqui é comum e tem caminho.`,
+  ]);
+  return `[[audio]]${reacao} E olha, você tá longe de ser o único: um levantamento aqui no Brasil mostrou que é o problema masculino mais comum, quase 1 em cada 3 homens.|||Isso sempre foi assim pra você ou começou em algum momento?`;
+};
 
 export class OfflineBrain implements Brain {
   name = "offline";
@@ -223,7 +230,8 @@ export class OfflineBrain implements Brain {
       return { text: PREVALENCIA(nome) };
     }
     if (prev.includes("sempre foi assim") || prev.includes("ha quanto tempo")) {
-      return { text: "Entendo, obrigada por dividir isso comigo.|||E você já chegou a tentar alguma coisa pra melhorar?" };
+      const ack = pick(["Entendo, obrigada por dividir isso comigo.", "Certo, obrigada por me contar isso.", "Sei como é, e que bom que você resolveu cuidar disso."]);
+      return { text: `${ack}|||E você já chegou a tentar alguma coisa pra melhorar?` };
     }
     if (prev.includes("ja tentou alguma coisa") || prev.includes("chegou a tentar alguma coisa")) {
       await tool("atualizar_etapa", { etapa: "recomendacao" });

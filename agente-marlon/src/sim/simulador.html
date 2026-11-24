@@ -335,7 +335,21 @@ function bolha(de, texto, extra, nota){
     addNoChat(box);
   }
 }
-function saidas(rs){ for (const s of rs) bolha("ia", s.texto, s, s.tipo === "template" ? "Mensagem automática · template " + s.nome : ""); }
+// Mostra as respostas da IA uma de cada vez, com "digitando…" e pausa humana (mais longa antes de áudio).
+function pausaHumana(texto, audio){ const base = audio ? 1500 : 650; const porChar = (audio ? 42 : 24) * texto.length; const jitter = Math.random() * 500; return Math.min(audio ? 4200 : 2300, base + Math.min(audio ? 2600 : 1500, porChar) + jitter); }
+async function saidas(rs){
+  for (let i = 0; i < rs.length; i++) {
+    const s = rs[i];
+    const audio = s.tipo === "audio";
+    // Links e confirmações de template saem logo após a mensagem anterior (sem "digitando" longo).
+    const rapido = s.tipo === "template" || /https?:\/\//.test(s.texto);
+    $("typing").classList.add("on"); $("wa-status").textContent = audio ? "gravando áudio…" : "digitando…"; rolar();
+    await new Promise(r => setTimeout(r, rapido ? 320 : pausaHumana(s.texto, audio)));
+    $("typing").classList.remove("on"); $("wa-status").textContent = "online";
+    bolha("ia", s.texto, s, s.tipo === "template" ? "Mensagem automática · template " + s.nome : "");
+    if (i < rs.length - 1) await new Promise(r => setTimeout(r, 220));
+  }
+}
 function setOcupado(v){
   ocupado = v;
   document.querySelectorAll("button").forEach(b => { if (!["tab-wa","tab-voz"].includes(b.id) && !b.id.startsWith("call-")) b.disabled = v; });
@@ -368,12 +382,17 @@ function mostra(r){
 }
 
 async function enviarWhatsApp(msg, botao, comoAudio){
+  if (ocupado) return;
   if (comoAudio) bolha("lead", msg, { tipo: "audio" }); else bolha("lead", botao ? botao.title : msg);
-  const r = await run(() => api("/api/sim/whatsapp", { telefone, nome: $("nome").value, texto: msg, botao: botao && botao.id, tituloBotao: botao && botao.title, audio: Boolean(comoAudio) }));
+  // O campo fica travado enquanto a Clara "digita" (uma mensagem de cada vez), como numa conversa real.
+  const r = await run(async () => {
+    const resp = await api("/api/sim/whatsapp", { telefone, nome: $("nome").value, texto: msg, botao: botao && botao.id, tituloBotao: botao && botao.title, audio: Boolean(comoAudio) });
+    if (resp && resp.respostas && resp.respostas.length) await saidas(resp.respostas);
+    else bolha("sys", resp && resp.estado && resp.estado.iaPausada ? "A IA está pausada neste contato (passou para a equipe). Ninguém responde automaticamente." : "Sem resposta.");
+    if (resp && resp.bloqueios && resp.bloqueios.length) bolha("sys", "Resposta do modelo bloqueada pelo filtro: " + resp.bloqueios.join(", "));
+    return resp;
+  });
   if (!r) return;
-  if (r.respostas.length) saidas(r.respostas);
-  else bolha("sys", r.estado && r.estado.iaPausada ? "A IA está pausada neste contato (passou para a equipe). Ninguém responde automaticamente." : "Sem resposta.");
-  if (r.bloqueios.length) bolha("sys", "Resposta do modelo bloqueada pelo filtro: " + r.bloqueios.join(", "));
   mostra(r); atualizaInfo(r.relogio);
 }
 async function iniciarLigacao(){
@@ -432,10 +451,14 @@ $("novo").onclick = async () => {
 for (const t of ["+30m","+3h","+1d","+3d"]) {
   const b = document.createElement("button"); b.textContent = "⏩ Avançar " + t;
   b.onclick = async () => {
-    const r = await run(() => api("/api/sim/tempo", { avancar: t, telefone }));
+    const r = await run(async () => {
+      const resp = await api("/api/sim/tempo", { avancar: t, telefone });
+      bolha("sys", "⏩ Relógio avançado " + t + " → " + resp.relogio + " · " + resp.executadas + " contato(s) automático(s)" + (resp.ligacoesNovas ? " · " + resp.ligacoesNovas + " ligação(ões) discada(s)" : ""));
+      await saidas(resp.respostas);
+      return resp;
+    });
     if (!r) return;
-    bolha("sys", "⏩ Relógio avançado " + t + " → " + r.relogio + " · " + r.executadas + " contato(s) automático(s)" + (r.ligacoesNovas ? " · " + r.ligacoesNovas + " ligação(ões) discada(s)" : ""));
-    saidas(r.respostas); mostra(r); atualizaInfo(r.relogio);
+    mostra(r); atualizaInfo(r.relogio);
   };
   $("tempo").appendChild(b);
 }

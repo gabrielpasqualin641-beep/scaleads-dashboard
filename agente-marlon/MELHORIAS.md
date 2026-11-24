@@ -1,3 +1,16 @@
+# Melhorias v2.0: mais humano (tom e ritmo)
+
+Escolhas do cliente: tom **profissional e caloroso**; áudio **nos momentos de conexão** (mantido).
+
+- **Ritmo de conversa (demo e produção):** a Clara manda uma mensagem de cada vez, com "digitando…" e pausa proporcional ao tamanho (mais longa antes de áudio). O campo fica travado enquanto ela "digita", como numa conversa real. Isso é o que mais tira a cara de robô.
+- **Tom (Claude ao vivo):** nova seção no prompt, "Soar como um atendente de verdade": reagir antes de responder, variar as confirmações (repertório grande, nunca repetir), devolver as palavras da pessoa, uma pergunta por vez, calor sem exagero, informalidade na medida (sem "kkk", sem erros de propósito). Reforço de que nunca se passa por humana.
+- **Roteiro da demo menos repetitivo:** variação segura nas reações de acolhimento (mantendo dados e palavras-chave do fluxo).
+- **Limite de conformidade:** continua obrigatório se apresentar como assistente virtual e dizer a verdade se perguntarem se é um robô.
+
+Lembrete: o salto de naturalidade aparece com o **Claude** (ANTHROPIC_API_KEY). A demo pública roda o roteiro.
+
+---
+
 # Melhorias v1.9: respostas em áudio no WhatsApp (voz da Clara)
 
 - **Quando ela responde em áudio:**
