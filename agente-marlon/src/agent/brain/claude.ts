@@ -31,7 +31,7 @@ export function toApiMessages(history: Message[]): BParam[] {
 export class ClaudeBrain implements Brain {
   name = "claude";
   private client = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY, maxRetries: 2, timeout: 30_000 });
-  private systemPrompt = loadSystemPrompt(config.AGENT_NAME);
+  private systemPrompt = loadSystemPrompt(config.AGENT_NAME, config.AGENT_GENERO);
 
   private async create(params: Omit<Anthropic.Beta.MessageCreateParamsNonStreaming, "model">) {
     const fallbacks = config.ANTHROPIC_FALLBACKS;

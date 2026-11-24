@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { config } from "../config.js";
+import { config, artigoAgente } from "../config.js";
 import { firstName, type Button } from "../channels/messenger.js";
 import { hasCallConsent, isWithinContactWindow, nextContactWindow } from "../compliance/rules.js";
 import type { Channel, Lead, Message } from "../domain/types.js";
@@ -247,8 +247,8 @@ export class Engine {
     if (detectMarlonQuestion(text) && norm(text).split(" ").length <= 14) {
       const t =
         channel === "voz"
-          ? `Aqui é a ${config.AGENT_NAME}, assistente virtual da equipe do Marlon Mattedi. O Marlon atende nas consultas. Se preferir, alguém da equipe fala com você.`
-          : `Aqui é a ${config.AGENT_NAME}, assistente virtual da equipe do Marlon Mattedi. Não sou o Marlon: ele atende nas consultas.|||Eu te ajudo por aqui com o que precisar. Se preferir falar com uma pessoa da equipe, é só me dizer.`;
+          ? `Aqui é ${artigoAgente} ${config.AGENT_NAME}, assistente virtual da equipe do Marlon Mattedi. O Marlon atende nas consultas. Se preferir, alguém da equipe fala com você.`
+          : `Aqui é ${artigoAgente} ${config.AGENT_NAME}, assistente virtual da equipe do Marlon Mattedi. Não sou o Marlon: ele atende nas consultas.|||Eu te ajudo por aqui com o que precisar. Se preferir falar com uma pessoa da equipe, é só me dizer.`;
       return done(t, "robo");
     }
 
@@ -256,8 +256,8 @@ export class Engine {
     if (detectRobotQuestion(text) && norm(text).split(" ").length <= 12) {
       const t =
         channel === "voz"
-          ? `Sou sim. Sou a ${config.AGENT_NAME}, assistente virtual da equipe do Marlon Mattedi. Se preferir, uma pessoa da equipe fala com você.`
-          : `Sou sim: sou a ${config.AGENT_NAME}, assistente virtual (uma inteligência artificial) da equipe do Marlon Mattedi.\nSe preferir falar com uma pessoa da equipe, é só me dizer.`;
+          ? `Sou sim. Sou ${artigoAgente} ${config.AGENT_NAME}, assistente virtual da equipe do Marlon Mattedi. Se preferir, uma pessoa da equipe fala com você.`
+          : `Sou sim: sou ${artigoAgente} ${config.AGENT_NAME}, assistente virtual (uma inteligência artificial) da equipe do Marlon Mattedi.\nSe preferir falar com uma pessoa da equipe, é só me dizer.`;
       return done(t, "robo");
     }
 
@@ -354,16 +354,16 @@ export class Engine {
     if (session.direction === "inbound") {
       session.phase = "aberta";
       return pick([
-        `${sauda}! Aqui é a ${a}, assistente virtual da equipe do Marlon Mattedi.${rec} Em que eu posso te ajudar?`,
-        `Oi, ${sauda.toLowerCase()}! Você tá falando com a ${a}, assistente virtual da equipe do Marlon Mattedi.${rec} Me conta, como posso te ajudar?`,
+        `${sauda}! Aqui é ${artigoAgente} ${a}, assistente virtual da equipe do Marlon Mattedi.${rec} Em que eu posso te ajudar?`,
+        `Oi, ${sauda.toLowerCase()}! Você tá falando com ${artigoAgente} ${a}, assistente virtual da equipe do Marlon Mattedi.${rec} Me conta, como posso te ajudar?`,
       ]);
     }
     session.phase = "identidade";
     const nome = lead.name ? `${artigo(lead)} ${firstName(lead)}` : "o titular deste número";
     return pick([
-      `Oi, ${sauda.toLowerCase()}! Aqui é a ${a}, assistente virtual da equipe do Marlon Mattedi.${rec} Eu falo com ${nome}?`,
-      `Alô, oi! Tudo bem? É a ${a}, assistente virtual da equipe do Marlon Mattedi.${rec} Falo com ${nome}?`,
-      `${sauda}! Quem fala é a ${a}, sou assistente virtual da equipe do Marlon Mattedi.${rec} Falo com ${nome}?`,
+      `Oi, ${sauda.toLowerCase()}! Aqui é ${artigoAgente} ${a}, assistente virtual da equipe do Marlon Mattedi.${rec} Eu falo com ${nome}?`,
+      `Alô, oi! Tudo bem? É ${artigoAgente} ${a}, assistente virtual da equipe do Marlon Mattedi.${rec} Falo com ${nome}?`,
+      `${sauda}! Quem fala é ${artigoAgente} ${a}, sou assistente virtual da equipe do Marlon Mattedi.${rec} Falo com ${nome}?`,
     ]);
   }
 
@@ -409,9 +409,9 @@ export class Engine {
         const quem = lead.name ? `${artigo(lead)} ${firstName(lead)}` : "o titular deste número";
         return say(
           pick([
-            `Oi! Aqui é a ${config.AGENT_NAME}, da equipe do Marlon Mattedi. Eu falo com ${quem}?`,
-            `Opa, oi! É a ${config.AGENT_NAME}, da equipe do Marlon Mattedi. Falo com ${quem}?`,
-            `Oi, tá me ouvindo? Aqui é a ${config.AGENT_NAME}, da equipe do Marlon Mattedi. Falo com ${quem}?`,
+            `Oi! Aqui é ${artigoAgente} ${config.AGENT_NAME}, da equipe do Marlon Mattedi. Eu falo com ${quem}?`,
+            `Opa, oi! É ${artigoAgente} ${config.AGENT_NAME}, da equipe do Marlon Mattedi. Falo com ${quem}?`,
+            `Oi, tá me ouvindo? Aqui é ${artigoAgente} ${config.AGENT_NAME}, da equipe do Marlon Mattedi. Falo com ${quem}?`,
           ]),
         );
       }

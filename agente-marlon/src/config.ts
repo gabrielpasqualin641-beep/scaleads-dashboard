@@ -20,7 +20,8 @@ const schema = z.object({
   QUEUE_MODE: z.enum(["bullmq", "memory"]).default("bullmq"),
 
   // Agente
-  AGENT_NAME: z.string().default("Clara"),
+  AGENT_NAME: z.string().default("Fernando"),
+  AGENT_GENERO: z.enum(["masculino", "feminino"]).default("masculino"), // concordância (o/a) nas falas fixas
   ANTHROPIC_API_KEY: z.string().optional(),
   ANTHROPIC_MODEL: z.string().default("claude-sonnet-5-5"),
   ANTHROPIC_EFFORT: z.enum(["low", "medium", "high"]).default("low"), // esforço na voz (latência)
@@ -50,7 +51,7 @@ const schema = z.object({
 
   // Voz
   VOICE_PROVIDER: z.enum(["vapi", "retell", "twilio_streams", "none"]).default("none"),
-  VOICE_GENDER: z.enum(["feminina", "masculina"]).default("feminina"),
+  VOICE_GENDER: z.enum(["feminina", "masculina"]).default("masculina"),
   VOICE_RECORD_CALLS: bool,
   RESPONDER_FORA_DO_HORARIO: z.string().optional().transform((v) => v !== "false"),
   LEAD_WEBHOOK_SECRET: z.string().default(""),
@@ -101,6 +102,9 @@ const schema = z.object({
 
 export type Config = z.infer<typeof schema>;
 export const config: Config = schema.parse(process.env);
+
+/** Artigo definido do agente ("o Fernando" / "a Clara"), para as falas fixas (guardrails e aberturas de voz). */
+export const artigoAgente = config.AGENT_GENERO === "masculino" ? "o" : "a";
 
 export function isProd() {
   return config.NODE_ENV === "production";

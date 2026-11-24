@@ -1,4 +1,4 @@
-import { config } from "../config.js";
+import { config, artigoAgente } from "../config.js";
 import { firstName, type Button, type ListRow } from "../channels/messenger.js";
 import { renderTemplate } from "../channels/whatsapp.js";
 import { textoParaFala } from "../integrations/tts.js";
@@ -133,5 +133,5 @@ export async function notifyTeam(deps: Deps, lead: Lead, reason: string, urgency
 
 export function agentIntro(lead: Lead) {
   const name = lead.name ? `Oi, ${firstName(lead)}! ` : "Oi! ";
-  return `${name}Aqui é a ${config.AGENT_NAME}, assistente virtual da equipe do Marlon Mattedi.`;
+  return `${name}Aqui é ${artigoAgente} ${config.AGENT_NAME}, assistente virtual da equipe do Marlon Mattedi.`;
 }

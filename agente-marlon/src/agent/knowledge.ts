@@ -43,7 +43,21 @@ export function loadProducts(): Record<ProductCode, ProductInfo> {
   return out as Record<ProductCode, ProductInfo>;
 }
 
-export function loadSystemPrompt(agentName: string): string {
-  const base = readFileSync(path.join(AGENT_DIR, "system_prompt.md"), "utf8").replaceAll("{{AGENT_NAME}}", agentName);
+export function loadSystemPrompt(agentName: string, genero: "masculino" | "feminino" = "masculino"): string {
+  const m = genero === "masculino";
+  const tokens: Record<string, string> = {
+    AGENT_NAME: agentName,
+    AGENT_ARTIGO: m ? "o" : "a",
+    AGENT_HUMANO: m ? "humano" : "humana",
+    AGENT_DOUTOR: m ? "doutor" : "doutora",
+    AGENT_CHAMADO: m ? "chamado" : "chamada",
+    AGENT_CALOROSO: m ? "caloroso" : "calorosa",
+    AGENT_SEGURO: m ? "seguro" : "segura",
+    AGENT_CURIOSO: m ? "curioso" : "curiosa",
+    AGENT_DIRETO: m ? "direto" : "direta",
+    AGENT_MELOSO: m ? "meloso" : "melosa",
+  };
+  let base = readFileSync(path.join(AGENT_DIR, "system_prompt.md"), "utf8");
+  for (const [k, v] of Object.entries(tokens)) base = base.replaceAll(`{{${k}}}`, v);
   return `${base}\n\n# Base de conhecimento\n\n${loadKnowledge()}`;
 }

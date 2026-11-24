@@ -65,7 +65,7 @@ const FUNCTION_DECLARATIONS = TOOL_DEFS.map((t) => ({
 
 export class GeminiBrain implements Brain {
   name = "gemini";
-  private systemPrompt = loadSystemPrompt(config.AGENT_NAME);
+  private systemPrompt = loadSystemPrompt(config.AGENT_NAME, config.AGENT_GENERO);
   private endpoint = "https://generativelanguage.googleapis.com/v1beta/models";
 
   private async generate(body: Record<string, unknown>): Promise<GPart[]> {

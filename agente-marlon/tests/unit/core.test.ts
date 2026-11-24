@@ -186,7 +186,7 @@ test("v1.9: qual parte vira áudio", async () => {
   // Modo espelhar ignora a marca se o lead não mandou áudio
   assert.equal(escolherAudio(["[[audio]]Oi"], { ...base, modo: "espelhar" }).audioIndex, -1);
   // A parte com a apresentação obrigatória não vira áudio
-  assert.equal(escolherAudio(["[[audio]]Oi! Aqui é a Clara, assistente virtual."], { ...base, parteComIntro: 0 }).audioIndex, -1);
+  assert.equal(escolherAudio(["[[audio]]Oi! Aqui é o Fernando, assistente virtual."], { ...base, parteComIntro: 0 }).audioIndex, -1);
 });
 
 test("v1.9: texto ajustado para fala", async () => {
