@@ -1,43 +1,48 @@
-# Blueprint do Render: backend + painel + Redis. Postgres no Supabase (DATABASE_URL).
+# Blueprint do Render — Fernando no WhatsApp 24h (Baileys, conexão NÃO-oficial, para teste).
+#
+# ⚠️  ATENÇÃO:
+#   - Conexão não-oficial do WhatsApp: pode BANIR o número. Use um número DESCARTÁVEL (nunca o do Marlon).
+#   - Use plano PAGO (starter). O plano grátis do Render DORME quando fica parado, e aí o WhatsApp CAI.
+#   - A sessão do WhatsApp é salva num disco (/data) para não reescanear o QR a cada reinício.
+#
+# Como usar: no Render → New → Blueprint → conecte o repositório → confirme.
+# Depois, no serviço, defina GEMINI_API_KEY (Environment) e abra a URL com ?token=... para ver o QR.
+#
+# (O blueprint da stack oficial completa — Cloud API + Postgres + Redis — está em render.cloud-api.yaml.)
 services:
   - type: web
-    name: agente-marlon-backend
+    name: fernando-whatsapp
     runtime: node
-    rootDir: agente-marlon
-    plan: starter
-    buildCommand: npm ci && npx prisma generate && npx prisma db push
-    startCommand: npm start
+    plan: starter # PAGO: não dorme. NÃO use free aqui (derruba o WhatsApp).
+    buildCommand: npm ci
+    startCommand: npm run whatsapp
     healthCheckPath: /health
+    disk:
+      name: whatsapp-auth
+      mountPath: /data
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
-      - key: WORKER_INLINE
-        value: "true"
-      - key: REDIS_URL
-        fromService: { type: redis, name: agente-marlon-redis, property: connectionString }
+      - key: STORE
+        value: memory
+      - key: QUEUE_MODE
+        value: memory
+      - key: BRAIN
+        value: gemini
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: AGENT_NAME
+        value: Fernando
+      - key: AGENT_GENERO
+        value: masculino
+      - key: WA_AUDIO_REPLIES
+        value: "off"
+      - key: AUTH_DIR
+        value: /data/auth_whatsapp
       - key: JWT_SECRET
         generateValue: true
-      - key: DATABASE_URL
+      - key: WHATSAPP_ADMIN_TOKEN # senha da página do QR; abra a URL com ?token=ESTE_VALOR
+        generateValue: true
+      - key: GEMINI_API_KEY # cole no painel do Render (Environment) — é segredo, não fica no git
         sync: false
-      - key: ANTHROPIC_API_KEY
-        sync: false
-      - key: PUBLIC_BASE_URL
-        sync: false
-      - key: PANEL_ORIGIN
-        sync: false
-      # Demais variáveis do .env.example: cadastre no painel do Render.
-  - type: web
-    name: agente-marlon-painel
-    runtime: node
-    rootDir: agente-marlon/panel
-    plan: starter
-    buildCommand: npm ci && npm run build
-    startCommand: npm start
-    envVars:
-      - key: BACKEND_URL
-        sync: false
-  - type: redis
-    name: agente-marlon-redis
-    plan: starter
-    ipAllowList: []
-    maxmemoryPolicy: noeviction
