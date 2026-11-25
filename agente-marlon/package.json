@@ -26,7 +26,8 @@
     "demo": "tsx src/scripts/demo.ts",
     "test:all": "npm test && npm run test:scenarios",
     "postinstall": "prisma generate",
-    "local": "node scripts/local.mjs"
+    "local": "node scripts/local.mjs",
+    "whatsapp": "tsx src/scripts/whatsapp.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.4.0",
@@ -37,6 +38,7 @@
     "@fastify/websocket": "^11.3.7",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
     "bcryptjs": "^3.0.3",
     "bullmq": "^6.6.0",
     "dotenv": "^18.0.9",
@@ -45,6 +47,7 @@
     "ioredis": "^6.0.0",
     "luxon": "^3.7.2",
     "pg": "^8.23.1",
+    "qrcode-terminal": "^0.12.0",
     "twilio": "^6.2.0",
     "ws": "^8.22.1",
     "yaml": "^2.9.1",
@@ -54,6 +57,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/luxon": "^3.7.6",
     "@types/node": "^26.6.6",
+    "@types/qrcode-terminal": "^0.12.2",
     "@types/ws": "^8.18.2",
     "prisma": "^7.10.1",
     "tsx": "^4.23.15",

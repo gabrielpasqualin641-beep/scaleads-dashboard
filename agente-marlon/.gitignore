@@ -6,3 +6,6 @@ panel/tsconfig.tsbuildinfo
 src/generated/
 .env
 exports/
+
+# Sessão do WhatsApp (Baileys) — não versionar
+auth_whatsapp/

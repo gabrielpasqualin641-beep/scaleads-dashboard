@@ -49,6 +49,26 @@ Sem chave, quem responde é o roteiro offline: ele tem frases fixas e só entend
 
 > Não copie o `.env.example` para testar: ele é a configuração de produção e exige todas as chaves (WhatsApp, Hotmart etc.).
 
+## 4.2 Conectar no WhatsApp por QR code (TESTE)
+
+> ⚠️ **Conexão NÃO-oficial (Baileys).** Escanear o QR usa o WhatsApp como o WhatsApp Web — isso **viola os termos do WhatsApp e pode BANIR o número**. Use um **número descartável** (um chip/linha de teste), **nunca o do Marlon**, e **não dispare mensagem em massa** (queima o número na hora). Para produção, o certo é a API oficial (Cloud API da Meta).
+
+1. Tenha o `.env` configurado (com `BRAIN=gemini` e a chave, como no `.env` que você já usa). Os áudios já vêm desligados (`WA_AUDIO_REPLIES=off`).
+2. No terminal, rode:
+
+```powershell
+npm run whatsapp
+```
+
+3. Vai aparecer um **QR code** no terminal. No celular do **número de teste**: **WhatsApp → Configurações → Aparelhos conectados → Conectar um aparelho** e escaneie o QR.
+4. Quando aparecer **"✅ Conectado!"**, mande uma mensagem **de outro celular** para o número de teste. O Fernando responde sozinho, pelo Gemini.
+5. **Deixe a janela do terminal aberta** enquanto testa — se fechar, ele para de responder. Para parar, `Ctrl+C`.
+
+Observações:
+- A sessão fica salva na pasta `auth_whatsapp/` (não precisa reescanear toda vez). Para trocar de número, apague essa pasta e rode de novo.
+- Botões e listas aparecem como **texto numerado** (o WhatsApp bloqueia botões interativos fora da API oficial). A pessoa pode responder com o número ou escrevendo normalmente.
+- Grupos e status são ignorados — o Fernando só responde conversas individuais.
+
 ## 5. Depois de mexer no agente
 | O que você quer mudar | Arquivo |
 |---|---|
